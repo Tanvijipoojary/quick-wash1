@@ -20,6 +20,7 @@ const CustomerHome = () => {
 
   useEffect(() => {
     // Backend fetch logic will go here
+    //change the code
   }, []);
 
   return (
