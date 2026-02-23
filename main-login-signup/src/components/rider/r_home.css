@@ -1,0 +1,341 @@
+/* r_home.module.css */
+
+/* Expanded for Web */
+.container {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: #f4f6f9;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Header styled for Desktop */
+.header {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  background-color: #fff;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.headerLeft {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerRight {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.profileName {
+  font-weight: 600;
+  color: #333;
+}
+
+.profileAvatar {
+  font-size: 24px;
+  background: #eee;
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.menuBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex !important;
+  align-items: center;
+}
+
+.headerTitle {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: #000;
+}
+
+/* Tabs aligned for wide screens */
+.tabs {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-start;
+  gap: 32px;
+  background-color: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 40px;
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  padding: 16px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  position: relative;
+  text-align: center;
+  transition: color 0.2s;
+}
+
+.tabBtn:hover {
+  color: #333;
+}
+
+.tabBtnActive {
+  color: #000;
+}
+
+.tabBtnActive::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #79d75a;
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
+}
+
+/* Responsive Grid for Order Cards */
+.orderList {
+  padding: 32px 40px;
+  flex: 1;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); 
+  gap: 24px;
+  align-items: start;
+}
+
+.orderCard {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #f0f0f0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.orderCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.cardHeader, .orderIdRow, .paymentRow {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #777;
+  font-weight: 600;
+}
+
+.statusPill {
+  background-color: #fcebeb;
+  color: #d94a4a;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.orderId {
+  font-weight: 700;
+  font-size: 18px;
+  color: #000;
+}
+
+.vendorInfo {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.vendorIcon {
+  font-size: 28px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 8px;
+  border: 1px solid #eee;
+}
+
+.vendorName {
+  font-weight: 700;
+  font-size: 18px;
+  color: #000;
+}
+
+.addressSection {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  background-color: #fcfcfc;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px dashed #e0e0e0;
+}
+
+.addressItem {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.iconWrapper {
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.addressDetails {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px;
+  text-align: left;
+}
+
+.addressType {
+  font-size: 13px;
+  color: #888;
+  font-weight: 600;
+}
+
+.addressText {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+}
+
+.metadataRow {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 16px;
+  margin-top: 8px;
+}
+
+.metaItem {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #444;
+  font-weight: 500;
+}
+
+.paymentAmount {
+  font-weight: 700;
+  font-size: 16px;
+  color: #000;
+}
+
+.paymentStatus {
+  color: #888;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.commentSection {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px;
+  text-align: left;
+}
+
+.commentText {
+  margin: 0;
+  font-size: 15px;
+  font-style: italic;
+  color: #444;
+  background-color: #fcf8e3; 
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #faebcc;
+}
+
+.assignBtn {
+  width: 100%;
+  background-color: #79d75a;
+  color: #fff;
+  border: none;
+  padding: 16px;
+  border-radius: 8px; 
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.assignBtn:hover {
+  background-color: #6bc24f;
+}
+
+.assignBtn:active {
+  transform: scale(0.98);
+}
+
+/* Transformed into a Web Footer */
+.bottomNav {
+  background-color: #1c252e;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center;
+  gap: 64px; 
+  padding: 24px 0;
+  width: 100%;
+  margin-top: auto; 
+}
+
+.navItem {
+  background: none;
+  border: none;
+  color: #a0aab2;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.navItem:hover {
+  color: #fff;
+}
+
+.navItemActive {
+  color: #79d75a;
+}
+
+.navItem small {
+  font-size: 15px; 
+}
