@@ -8,6 +8,9 @@ import Login from './components/customer/login';
 import CustomerHome from './components/customer/home';
 import Profile from './components/customer/profile';
 import Cart from './components/customer/cart';
+import Checkout from './components/customer/checkout';
+import OrderDetails from './components/customer/orderdetails';
+import ShopPage from './components/customer/shoppage';
 
 // ==========================================
 // 🟠 RIDER PORTAL IMPORTS
@@ -35,6 +38,10 @@ function App() {
           <Route path="/home" element={<CustomerHome />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/order/:id" element={<OrderDetails />} />
+          <Route path="/shop/:id" element={<ShopPage />} />
+          
           
           {/* --- Rider Routes --- */}
           <Route path="/rider" element={<RiderLogin />} />

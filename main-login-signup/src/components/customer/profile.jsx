@@ -106,8 +106,21 @@ const Profile = () => {
               <div className="tab-section animate-fade">
                 <h2>Recent Orders</h2>
                 <div className="orders-list">
+                  
+                  {/* Fake "Pending" Order for demonstration */}
+                  <div className="order-card pending-card" onClick={() => navigate('/order/ORD-9999')}>
+                    <div className="order-info">
+                      <h4>ORD-9999</h4>
+                      <p>23 Feb 2026</p>
+                    </div>
+                    <div className="order-status">
+                      <span className="status-badge orange">Pending Weight</span>
+                      <p className="order-action-text">Track Order ➔</p>
+                    </div>
+                  </div>
+
                   {orders.map((order) => (
-                    <div key={order.id} className="order-card">
+                    <div key={order.id} className="order-card" style={{ opacity: order.status === 'Delivered' ? 0.7 : 1 }}>
                       <div className="order-info">
                         <h4>{order.id}</h4>
                         <p>{order.date}</p>

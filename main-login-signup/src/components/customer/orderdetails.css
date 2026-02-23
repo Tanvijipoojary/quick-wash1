@@ -1,0 +1,107 @@
+.tracking-main {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.tracking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+.tracking-header h1 { margin: 0; color: #0f172a; font-size: 2rem; }
+.status-pill {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+.status-pill.active-status { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+
+.tracking-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+.tracking-card, .info-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  margin-bottom: 25px;
+}
+.tracking-card h2, .info-card h3 { margin-top: 0; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 20px; }
+
+/* --- VERTICAL STEPPER --- */
+.vertical-stepper { display: flex; flex-direction: column; }
+.step {
+  display: flex;
+  position: relative;
+  padding-bottom: 30px;
+}
+.step:last-child { padding-bottom: 0; }
+
+/* The Line connecting steps */
+.step::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 40px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+.step:last-child::before { display: none; }
+.step.completed::before { background: #22c55e; } /* Green line for finished steps */
+
+.step-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; margin-right: 20px;
+  z-index: 2; /* Sits above the line */
+  border: 2px solid white;
+}
+
+.step.completed .step-icon { background: #dcfce7; color: #166534; }
+.step.active .step-icon { background: #e0f2fe; border: 2px solid #0ea5e9; }
+.step.pending .step-icon { filter: grayscale(100%); opacity: 0.5; }
+
+.step-content h4 { margin: 0 0 5px 0; color: #0f172a; font-size: 1.1rem; }
+.step-content p { margin: 0; color: #64748b; font-size: 0.9rem; line-height: 1.4; }
+.step.pending .step-content { opacity: 0.5; }
+
+/* --- INFO SECTION --- */
+.info-card p { margin: 10px 0; color: #475569; }
+.info-card strong { color: #1e293b; }
+
+.service-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #e2e8f0;
+}
+.service-row:last-child { border: none; margin: 0; padding: 0; }
+.service-subtext { margin: 5px 0 0 0; font-size: 0.85rem; color: #64748b; }
+.rate-badge { background: #f8fafc; padding: 5px 10px; border-radius: 6px; font-weight: bold; color: #0ea5e9; border: 1px solid #e2e8f0; }
+
+.pending-bill-box {
+  background: #fffbeb; border: 1px solid #fde68a; padding: 20px; border-radius: 8px;
+  text-align: center; color: #b45309;
+}
+.pending-bill-box .icon { font-size: 2rem; display: block; margin-bottom: 10px; }
+.pending-bill-box p { margin: 0; font-size: 0.9rem; }
+
+.back-profile-btn {
+  width: 100%; padding: 15px; background: transparent; border: 2px solid #0ea5e9;
+  color: #0ea5e9; border-radius: 8px; font-weight: bold; font-size: 1.1rem;
+  cursor: pointer; transition: background 0.2s;
+}
+.back-profile-btn:hover { background: #f0f9ff; }
+
+@media (max-width: 768px) {
+  .tracking-layout { grid-template-columns: 1fr; }
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './home.css';
 import logo from '../assets/quickwash-logo.png'; 
@@ -7,21 +7,52 @@ const CustomerHome = () => {
   const navigate = useNavigate();
   
   const [user, setUser] = useState({
-    name: "John Doe",
+    name: "Tanvi", 
     location: "Bejai Main Road, Mangaluru"
   });
 
-  const [laundries, setLaundries] = useState([
-    { id: 1, name: 'Sparkle Clean', subtitle: 'Fast Delivery & Premium Care', time: '30 mins', price: '₹40/kg', rating: 4.8 },
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
+  const [tempLocation, setTempLocation] = useState("");
+  const [isDetecting, setIsDetecting] = useState(false);
+
+  // --- BRINGING SHOPS BACK ---
+  const [shops] = useState([
+    { id: 1, name: 'Sparkle Clean Laundry', subtitle: 'Fast Delivery & Premium Care', time: '30 mins', price: '₹40/kg', rating: 4.8 },
     { id: 2, name: 'Quick Wash Hub', subtitle: 'Budget Friendly', time: '45 mins', price: '₹30/kg', rating: 4.5 },
     { id: 3, name: 'Elite Dry Cleaners', subtitle: 'Expert Suit Cleaning', time: '24 hrs', price: '₹150/pc', rating: 4.9 },
-    { id: 4, name: 'Mama\'s Ironing', subtitle: 'Crisp & Wrinkle Free', time: '2 hrs', price: '₹15/pc', rating: 4.2 }
+    { id: 4, name: 'Ocean Fresh Laundry', subtitle: 'Eco-Friendly Detergents', time: '2 hrs', price: '₹50/kg', rating: 4.6 }
   ]);
 
-  useEffect(() => {
-    // Backend fetch logic will go here
+  const handleEditClick = () => {
+    setTempLocation(user.location);
+    setIsEditingLocation(true);
+  };
 
-  }, []);
+  const handleSaveLocation = () => {
+    if (tempLocation.trim() !== "") {
+      setUser({ ...user, location: tempLocation });
+    }
+    setIsEditingLocation(false);
+  };
+
+  const handleAutoDetect = () => {
+    setIsDetecting(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setTimeout(() => {
+            setUser({ ...user, location: "Detected: St. Aloysius Area, Mangaluru" });
+            setIsDetecting(false);
+            setIsEditingLocation(false);
+          }, 1000);
+        },
+        (error) => {
+          alert("Could not detect GPS. Please type it manually.");
+          setIsDetecting(false);
+        }
+      );
+    }
+  };
 
   return (
     <div className="web-container">
@@ -34,20 +65,30 @@ const CustomerHome = () => {
         </div>
 
         <div className="nav-location">
-          <span>📍</span>
-          <div>
-            <p className="loc-title">Current Location</p>
-            <p className="loc-address">{user.location}</p>
-          </div>
-        </div>
-
-        <div className="nav-search">
-          <input type="text" placeholder="Search for laundries or services..." />
-          <button>🔍</button>
+          <span className="loc-icon">📍</span>
+          {isEditingLocation ? (
+            <div className="inline-loc-editor animate-fade">
+              <input 
+                type="text" 
+                value={tempLocation} 
+                onChange={(e) => setTempLocation(e.target.value)}
+                placeholder="Enter area or apartment..."
+                autoFocus
+              />
+              <button className="inline-save-btn" onClick={handleSaveLocation}>Save</button>
+              <button className="inline-gps-btn" title="Use GPS" onClick={handleAutoDetect}>
+                {isDetecting ? "⏳" : "🎯"}
+              </button>
+            </div>
+          ) : (
+            <div className="loc-text-box" onClick={handleEditClick}>
+              <p className="loc-title">Delivering to <span className="drop-arrow">✎ Edit</span></p>
+              <p className="loc-address">{user.location}</p>
+            </div>
+          )}
         </div>
 
         <div className="nav-links">
-          {/* Just the Cart and Profile in the top right now! */}
           <div className="nav-item" onClick={() => navigate('/cart')}>🛒 Cart</div>
           <div className="nav-item profile-btn" onClick={() => navigate('/profile')}>
             👤 {user.name}
@@ -56,8 +97,7 @@ const CustomerHome = () => {
       </nav>
 
       <main className="main-content">
-        
-        {/* --- WEB BANNER --- */}
+        {/* --- WEB BANNER (BUTTON REMOVED) --- */}
         <section className="web-banner">
           <div className="banner-text">
             <h1>Fresh Clothes, <br/> Delivered to Your Door.</h1>
@@ -65,27 +105,28 @@ const CustomerHome = () => {
           </div>
         </section>
 
-        {/* --- POPULAR LAUNDRY GRID --- */}
+        {/* --- POPULAR SHOPS GRID --- */}
         <section className="web-section">
           <div className="section-header">
-            <h2>Popular Laundries Around You 🔥</h2>
-            <button className="see-all-btn">View All</button>
+            <h2>Popular Shops Around You 🏪</h2>
           </div>
-          
           <div className="laundry-grid">
-            {laundries.map((laundry) => (
-              <div key={laundry.id} className="web-laundry-card">
+            {shops.map((shop) => (
+              <div 
+                key={shop.id} 
+                className="web-laundry-card"
+                onClick={() => navigate(`/shop/${shop.id}`)} // Routes to the specific shop page
+              >
                 <div className="card-img-placeholder">
                   <span className="heart-icon">🤍</span>
                 </div>
                 <div className="web-card-info">
-                  <h3>{laundry.name}</h3>
-                  <p className="web-subtitle">{laundry.subtitle}</p>
-                  
+                  <h3>{shop.name}</h3>
+                  <p className="web-subtitle">{shop.subtitle}</p>
                   <div className="web-card-stats">
-                    <span className="stat-pill">⏱ {laundry.time}</span>
-                    <span className="stat-pill">🛵 {laundry.price}</span>
-                    <span className="stat-pill rating">★ {laundry.rating}</span>
+                    <span className="stat-pill">⏱ {shop.time}</span>
+                    <span className="stat-pill">🛵 {shop.price}</span>
+                    <span className="stat-pill rating">★ {shop.rating}</span>
                   </div>
                 </div>
               </div>
@@ -94,7 +135,7 @@ const CustomerHome = () => {
         </section>
       </main>
 
-      {/* --- FOOTER (Credentials & Info) --- */}
+      {/* --- FOOTER (FULLY RESTORED) --- */}
       <footer className="web-footer">
         <div className="footer-content">
           <div className="footer-brand">
@@ -125,7 +166,6 @@ const CustomerHome = () => {
           <p>&copy; {new Date().getFullYear()} Quick Wash. All rights reserved.</p>
         </div>
       </footer>
-
     </div>
   );
 };
