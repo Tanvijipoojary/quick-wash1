@@ -122,9 +122,18 @@ const OrderDetails = () => {
 
             <div className="info-card billing-card">
               <h3>Final Bill</h3>
-              <div className="pending-bill-box">
-                <span className="icon">⏳</span>
-                <p>Your bill will be generated here once the vendor weighs your laundry.</p>
+              {/* Replacing the "Pending" box with a "Ready to Pay" box */}
+              <div className="ready-to-pay-box">
+                <div className="bill-summary-row">
+                  <span>Total Amount Due</span>
+                  <strong>₹530.00</strong>
+                </div>
+                <button 
+                  className="pay-bill-btn" 
+                  onClick={() => navigate(`/billing/${order.id}`)}
+                >
+                  View Invoice & Pay
+                </button>
               </div>
             </div>
 

@@ -105,3 +105,15 @@
 @media (max-width: 768px) {
   .tracking-layout { grid-template-columns: 1fr; }
 }
+
+.ready-to-pay-box {
+  background: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px;
+}
+.bill-summary-row {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: #166534; font-size: 1.1rem;
+}
+.bill-summary-row strong { font-size: 1.4rem; }
+.pay-bill-btn {
+  width: 100%; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: background 0.2s;
+}
+.pay-bill-btn:hover { background: #16a34a; }

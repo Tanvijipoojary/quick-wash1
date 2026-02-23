@@ -11,6 +11,7 @@ import Cart from './components/customer/cart';
 import Checkout from './components/customer/checkout';
 import OrderDetails from './components/customer/orderdetails';
 import ShopPage from './components/customer/shoppage';
+import Billing from './components/customer/billing';
 
 // ==========================================
 // 🟠 RIDER PORTAL IMPORTS
@@ -41,6 +42,7 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order/:id" element={<OrderDetails />} />
           <Route path="/shop/:id" element={<ShopPage />} />
+          <Route path="/billing/:id" element={<Billing />} />
           
           
           {/* --- Rider Routes --- */}

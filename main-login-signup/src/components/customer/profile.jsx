@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './profile.css';
 import logo from '../assets/quickwash-logo.png'; 
@@ -7,12 +7,9 @@ const Profile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
 
-  // ==========================================
-  // 🚀 BACKEND READY STATE
-  // ==========================================
   const [user, setUser] = useState({
-    name: "John Doe",
-    email: "johndoe@example.com",
+    name: "Tanvi",
+    email: "tanvi@example.com",
     phone: "+91 9876543210",
     location: "Bejai Main Road, Mangaluru"
   });
@@ -22,8 +19,36 @@ const Profile = () => {
     { id: "ORD-9954", date: "21 Feb 2026", status: "In Progress", total: "₹340" }
   ]);
 
+  // ==========================================
+  // ❤️ FAVORITES DISPLAY LOGIC
+  // ==========================================
+  // We need the master list of shops to match against the saved IDs
+  const allShops = [
+    { id: 1, name: 'Sparkle Clean Laundry', subtitle: 'Fast Delivery & Premium Care', time: '30 mins', price: '₹40/kg', rating: 4.8 },
+    { id: 2, name: 'Quick Wash Hub', subtitle: 'Budget Friendly', time: '45 mins', price: '₹30/kg', rating: 4.5 },
+    { id: 3, name: 'Elite Dry Cleaners', subtitle: 'Expert Suit Cleaning', time: '24 hrs', price: '₹150/pc', rating: 4.9 },
+    { id: 4, name: 'Ocean Fresh Laundry', subtitle: 'Eco-Friendly Detergents', time: '2 hrs', price: '₹50/kg', rating: 4.6 }
+  ];
+
+  const [favoriteIds, setFavoriteIds] = useState([]);
+
+  useEffect(() => {
+    const savedFavs = localStorage.getItem('quickwash_favs');
+    if (savedFavs) {
+      setFavoriteIds(JSON.parse(savedFavs));
+    }
+  }, []); // Runs once when profile loads
+
+  // Filters the master list to ONLY include the ones saved in localStorage
+  const favoriteShops = allShops.filter(shop => favoriteIds.includes(shop.id));
+
+  const removeFavorite = (shopId) => {
+    const updated = favoriteIds.filter(id => id !== shopId);
+    setFavoriteIds(updated);
+    localStorage.setItem('quickwash_favs', JSON.stringify(updated));
+  };
+
   const handleLogout = () => {
-    // Add logic to clear tokens/session here
     console.log("Logging out...");
     navigate('/');
   };
@@ -39,7 +64,7 @@ const Profile = () => {
         
         <div className="nav-links">
           <div className="nav-item" onClick={() => navigate('/home')}>🏠 Home</div>
-          <div className="nav-item">🛒 Cart</div>
+          <div className="nav-item" onClick={() => navigate('/cart')}>🛒 Cart</div>
           <div className="nav-item profile-btn active">👤 {user.name}</div>
         </div>
       </nav>
@@ -62,6 +87,9 @@ const Profile = () => {
               </li>
               <li className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>
                 📦 Order History
+              </li>
+              <li className={activeTab === 'favorites' ? 'active' : ''} onClick={() => setActiveTab('favorites')}>
+                ❤️ Saved Shops
               </li>
               <li className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
                 ⚙️ Settings
@@ -106,8 +134,6 @@ const Profile = () => {
               <div className="tab-section animate-fade">
                 <h2>Recent Orders</h2>
                 <div className="orders-list">
-                  
-                  {/* Fake "Pending" Order for demonstration */}
                   <div className="order-card pending-card" onClick={() => navigate('/order/ORD-9999')}>
                     <div className="order-info">
                       <h4>ORD-9999</h4>
@@ -137,11 +163,38 @@ const Profile = () => {
               </div>
             )}
 
+            {/* TAB: FAVORITES */}
+            {activeTab === 'favorites' && (
+              <div className="tab-section animate-fade">
+                <h2>My Favorite Shops</h2>
+                
+                {favoriteShops.length === 0 ? (
+                  <div className="empty-favs">
+                    <p>You haven't saved any shops yet!</p>
+                    <button className="outline-btn" onClick={() => navigate('/home')}>Browse Shops</button>
+                  </div>
+                ) : (
+                  <div className="favorites-grid">
+                    {favoriteShops.map(shop => (
+                      <div key={shop.id} className="fav-shop-card">
+                        <div className="fav-info" onClick={() => navigate(`/shop/${shop.id}`)}>
+                          <h4>{shop.name}</h4>
+                          <p>★ {shop.rating}</p>
+                        </div>
+                        <button className="remove-fav-btn" onClick={() => removeFavorite(shop.id)}>
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* TAB: SETTINGS */}
             {activeTab === 'settings' && (
               <div className="tab-section animate-fade">
                 <h2>Account Settings</h2>
-                
                 <div className="settings-card">
                   <h3>Notifications</h3>
                   <div className="toggle-row">
@@ -152,12 +205,7 @@ const Profile = () => {
                     <span>SMS Delivery Updates</span>
                     <input type="checkbox" defaultChecked />
                   </div>
-                  <div className="toggle-row">
-                    <span>Promotional Offers</span>
-                    <input type="checkbox" />
-                  </div>
                 </div>
-
                 <div className="settings-card">
                   <h3>Security</h3>
                   <button className="outline-btn">Change Password</button>

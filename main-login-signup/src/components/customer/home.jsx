@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './home.css';
 import logo from '../assets/quickwash-logo.png'; 
@@ -15,13 +15,34 @@ const CustomerHome = () => {
   const [tempLocation, setTempLocation] = useState("");
   const [isDetecting, setIsDetecting] = useState(false);
 
-  // --- BRINGING SHOPS BACK ---
   const [shops] = useState([
     { id: 1, name: 'Sparkle Clean Laundry', subtitle: 'Fast Delivery & Premium Care', time: '30 mins', price: '₹40/kg', rating: 4.8 },
     { id: 2, name: 'Quick Wash Hub', subtitle: 'Budget Friendly', time: '45 mins', price: '₹30/kg', rating: 4.5 },
     { id: 3, name: 'Elite Dry Cleaners', subtitle: 'Expert Suit Cleaning', time: '24 hrs', price: '₹150/pc', rating: 4.9 },
     { id: 4, name: 'Ocean Fresh Laundry', subtitle: 'Eco-Friendly Detergents', time: '2 hrs', price: '₹50/kg', rating: 4.6 }
   ]);
+
+  // ==========================================
+  // ❤️ FAVORITES LOGIC
+  // ==========================================
+  const [favorites, setFavorites] = useState(() => {
+    const savedFavs = localStorage.getItem('quickwash_favs');
+    return savedFavs ? JSON.parse(savedFavs) : [];
+  });
+
+  const toggleFavorite = (e, shopId) => {
+    e.stopPropagation(); // Stops the card from clicking through to the shop page!
+    
+    let updatedFavs;
+    if (favorites.includes(shopId)) {
+      updatedFavs = favorites.filter(id => id !== shopId); // Remove
+    } else {
+      updatedFavs = [...favorites, shopId]; // Add
+    }
+    
+    setFavorites(updatedFavs);
+    localStorage.setItem('quickwash_favs', JSON.stringify(updatedFavs));
+  };
 
   const handleEditClick = () => {
     setTempLocation(user.location);
@@ -56,8 +77,6 @@ const CustomerHome = () => {
 
   return (
     <div className="web-container">
-      
-      {/* --- TOP NAVBAR --- */}
       <nav className="top-navbar">
         <div className="nav-brand" onClick={() => navigate('/home')}>
           <img src={logo} alt="Quick Wash Logo" className="nav-logo" />
@@ -97,7 +116,6 @@ const CustomerHome = () => {
       </nav>
 
       <main className="main-content">
-        {/* --- WEB BANNER (BUTTON REMOVED) --- */}
         <section className="web-banner">
           <div className="banner-text">
             <h1>Fresh Clothes, <br/> Delivered to Your Door.</h1>
@@ -105,7 +123,6 @@ const CustomerHome = () => {
           </div>
         </section>
 
-        {/* --- POPULAR SHOPS GRID --- */}
         <section className="web-section">
           <div className="section-header">
             <h2>Popular Shops Around You 🏪</h2>
@@ -115,10 +132,16 @@ const CustomerHome = () => {
               <div 
                 key={shop.id} 
                 className="web-laundry-card"
-                onClick={() => navigate(`/shop/${shop.id}`)} // Routes to the specific shop page
+                onClick={() => navigate(`/shop/${shop.id}`)}
               >
                 <div className="card-img-placeholder">
-                  <span className="heart-icon">🤍</span>
+                  {/* Heart icon now dynamic based on state */}
+                  <span 
+                    className="heart-icon" 
+                    onClick={(e) => toggleFavorite(e, shop.id)}
+                  >
+                    {favorites.includes(shop.id) ? '❤️' : '🤍'}
+                  </span>
                 </div>
                 <div className="web-card-info">
                   <h3>{shop.name}</h3>
@@ -135,7 +158,6 @@ const CustomerHome = () => {
         </section>
       </main>
 
-      {/* --- FOOTER (FULLY RESTORED) --- */}
       <footer className="web-footer">
         <div className="footer-content">
           <div className="footer-brand">
