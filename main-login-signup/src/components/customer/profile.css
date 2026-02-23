@@ -229,3 +229,7 @@
   .top-navbar { padding: 15px 20px; }
   .profile-main { padding: 0 10px; margin: 20px auto; }
 }
+
+.pending-card { cursor: pointer; border: 1px solid #bae6fd; background: #f0f9ff; transition: transform 0.2s;}
+.pending-card:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(14,165,233,0.1); }
+.order-action-text { color: #0ea5e9; font-weight: bold; font-size: 0.9rem; margin-top: 8px; }

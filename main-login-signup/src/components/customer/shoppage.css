@@ -1,0 +1,139 @@
+.shop-main {
+  max-width: 1000px;
+  margin: 0 auto 100px; /* Space for the floating bar */
+  padding: 0 20px;
+}
+
+.animate-fade { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* --- UPDATED SHOP BANNER --- */
+.shop-banner-card {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+  color: white;
+  padding: 40px 30px;
+  border-radius: 20px; /* Fully rounded corners */
+  margin-top: 30px; /* Pushed down from the navbar */
+  margin-bottom: 40px;
+  box-shadow: 0 10px 25px rgba(14, 165, 233, 0.2);
+}
+
+.shop-banner-content h1 { margin: 0 0 10px 0; font-size: 2.5rem; }
+.shop-address { margin: 0 0 15px 0; opacity: 0.9; font-size: 1.1rem; }
+.shop-stats { display: flex; gap: 15px; margin-bottom: 15px; }
+.shop-short-desc { margin: 0; opacity: 0.8; font-size: 0.95rem; line-height: 1.5; }
+
+/* --- ABOUT & GALLERY SECTION --- */
+.shop-info-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  margin-bottom: 40px;
+}
+
+.shop-about-text h2 { margin-top: 0; color: #1e293b; font-size: 1.4rem; }
+.shop-about-text p { color: #475569; line-height: 1.6; font-size: 0.95rem; }
+
+.shop-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+/* Makes the first image span the whole top width */
+.shop-gallery .gallery-placeholder:first-child { grid-column: 1 / -1; height: 120px; }
+
+.gallery-placeholder {
+  background: #f1f5f9;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #64748b;
+  font-weight: bold;
+  font-size: 0.9rem;
+  border: 2px dashed #cbd5e1;
+}
+
+/* --- SERVICES LIST --- */
+.shop-services-section { margin-bottom: 40px; }
+.shop-services-section h2 { color: #1e293b; margin-bottom: 25px; font-size: 1.5rem; }
+.shop-services-list { display: flex; flex-direction: column; gap: 15px; }
+
+.shop-service-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+
+.service-info-left { display: flex; align-items: center; gap: 20px; }
+.s-icon { font-size: 2.5rem; background: #f0f9ff; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+.service-info-left h3 { margin: 0 0 5px 0; color: #0f172a; font-size: 1.1rem; }
+.service-info-left p { margin: 0 0 10px 0; color: #64748b; font-size: 0.9rem; }
+.s-price { color: #0ea5e9; font-weight: bold; background: #e0f2fe; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; }
+
+.add-cart-btn {
+  background: white; color: #0ea5e9; border: 2px solid #0ea5e9;
+  padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.2s;
+}
+.add-cart-btn:hover { background: #0ea5e9; color: white; }
+
+/* --- REVIEWS SECTION --- */
+.shop-reviews-section { margin-bottom: 50px; }
+.shop-reviews-section h2 { color: #1e293b; margin-bottom: 25px; font-size: 1.5rem; }
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.review-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+.review-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.review-header strong { color: #0f172a; }
+.review-stars { color: #fbbf24; letter-spacing: 2px; }
+.review-comment { color: #475569; font-size: 0.9rem; margin: 0; font-style: italic; line-height: 1.4; }
+
+/* --- FLOATING BOOK NOW BAR --- */
+.floating-checkout-bar {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #1e293b; color: white; width: 90%; max-width: 800px;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 15px 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  z-index: 100;
+}
+.animate-slide-up { animation: slideUp 0.3s ease-out; }
+@keyframes slideUp { from { transform: translate(-50%, 50px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+.float-info strong { display: block; font-size: 1.1rem; color: #38bdf8; margin-bottom: 3px; }
+.float-info p { margin: 0; font-size: 0.9rem; opacity: 0.8; }
+
+.book-now-float-btn {
+  background: #0ea5e9; color: white; border: none; padding: 12px 25px;
+  border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer;
+}
+.book-now-float-btn:hover { background: #0284c7; }
+
+/* --- RESPONSIVE DESIGN --- */
+@media (max-width: 768px) {
+  .shop-info-gallery { grid-template-columns: 1fr; }
+  .shop-service-card { flex-wrap: wrap; }
+  .service-actions-right { margin-top: 15px; width: 100%; }
+  .add-cart-btn { width: 100%; }
+}
