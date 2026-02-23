@@ -20,7 +20,7 @@ const CustomerHome = () => {
 
   useEffect(() => {
     // Backend fetch logic will go here
-    //change the code
+
   }, []);
 
   return (
@@ -47,8 +47,8 @@ const CustomerHome = () => {
         </div>
 
         <div className="nav-links">
-          <div className="nav-item" onClick={() => navigate('/store')}>🏪 Store</div>
-          <div className="nav-item">🛒 Cart</div>
+          {/* Just the Cart and Profile in the top right now! */}
+          <div className="nav-item" onClick={() => navigate('/cart')}>🛒 Cart</div>
           <div className="nav-item profile-btn" onClick={() => navigate('/profile')}>
             👤 {user.name}
           </div>
