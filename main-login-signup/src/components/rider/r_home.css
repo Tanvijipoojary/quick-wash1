@@ -131,9 +131,29 @@
   font-weight: 600;
 }
 
-.rhome-status-pill {
+
+
+.rhome-status-pill-waiting {
   background-color: #fcebeb;
   color: #d94a4a;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rhome-status-pill-assigned {
+  background-color: #fdf0d5; /* Light yellow background */
+  color: #c98200; /* Dark orange/brown text matching your reference */
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rhome-status-pill-completed {
+  background-color: #e6f4ea; /* Light green background */
+  color: #1e8e3e; /* Dark green text */
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 13px;

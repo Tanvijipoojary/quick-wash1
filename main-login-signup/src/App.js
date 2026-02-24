@@ -18,6 +18,9 @@ import Billing from './components/customer/billing';
 // ==========================================
 import RiderLogin from './components/rider/rider';
 import RiderHome from './components/rider/r_home';
+import RiderWallet from './components/rider/r_wallet';
+import RiderEarnings from './components/rider/r_earnings';
+import RiderEarningsHistory from './components/rider/r_earnings_history';
 
 // ==========================================
 // 🟢 VENDOR PORTAL IMPORTS
@@ -48,6 +51,10 @@ function App() {
           {/* --- Rider Routes --- */}
           <Route path="/rider" element={<RiderLogin />} />
           <Route path="/rider-home" element={<RiderHome />} />
+          <Route path="/rider-wallet" element={<RiderWallet />} />
+          <Route path="/rider-earnings" element={<RiderEarnings />} />
+          <Route path="/rider-earnings-history" element={<RiderEarningsHistory />} />
+          
           
           {/* --- Vendor Routes --- */}
           <Route path="/vendor" element={<VendorLogin />} />
