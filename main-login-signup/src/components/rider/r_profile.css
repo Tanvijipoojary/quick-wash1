@@ -1,0 +1,138 @@
+/* r_profile.css */
+
+.rprof-container {
+  width: 100%;
+  margin: 0 auto;
+  /* Allows the whole webpage to scroll natively */
+  min-height: 100vh; 
+  background-color: #fdf4eb; 
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative;
+}
+
+.rprof-header {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 40px; 
+  background-color: #fff;
+  border-bottom: 1px solid #f0e6dd;
+  position: relative;
+}
+
+.rprof-header-left { position: absolute; left: 40px; display: flex !important; flex-direction: row !important; align-items: center; }
+.rprof-menu-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex !important; align-items: center; color: #333; }
+.rprof-header-title { font-size: 20px; font-weight: 800; margin: 0; color: #000; }
+
+/* =========================================
+   CENTERED SINGLE COLUMN FOR PC
+   ========================================= */
+.rprof-main-content {
+  flex: 1; 
+  width: 100%;
+  /* 800px keeps the cards looking perfect on a wide PC screen */
+  max-width: 800px; 
+  margin: 0 auto;
+  padding: 40px 20px; 
+  display: flex !important;
+  flex-direction: column !important; /* Stacks items vertically */
+  gap: 32px;
+}
+
+/* User Avatar & Info */
+.rprof-user-top {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f0e6dd;
+}
+
+.rprof-avatar-large { width: 80px; height: 80px; background-color: #eb6d1e; border-radius: 50%; display: flex !important; align-items: center; justify-content: center; color: #fff; font-size: 28px; font-weight: 700; }
+.rprof-user-text h2 { font-size: 24px; font-weight: 800; color: #2b2522; margin: 0 0 4px 0; }
+.rprof-user-text p { font-size: 16px; color: #888; margin: 0; font-weight: 500;}
+
+/* --- Document Section --- */
+.rprof-docs-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+  background-color: #fff;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid #faeedf;
+  box-shadow: 0 4px 12px rgba(235, 109, 30, 0.04);
+}
+
+.rprof-doc-row { display: flex !important; flex-direction: row !important; justify-content: space-between; align-items: center; }
+.rprof-doc-left { display: flex !important; flex-direction: column !important; gap: 8px; align-items: flex-start; }
+.rprof-doc-label { font-size: 16px; font-weight: 700; color: #2b2522; }
+.rprof-missing-pill { background-color: #fcebeb; color: #d94a4a; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.rprof-action-link { background: none; border: none; color: #eb6d1e; font-size: 15px; font-weight: 700; cursor: pointer; padding: 0; }
+.rprof-action-link:hover { text-decoration: underline; }
+.rprof-divider { height: 1px; background-color: #f0e6dd; width: 100%; }
+
+/* --- Other Information Section --- */
+.rprof-info-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+}
+
+.rprof-section-title { font-size: 18px; font-weight: 700; color: #2b2522; margin: 0 0 4px 0; }
+.rprof-info-card { background-color: #fff; padding: 24px; border-radius: 12px; border: 1px solid #faeedf; display: flex !important; flex-direction: column !important; gap: 8px; }
+.rprof-card-with-action { flex-direction: row !important; justify-content: space-between; align-items: center; }
+.rprof-card-content { display: flex !important; flex-direction: column !important; gap: 8px; }
+.rprof-card-label { font-size: 14px; color: #666; font-weight: 500; }
+.rprof-card-value { font-size: 16px; font-weight: 700; color: #111; }
+
+/* =========================================
+   SIDEBAR MENU STYLES
+   ========================================= */
+.rprof-sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(43, 37, 34, 0.4); z-index: 1000; display: flex !important; }
+.rprof-sidebar { width: 80%; max-width: 320px; height: 100%; background-color: #fff; box-shadow: 4px 0 24px rgba(0,0,0,0.1); display: flex !important; flex-direction: column !important; animation: slideIn 0.3s forwards; }
+@keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+.rprof-sidebar-header { background-color: #eb6d1e; padding: 32px 24px 24px 24px; display: flex !important; flex-direction: column !important; gap: 16px; }
+.rprof-avatar-small { width: 48px; height: 48px; background-color: #fff; color: #eb6d1e; border-radius: 50%; display: flex !important; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; }
+.rprof-sidebar-user-text h2 { color: #fff; font-size: 18px; margin: 0 0 4px 0; }
+.rprof-sidebar-user-text p { color: rgba(255,255,255,0.8); font-size: 13px; margin: 0; }
+.rprof-sidebar-menu { flex: 1; overflow-y: auto; padding: 12px 0; display: flex !important; flex-direction: column !important; }
+.rprof-side-item { display: flex !important; flex-direction: row !important; justify-content: space-between; align-items: center; padding: 14px 24px; background: none; border: none; border-bottom: 1px solid #f9f9f9; cursor: pointer; transition: background-color 0.2s; width: 100%; }
+.rprof-side-item:hover { background-color: #fdf4eb; }
+.rprof-side-left { display: flex !important; flex-direction: row !important; align-items: center; gap: 16px; }
+.rprof-side-icon { font-size: 18px; color: #666; }
+.rprof-side-label { font-size: 14px; font-weight: 600; color: #2b2522; }
+.rprof-side-arrow { font-size: 18px; color: #a0aab2; }
+
+/* --- Toggle Switch --- */
+.rprof-toggle-wrapper { display: flex !important; flex-direction: column !important; align-items: flex-end; gap: 4px; }
+.rprof-toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+.rprof-toggle input { opacity: 0; width: 0; height: 0; }
+.rprof-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+.rprof-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .rprof-slider { background-color: #4285f4; }
+input:checked + .rprof-slider:before { transform: translateX(20px); }
+.rprof-toggle-text { font-size: 11px; color: #888; }
+
+/* =========================================
+   BOTTOM NAVIGATION
+   ========================================= */
+
+.rprof-bottom-nav { 
+  margin-top: auto; /* Pushes the nav bar to the very bottom */
+  background-color: #2b2522; 
+  display: flex !important; 
+  flex-direction: row !important; 
+  justify-content: center; 
+  gap: 64px; 
+  padding: 16px 0; 
+  width: 100%; 
+}
+.rprof-nav-item { background: none; border: none; color: #a0aab2; display: flex !important; flex-direction: row !important; align-items: center; gap: 10px; cursor: pointer; font-weight: 500; font-size: 15px; transition: color 0.2s; }
+.rprof-nav-item:hover { color: #fff; }
+.rprof-nav-active { color: #eb6d1e; }

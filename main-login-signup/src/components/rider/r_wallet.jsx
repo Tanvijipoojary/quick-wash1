@@ -24,18 +24,19 @@ const RiderWallet = () => {
   const handleConfirmWithdraw = () => {
     if (withdrawAmount > 0) {
       setShowWithdrawModal(false);
-      setShowSuccessModal(true); // Open the success popup
+      setShowSuccessModal(true);
     }
   };
 
   const handleCloseSuccess = () => {
     setShowSuccessModal(false);
-    setWithdrawAmount(''); // Reset input
+    setWithdrawAmount('');
   };
 
   return (
     <div className="rwallet-container">
-      {/* Header */}
+      
+      {/* --- Fixed Header --- */}
       <header className="rwallet-header">
         <div className="rwallet-header-left">
           <button className="rwallet-back-btn" onClick={() => navigate('/rider-home')}>
@@ -48,10 +49,9 @@ const RiderWallet = () => {
         </div>
       </header>
 
-      {/* Main Content Centered for Web */}
+      {/* --- Scrollable Main Content --- */}
       <main className="rwallet-main-content">
         
-        {/* Balance Card */}
         <div className="rwallet-balance-card">
           <span className="rwallet-balance-label">Current Balance</span>
           <h2 className="rwallet-balance-amount">Rs. 2500</h2>
@@ -63,7 +63,6 @@ const RiderWallet = () => {
           </button>
         </div>
 
-        {/* Transactions List */}
         <div className="rwallet-transactions-section">
           <h3 className="rwallet-section-title">Recent Transactions</h3>
           <div className="rwallet-transactions-list">
@@ -91,13 +90,10 @@ const RiderWallet = () => {
         </div>
       </main>
 
-      {/* =========================================
-          MODALS OVERLAY
-          ========================================= */}
+      {/* --- Popup Modals --- */}
       {(showWithdrawModal || showSuccessModal) && (
         <div className="rwallet-modal-overlay">
           
-          {/* 1. Enter Amount Modal */}
           {showWithdrawModal && (
             <div className="rwallet-modal-box">
               <div className="rwallet-modal-top-row">
@@ -130,7 +126,6 @@ const RiderWallet = () => {
             </div>
           )}
 
-          {/* 2. Success Modal */}
           {showSuccessModal && (
             <div className="rwallet-modal-box rwallet-success-box">
               <button className="rwallet-close-x" onClick={handleCloseSuccess}>
@@ -152,7 +147,7 @@ const RiderWallet = () => {
         </div>
       )}
 
-      {/* Bottom Navigation */}
+      {/* --- Fixed Bottom Nav --- */}
       <footer className="rwallet-bottom-nav">
         <button className="rwallet-nav-item" onClick={() => navigate('/rider-home')}>
           <span>🏠</span>
@@ -162,13 +157,11 @@ const RiderWallet = () => {
           <span>💳</span>
           <small>Wallet</small>
         </button>
-       <button 
-          className="rwallet-nav-item" 
-          onClick={() => navigate('/rider-earnings')}>
+        <button className="rwallet-nav-item" onClick={() => navigate('/rider-earnings')}>
           <span>💲</span>
           <small>Earnings</small>
         </button>
-        <button className="rwallet-nav-item">
+        <button className="rwallet-nav-item" onClick={() => navigate('/rider-profile')}>
           <span>👤</span>
           <small>Profile</small>
         </button>

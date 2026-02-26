@@ -1,0 +1,231 @@
+/* r_settings.css - Shared Styles for all Sidebar Sub-Pages */
+
+.rset-container {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  background-color: #fdf4eb; /* Quick Wash Peach */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.rset-header {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  padding: 20px 40px;
+  background-color: #fff;
+  border-bottom: 1px solid #f0e6dd;
+  gap: 24px;
+}
+
+.rset-back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex !important;
+  align-items: center;
+  color: #333;
+  transition: transform 0.2s;
+}
+
+.rset-back-btn:hover {
+  transform: translateX(-3px);
+}
+
+.rset-header-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  color: #2b2522;
+}
+
+.rset-main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 600px; 
+  margin: 0 auto;
+  padding: 32px 20px 100px 20px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px;
+}
+
+/* --- Shared List/Card Styles --- */
+.rset-card {
+  background-color: #fff;
+  border-radius: 16px;
+  border: 1px solid #faeedf;
+  padding: 8px 24px;
+  box-shadow: 0 4px 12px rgba(235, 109, 30, 0.04);
+}
+
+.rset-list-item {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #f0e6dd;
+  cursor: pointer;
+}
+
+.rset-list-item:last-child {
+  border-bottom: none;
+}
+
+.rset-item-left {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2b2522;
+}
+
+/* --- Custom Orange Radio Buttons --- */
+.rset-radio {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #d0d7e0;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s;
+}
+
+.rset-radio-active {
+  border-color: #eb6d1e; /* Orange Border */
+}
+
+.rset-radio-dot {
+  width: 12px;
+  height: 12px;
+  background-color: #eb6d1e; /* Orange Dot */
+  border-radius: 50%;
+}
+
+/* --- Form Inputs (Bank Page) --- */
+.rset-input-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.rset-input-group label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+}
+
+.rset-input, .rset-select {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #e0d5cb;
+  border-radius: 12px;
+  font-size: 16px;
+  background-color: #fff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.rset-input:focus, .rset-select:focus {
+  border-color: #eb6d1e;
+}
+
+/* --- Schedule Cards --- */
+.rset-sched-card {
+  background-color: #fff;
+  border-radius: 12px;
+  border: 1px solid #faeedf;
+  padding: 20px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+}
+
+.rset-sched-header {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rset-sched-day {
+  font-weight: 800;
+  font-size: 16px;
+  color: #2b2522;
+}
+
+.rset-sched-times {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 12px;
+}
+
+.rset-time-input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #e0d5cb;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  color: #444;
+  outline: none;
+}
+
+.rset-add-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #eb6d1e;
+  color: #fff;
+  border: none;
+  font-size: 24px;
+  line-height: 0;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Toggle Switch (Reused from Profile) */
+.rset-toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+}
+.rset-toggle input { opacity: 0; width: 0; height: 0; }
+.rset-slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ccc; transition: .4s; border-radius: 34px;
+}
+.rset-slider:before {
+  position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px;
+  background-color: white; transition: .4s; border-radius: 50%;
+}
+input:checked + .rset-slider { background-color: #eb6d1e; }
+input:checked + .rset-slider:before { transform: translateX(22px); }
+
+/* --- Big Action Button --- */
+.rset-action-btn {
+  width: 100%;
+  background-color: #eb6d1e;
+  color: #fff;
+  border: none;
+  padding: 18px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s;
+  margin-top: 20px;
+}
+.rset-action-btn:active { transform: scale(0.98); }

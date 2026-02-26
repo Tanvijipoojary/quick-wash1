@@ -21,6 +21,11 @@ import RiderHome from './components/rider/r_home';
 import RiderWallet from './components/rider/r_wallet';
 import RiderEarnings from './components/rider/r_earnings';
 import RiderEarningsHistory from './components/rider/r_earnings_history';
+import RiderProfile from './components/rider/r_profile';
+import RiderLanguage from './components/rider/r_language';
+import RiderVehicle from './components/rider/r_vehicle';
+import RiderBank from './components/rider/r_bank';
+import RiderSchedule from './components/rider/r_schedule';
 
 // ==========================================
 // 🟢 VENDOR PORTAL IMPORTS
@@ -54,6 +59,11 @@ function App() {
           <Route path="/rider-wallet" element={<RiderWallet />} />
           <Route path="/rider-earnings" element={<RiderEarnings />} />
           <Route path="/rider-earnings-history" element={<RiderEarningsHistory />} />
+          <Route path="/rider-profile" element={<RiderProfile />} />
+          <Route path="/rider-language" element={<RiderLanguage />} />
+          <Route path="/rider-vehicle" element={<RiderVehicle />} />
+          <Route path="/rider-bank" element={<RiderBank />} />
+          <Route path="/rider-schedule" element={<RiderSchedule />} />
           
           
           {/* --- Vendor Routes --- */}
