@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './home.css';
-import logo from '../assets/quickwash-logo.png'; 
+import logo from '../assets/quickwash-logo.png';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
@@ -22,24 +22,20 @@ const CustomerHome = () => {
     { id: 4, name: 'Ocean Fresh Laundry', subtitle: 'Eco-Friendly Detergents', time: '2 hrs', price: '₹50/kg', rating: 4.6 }
   ]);
 
-  // ==========================================
-  // ❤️ FAVORITES LOGIC
-  // ==========================================
+  // --- FAVORITES LOGIC ---
   const [favorites, setFavorites] = useState(() => {
     const savedFavs = localStorage.getItem('quickwash_favs');
     return savedFavs ? JSON.parse(savedFavs) : [];
   });
 
   const toggleFavorite = (e, shopId) => {
-    e.stopPropagation(); // Stops the card from clicking through to the shop page!
-    
+    e.stopPropagation(); 
     let updatedFavs;
     if (favorites.includes(shopId)) {
-      updatedFavs = favorites.filter(id => id !== shopId); // Remove
+      updatedFavs = favorites.filter(id => id !== shopId);
     } else {
-      updatedFavs = [...favorites, shopId]; // Add
+      updatedFavs = [...favorites, shopId];
     }
-    
     setFavorites(updatedFavs);
     localStorage.setItem('quickwash_favs', JSON.stringify(updatedFavs));
   };
@@ -79,6 +75,7 @@ const CustomerHome = () => {
     <div className="web-container">
       <nav className="top-navbar">
         <div className="nav-brand" onClick={() => navigate('/home')}>
+          {/* Replaced the bubble emoji with your actual image variable */}
           <img src={logo} alt="Quick Wash Logo" className="nav-logo" />
           <h2>QUICK WASH</h2>
         </div>
@@ -120,6 +117,7 @@ const CustomerHome = () => {
           <div className="banner-text">
             <h1>Fresh Clothes, <br/> Delivered to Your Door.</h1>
             <p>Get 20% off your first wash with code <strong>QUICK20</strong></p>
+            {/* Removed the unstyled button from here! */}
           </div>
         </section>
 
@@ -129,17 +127,9 @@ const CustomerHome = () => {
           </div>
           <div className="laundry-grid">
             {shops.map((shop) => (
-              <div 
-                key={shop.id} 
-                className="web-laundry-card"
-                onClick={() => navigate(`/shop/${shop.id}`)}
-              >
+              <div key={shop.id} className="web-laundry-card" onClick={() => navigate(`/shop/${shop.id}`)}>
                 <div className="card-img-placeholder">
-                  {/* Heart icon now dynamic based on state */}
-                  <span 
-                    className="heart-icon" 
-                    onClick={(e) => toggleFavorite(e, shop.id)}
-                  >
+                  <span className="heart-icon" onClick={(e) => toggleFavorite(e, shop.id)}>
                     {favorites.includes(shop.id) ? '❤️' : '🤍'}
                   </span>
                 </div>
@@ -162,7 +152,7 @@ const CustomerHome = () => {
         <div className="footer-content">
           <div className="footer-brand">
             <div className="footer-logo-container">
-              <img src={logo} alt="Quick Wash Logo" className="footer-logo" />
+              <img src={logo} alt="Quick Wash Logo" className="nav-logo" />
               <h3>QUICK WASH</h3>
             </div>
             <p>Your premium laundry and dry cleaning partner. Fresh clothes delivered right to your doorstep.</p>
@@ -170,10 +160,10 @@ const CustomerHome = () => {
           
           <div className="footer-links">
             <h4>Company</h4>
-            <p>About Us</p>
-            <p>Careers</p>
-            <p>Partner with Us</p>
-            <p>Terms & Conditions</p>
+            <p className="footer-link" onClick={() => navigate('/about')}>About Us</p>
+            <p className="footer-link" onClick={() => navigate('/careers')}>Careers</p>
+            <p className="footer-link" onClick={() => navigate('/partner')}>Partner with Us</p>
+            <p className="footer-link" onClick={() => navigate('/terms')}>Terms & Conditions</p>
           </div>
 
           <div className="footer-contact">

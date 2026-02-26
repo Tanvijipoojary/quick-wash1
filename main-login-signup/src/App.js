@@ -12,6 +12,13 @@ import Checkout from './components/customer/checkout';
 import OrderDetails from './components/customer/orderdetails';
 import ShopPage from './components/customer/shoppage';
 import Billing from './components/customer/billing';
+import AboutUs from './components/customer/AboutUs';
+import Careers from './components/customer/Careers';
+import Partner from './components/customer/Partner';
+import Terms from './components/customer/Terms';
+
+
+import AdminDashboard from './components/Admin/AdminDashboard';
 
 // ==========================================
 // 🟠 RIDER PORTAL IMPORTS
@@ -46,8 +53,14 @@ function App() {
           <Route path="/order/:id" element={<OrderDetails />} />
           <Route path="/shop/:id" element={<ShopPage />} />
           <Route path="/billing/:id" element={<Billing />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/partner" element={<Partner />} />
+          <Route path="/terms" element={<Terms />} />
           
-          
+          {/* Admin */}
+          <Route path="/admin" element={<AdminDashboard />} />
+
           {/* --- Rider Routes --- */}
           <Route path="/rider" element={<RiderLogin />} />
           <Route path="/rider-home" element={<RiderHome />} />

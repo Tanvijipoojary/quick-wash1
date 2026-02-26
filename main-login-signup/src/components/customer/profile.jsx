@@ -5,218 +5,333 @@ import logo from '../assets/quickwash-logo.png';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('settings'); // Defaulted to settings so you can see it!
 
+  // --- USER DATA ---
   const [user, setUser] = useState({
-    name: "Tanvi",
-    email: "tanvi@example.com",
-    phone: "+91 9876543210",
-    location: "Bejai Main Road, Mangaluru"
+    name: "Tanvi G Poojary",
+    phone: "7353863409",
+    email: "tanvijipoojary@gmail.com"
   });
 
-  const [orders, setOrders] = useState([
-    { id: "ORD-9921", date: "20 Feb 2026", status: "Delivered", total: "₹120" },
-    { id: "ORD-9954", date: "21 Feb 2026", status: "In Progress", total: "₹340" }
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ ...user });
+
+  const openEditModal = () => {
+    setEditForm({ ...user });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    setUser(editForm); // Used here!
+    setIsEditModalOpen(false); 
+  };
+
+  // --- HELP MODAL ---
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [selectedHelpOrder, setSelectedHelpOrder] = useState(null);
+  const [helpMessage, setHelpMessage] = useState("");
+
+  const handleOpenHelp = (order) => {
+    setSelectedHelpOrder(order);
+    setIsHelpModalOpen(true);
+  };
+
+  const handleSubmitHelp = (e) => {
+    e.preventDefault();
+    alert(`Support ticket created for Order #${selectedHelpOrder.id}.`);
+    setIsHelpModalOpen(false);
+    setHelpMessage("");
+  };
+
+  const handleReorder = (shopId) => {
+    alert("Items added to your cart! Redirecting to checkout...");
+    navigate('/cart');
+  };
+
+  // --- LOGOUT HANDLER ---
+  const handleLogout = () => {
+    alert("You have been successfully logged out.");
+    navigate('/'); 
+  };
+
+  // --- STATIC DATA (Warnings Fixed!) ---
+  const [addresses] = useState([
+    { id: 1, type: "Work", text: "Sai Fancy, Karnad, Mulki, Hejamadi, Karnataka, India", icon: "💼" },
+    { id: 2, type: "Home", text: "305, Durga Recidency, Karnad, Mulki, Hejamadi, Karnataka, India", icon: "🏠" },
+    { id: 3, type: "Hotel", text: "InvenTree Hotel, Dange Chowk Rd, Wakad, Pune", icon: "🏨" },
+    { id: 4, type: "Friends And Family", text: "Roveena House, 5th Cross Road, Lakshmi Nagar, Bejai, Mangalore", icon: "📍" }
   ]);
 
-  // ==========================================
-  // ❤️ FAVORITES DISPLAY LOGIC
-  // ==========================================
-  // We need the master list of shops to match against the saved IDs
+  const [orders] = useState([
+    { 
+      id: "225916035022394", shopId: 1, shopName: "Sparkle Clean Laundry", location: "City Centre",
+      date: "Sun, Dec 28, 2025, 11:57 PM", deliveredDate: "Mon, Dec 29, 2025, 12:17 AM",
+      items: "Wash & Fold (2.5 kg) x 1, Premium Dry Clean (Suit) x 1", total: "₹250"
+    },
+    { 
+      id: "225896182673846", shopId: 2, shopName: "Quick Wash Hub", location: "Bejai Main Road",
+      date: "Sun, Dec 28, 2025, 06:26 PM", deliveredDate: "Sun, Dec 28, 2025, 06:49 PM",
+      items: "Wash & Iron (Shirts) x 5, Shoe Cleaning x 1", total: "₹380"
+    }
+  ]);
+
   const allShops = [
-    { id: 1, name: 'Sparkle Clean Laundry', subtitle: 'Fast Delivery & Premium Care', time: '30 mins', price: '₹40/kg', rating: 4.8 },
-    { id: 2, name: 'Quick Wash Hub', subtitle: 'Budget Friendly', time: '45 mins', price: '₹30/kg', rating: 4.5 },
-    { id: 3, name: 'Elite Dry Cleaners', subtitle: 'Expert Suit Cleaning', time: '24 hrs', price: '₹150/pc', rating: 4.9 },
-    { id: 4, name: 'Ocean Fresh Laundry', subtitle: 'Eco-Friendly Detergents', time: '2 hrs', price: '₹50/kg', rating: 4.6 }
+    { id: 1, name: 'Sparkle Clean Laundry', rating: 4.8 },
+    { id: 2, name: 'Quick Wash Hub', rating: 4.5 },
   ];
-
   const [favoriteIds, setFavoriteIds] = useState([]);
-
+  
   useEffect(() => {
     const savedFavs = localStorage.getItem('quickwash_favs');
-    if (savedFavs) {
-      setFavoriteIds(JSON.parse(savedFavs));
-    }
-  }, []); // Runs once when profile loads
-
-  // Filters the master list to ONLY include the ones saved in localStorage
+    if (savedFavs) setFavoriteIds(JSON.parse(savedFavs));
+  }, []);
+  
   const favoriteShops = allShops.filter(shop => favoriteIds.includes(shop.id));
 
-  const removeFavorite = (shopId) => {
-    const updated = favoriteIds.filter(id => id !== shopId);
-    setFavoriteIds(updated);
-    localStorage.setItem('quickwash_favs', JSON.stringify(updated));
-  };
-
-  const handleLogout = () => {
-    console.log("Logging out...");
-    navigate('/');
-  };
-
   return (
-    <div className="web-container">
-      {/* --- TOP NAVBAR --- */}
+    <div className="profile-page-bg">
       <nav className="top-navbar">
         <div className="nav-brand" onClick={() => navigate('/home')}>
           <img src={logo} alt="Quick Wash Logo" className="nav-logo" />
           <h2>QUICK WASH</h2>
         </div>
-        
         <div className="nav-links">
           <div className="nav-item" onClick={() => navigate('/home')}>🏠 Home</div>
           <div className="nav-item" onClick={() => navigate('/cart')}>🛒 Cart</div>
-          <div className="nav-item profile-btn active">👤 {user.name}</div>
+          <div className="nav-item profile-btn active">👤 Profile</div>
         </div>
       </nav>
 
-      {/* --- MAIN DASHBOARD LAYOUT --- */}
-      <main className="profile-main">
-        <div className="profile-layout">
-          
-          {/* --- SIDEBAR --- */}
-          <aside className="profile-sidebar">
-            <div className="sidebar-header">
-              <div className="avatar-large">{user.name.charAt(0)}</div>
-              <h3>{user.name}</h3>
-              <p>{user.email}</p>
-            </div>
-            
-            <ul className="sidebar-menu">
-              <li className={activeTab === 'profile' ? 'active' : ''} onClick={() => setActiveTab('profile')}>
-                👤 My Profile
-              </li>
-              <li className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>
-                📦 Order History
-              </li>
-              <li className={activeTab === 'favorites' ? 'active' : ''} onClick={() => setActiveTab('favorites')}>
-                ❤️ Saved Shops
-              </li>
-              <li className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
-                ⚙️ Settings
-              </li>
-              <li className="logout-btn" onClick={handleLogout}>
-                🚪 Logout
-              </li>
-            </ul>
-          </aside>
+      <div className="profile-header-banner">
+        <div className="profile-header-content">
+          <div className="user-info-block">
+            <h1>{user.name}</h1>
+            <p>{user.phone} <span className="dot-divider">•</span> {user.email}</p>
+          </div>
+          <button className="edit-profile-btn" onClick={openEditModal}>EDIT PROFILE</button>
+        </div>
+      </div>
 
-          {/* --- CONTENT AREA --- */}
-          <section className="profile-content">
-            
-            {/* TAB: PROFILE */}
-            {activeTab === 'profile' && (
-              <div className="tab-section animate-fade">
-                <h2>Personal Information</h2>
-                <form className="profile-form" onSubmit={(e) => e.preventDefault()}>
-                  <div className="form-group">
-                    <label>Full Name</label>
-                    <input type="text" defaultValue={user.name} />
+      <main className="profile-main-body">
+        <aside className="profile-sidebar-nav">
+          <ul>
+            <li className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>
+              <span className="tab-icon">🛍️</span> Orders
+            </li>
+            <li className={activeTab === 'favorites' ? 'active' : ''} onClick={() => setActiveTab('favorites')}>
+              <span className="tab-icon">🤍</span> Favourites
+            </li>
+            <li className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>
+              <span className="tab-icon">💳</span> Payments
+            </li>
+            <li className={activeTab === 'addresses' ? 'active' : ''} onClick={() => setActiveTab('addresses')}>
+              <span className="tab-icon">📍</span> Addresses
+            </li>
+            <li className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}>
+              <span className="tab-icon">⚙️</span> Settings
+            </li>
+          </ul>
+        </aside>
+
+        <section className="profile-content-area">
+          {activeTab === 'orders' && (
+            <div className="animate-fade">
+              <h2 className="tab-main-title">Past Orders</h2>
+              <div className="orders-tab-wrapper">
+                {orders.map(order => (
+                  <div key={order.id} className="swiggy-order-card">
+                    <div className="order-top-section">
+                      <div className="order-shop-details">
+                        <div className="shop-image-box">🏪</div>
+                        <div className="shop-text-info">
+                          <h3>{order.shopName}</h3>
+                          <p className="shop-location">{order.location}</p>
+                          <p className="order-id-date">ORDER #{order.id} | {order.date}</p>
+                          <button className="view-details-text-btn" onClick={() => navigate(`/order/${order.id}`)}>VIEW DETAILS</button>
+                        </div>
+                      </div>
+                      <div className="order-delivery-status">
+                        Delivered on {order.deliveredDate} <span className="green-tick">✓</span>
+                      </div>
+                    </div>
+                    <div className="order-dashed-divider"></div>
+                    <div className="order-middle-section">
+                      <p className="order-items-text">{order.items}</p>
+                      <p className="order-total-text">Total Paid: {order.total}</p>
+                    </div>
+                    <div className="order-bottom-section">
+                      <button className="reorder-btn" onClick={() => handleReorder(order.shopId)}>REORDER</button>
+                      <button className="help-btn" onClick={() => handleOpenHelp(order)}>HELP</button>
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label>Email Address</label>
-                    <input type="email" defaultValue={user.email} />
-                  </div>
-                  <div className="form-group">
-                    <label>Phone Number</label>
-                    <input type="text" defaultValue={user.phone} />
-                  </div>
-                  <div className="form-group">
-                    <label>Default Address</label>
-                    <textarea defaultValue={user.location}></textarea>
-                  </div>
-                  <button type="submit" className="save-btn">Save Changes</button>
-                </form>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* TAB: ORDERS */}
-            {activeTab === 'orders' && (
-              <div className="tab-section animate-fade">
-                <h2>Recent Orders</h2>
-                <div className="orders-list">
-                  <div className="order-card pending-card" onClick={() => navigate('/order/ORD-9999')}>
-                    <div className="order-info">
-                      <h4>ORD-9999</h4>
-                      <p>23 Feb 2026</p>
-                    </div>
-                    <div className="order-status">
-                      <span className="status-badge orange">Pending Weight</span>
-                      <p className="order-action-text">Track Order ➔</p>
+          {activeTab === 'addresses' && (
+            <div className="animate-fade">
+              <h2 className="tab-main-title">Manage Addresses</h2>
+              <div className="swiggy-addresses-grid">
+                {addresses.map(addr => (
+                  <div key={addr.id} className="swiggy-address-card">
+                    <div className="addr-icon-wrapper">{addr.icon}</div>
+                    <div className="addr-content-wrapper">
+                      <h3>{addr.type}</h3>
+                      <p>{addr.text}</p>
+                      <div className="addr-actions">
+                        <button>EDIT</button>
+                        <button>DELETE</button>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-                  {orders.map((order) => (
-                    <div key={order.id} className="order-card" style={{ opacity: order.status === 'Delivered' ? 0.7 : 1 }}>
-                      <div className="order-info">
-                        <h4>{order.id}</h4>
-                        <p>{order.date}</p>
-                      </div>
-                      <div className="order-status">
-                        <span className={`status-badge ${order.status === 'Delivered' ? 'green' : 'orange'}`}>
-                          {order.status}
-                        </span>
-                        <p className="order-total">{order.total}</p>
-                      </div>
-                    </div>
+          {activeTab === 'favorites' && (
+            <div className="animate-fade">
+              <h2 className="tab-main-title">Favourite Shops</h2>
+              {favoriteShops.length === 0 ? (
+                <p className="empty-text">No favourites saved yet.</p>
+              ) : (
+                <div className="swiggy-addresses-grid">
+                  {favoriteShops.map(shop => (
+                     <div key={shop.id} className="swiggy-address-card">
+                       <div className="addr-content-wrapper">
+                         <h3>{shop.name}</h3>
+                         <p style={{marginTop: '5px', color: '#fc8019'}}>★ {shop.rating}</p>
+                         <div className="addr-actions" style={{marginTop: '15px'}}>
+                           <button onClick={() => navigate(`/shop/${shop.id}`)}>VISIT SHOP</button>
+                         </div>
+                       </div>
+                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
-            {/* TAB: FAVORITES */}
-            {activeTab === 'favorites' && (
-              <div className="tab-section animate-fade">
-                <h2>My Favorite Shops</h2>
+          {activeTab === 'payments' && (
+            <div className="animate-fade">
+              <h2 className="tab-main-title">Payments</h2>
+              <p className="empty-text">This section will be available soon.</p>
+            </div>
+          )}
+
+          {/* --- SETTINGS TAB (HandleLogout is connected here!) --- */}
+          {activeTab === 'settings' && (
+            <div className="animate-fade">
+              <h2 className="tab-main-title">Settings</h2>
+              
+              <div className="settings-card-modern">
+                <div className="settings-row">
+                  <div>
+                    <h3>SMS & WhatsApp Updates</h3>
+                    <p>Receive order updates on your registered number.</p>
+                  </div>
+                  <span style={{ color: '#20a161', fontWeight: 'bold' }}>Enabled ✓</span>
+                </div>
                 
-                {favoriteShops.length === 0 ? (
-                  <div className="empty-favs">
-                    <p>You haven't saved any shops yet!</p>
-                    <button className="outline-btn" onClick={() => navigate('/home')}>Browse Shops</button>
-                  </div>
-                ) : (
-                  <div className="favorites-grid">
-                    {favoriteShops.map(shop => (
-                      <div key={shop.id} className="fav-shop-card">
-                        <div className="fav-info" onClick={() => navigate(`/shop/${shop.id}`)}>
-                          <h4>{shop.name}</h4>
-                          <p>★ {shop.rating}</p>
-                        </div>
-                        <button className="remove-fav-btn" onClick={() => removeFavorite(shop.id)}>
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                <div className="settings-divider"></div>
 
-            {/* TAB: SETTINGS */}
-            {activeTab === 'settings' && (
-              <div className="tab-section animate-fade">
-                <h2>Account Settings</h2>
-                <div className="settings-card">
-                  <h3>Notifications</h3>
-                  <div className="toggle-row">
-                    <span>Email Receipts</span>
-                    <input type="checkbox" defaultChecked />
+                <div className="settings-row">
+                  <div>
+                    <h3>Account Security</h3>
+                    <p>Change your password or update security questions.</p>
                   </div>
-                  <div className="toggle-row">
-                    <span>SMS Delivery Updates</span>
-                    <input type="checkbox" defaultChecked />
-                  </div>
+                  <button className="settings-text-btn">UPDATE</button>
                 </div>
-                <div className="settings-card">
-                  <h3>Security</h3>
-                  <button className="outline-btn">Change Password</button>
-                  <button className="outline-btn danger">Delete Account</button>
+
+                <div className="settings-divider"></div>
+
+                <div className="settings-row">
+                  <div>
+                    <h3>Log Out</h3>
+                    <p>Sign out of your Quick Wash account securely.</p>
+                  </div>
+                  <button className="logout-action-btn" onClick={handleLogout}>LOG OUT</button>
                 </div>
               </div>
-            )}
-
-          </section>
-        </div>
+            </div>
+          )}
+        </section>
       </main>
+
+      {/* --- EDIT MODAL --- */}
+      {isEditModalOpen && (
+        <div className="profile-modal-overlay" onClick={() => setIsEditModalOpen(false)}>
+          <div className="profile-modal-box animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit Profile</h2>
+              <button className="close-modal-btn" onClick={() => setIsEditModalOpen(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveProfile} className="edit-profile-form">
+              <div className="form-group-modern">
+                <label>Full Name</label>
+                <input type="text" value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} required />
+              </div>
+              <div className="form-group-modern">
+                <label>Phone Number</label>
+                <input type="text" value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} required />
+              </div>
+              <div className="form-group-modern">
+                <label>Email Address</label>
+                <input type="email" value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} required />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="cancel-edit-btn" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
+                <button type="submit" className="save-edit-btn">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- HELP MODAL --- */}
+      {isHelpModalOpen && selectedHelpOrder && (
+        <div className="profile-modal-overlay" onClick={() => setIsHelpModalOpen(false)}>
+          <div className="profile-modal-box animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Order Support</h2>
+              <button className="close-modal-btn" onClick={() => setIsHelpModalOpen(false)}>✕</button>
+            </div>
+            <div className="help-order-summary">
+              <strong>Order #{selectedHelpOrder.id}</strong>
+              <p>{selectedHelpOrder.shopName}</p>
+            </div>
+            <form onSubmit={handleSubmitHelp} className="edit-profile-form">
+              <div className="form-group-modern">
+                <label>How can we help you?</label>
+                <select className="help-dropdown" required>
+                  <option value="">Select an issue...</option>
+                  <option value="missing">Items missing from delivery</option>
+                  <option value="quality">Poor wash/iron quality</option>
+                  <option value="late">Order was significantly delayed</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="form-group-modern">
+                <label>Additional Details</label>
+                <textarea 
+                  className="help-textarea"
+                  placeholder="Please describe your issue in detail..." 
+                  value={helpMessage}
+                  onChange={(e) => setHelpMessage(e.target.value)}
+                  required 
+                ></textarea>
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="cancel-edit-btn" onClick={() => setIsHelpModalOpen(false)}>Cancel</button>
+                <button type="submit" className="save-edit-btn">Submit Ticket</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
