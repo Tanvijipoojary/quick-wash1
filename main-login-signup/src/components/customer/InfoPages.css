@@ -1,0 +1,42 @@
+.info-page-bg {
+  background-color: #f8fafc;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.info-main-content {
+  max-width: 800px;
+  margin: 60px auto 100px;
+  padding: 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  border: 1px solid #e2e8f0;
+}
+
+.info-main-content h1 {
+  color: #0f172a;
+  font-size: 2.2rem;
+  margin-top: 0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 15px;
+}
+
+.info-main-content p {
+  color: #475569;
+  line-height: 1.8;
+  font-size: 1.05rem;
+  margin-bottom: 20px;
+}
+
+/* Footer Link Hover Effect */
+.footer-link {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: #0ea5e9;
+  text-decoration: underline;
+}
