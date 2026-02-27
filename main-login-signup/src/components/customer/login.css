@@ -182,3 +182,89 @@
   padding: 0;
   margin-left: 5px;
 }
+
+/* --- PARTNER SECTION --- */
+.partner-section {
+  margin-top: 35px;
+}
+
+.partner-divider {
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.partner-divider span {
+  background: white;
+  padding: 0 15px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: bold;
+  position: relative;
+  top: -10px;
+}
+
+.partner-title {
+  color: #475569;
+  font-size: 0.95rem;
+  margin-bottom: 15px;
+}
+
+.partner-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.partner-btn {
+  flex: 1;
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 12px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* --- PARTNER BUTTON HOVER EFFECTS --- */
+.partner-btn {
+  flex: 1;
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 12px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Orange hover for Shop Owner */
+.partner-btn.vendor-btn:hover {
+  background: #fff7ed;
+  border-color: #ea580c;
+  color: #ea580c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(234, 88, 12, 0.15);
+}
+
+/* Green hover for Delivery Rider */
+.partner-btn.rider-btn:hover {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #16a34a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.15);
+}

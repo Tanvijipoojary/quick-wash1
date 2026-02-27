@@ -10,12 +10,12 @@ const Login = () => {
   const [isLoginMode, setIsLoginMode] = useState(true); 
   const [step, setStep] = useState(1); 
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false); // NEW: Tracks if admin is logging in
+  const [isAdminMode, setIsAdminMode] = useState(false); 
 
   // Form Data
   const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
   const [otp, setOtp] = useState('');
-  const [password, setPassword] = useState(''); // NEW: Admin Password
+  const [password, setPassword] = useState(''); 
 
   // --- HANDLERS ---
   const handleInputChange = (e) => {
@@ -44,7 +44,7 @@ const Login = () => {
         setIsAdminMode(false);
       }
       
-      setStep(2); // Move to verification/password screen
+      setStep(2); 
     }, 1000);
   };
 
@@ -56,15 +56,12 @@ const Login = () => {
       setIsLoading(false);
 
       if (isAdminMode) {
-        // --- ADMIN LOGIN LOGIC ---
-        // For prototype, password is 'admin123'
         if (password === 'admin123') {
           navigate('/admin');
         } else {
           alert("Incorrect Admin Password!");
         }
       } else {
-        // --- CUSTOMER LOGIN LOGIC ---
         if (otp.length === 4) {
           navigate('/home');
         } else {
@@ -125,6 +122,23 @@ const Login = () => {
                 {isLoginMode ? "Sign Up" : "Log In"}
               </span>
             </div>
+
+            {/* --- PARTNER LINKS (RESTORED) --- */}
+            <div className="partner-section">
+              <div className="partner-divider"><span>OR</span></div>
+              <p className="partner-title">Partner with Quick Wash</p>
+              <div className="partner-buttons">
+                {/* Routes to the Vendor Login page */}
+                <button type="button" className="partner-btn vendor-btn" onClick={() => navigate('/vendor')}>
+                  🏪 Shop Owner
+                </button>
+                {/* Routes to the Rider Login page */}
+                <button type="button" className="partner-btn rider-btn" onClick={() => navigate('/rider')}>
+                  🛵 Delivery Rider
+                </button>
+              </div>
+            </div>
+
           </form>
         )}
 
@@ -142,7 +156,6 @@ const Login = () => {
             
             <div className="input-group">
               {isAdminMode ? (
-                // ADMIN SEES PASSWORD BOX
                 <input 
                   type="password" 
                   placeholder="Enter admin password" 
@@ -153,7 +166,6 @@ const Login = () => {
                   style={{ textAlign: 'left', letterSpacing: 'normal', fontSize: '1rem' }}
                 />
               ) : (
-                // CUSTOMERS SEE OTP BOX
                 <input 
                   type="text" 
                   className="otp-input"
