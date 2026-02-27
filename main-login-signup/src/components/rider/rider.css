@@ -1,3 +1,6 @@
+/* ==========================================
+   RIDER LOGIN (ORANGE)
+========================================== */
 .rider-container {
   display: flex;
   justify-content: center;
@@ -18,8 +21,35 @@
   border-top: 5px solid #f97316;
 }
 
-.rider-header h1 { color: #ea580c; margin: 0; }
-.rider-header p { color: #9a3412; margin-bottom: 20px; font-size: 0.9rem; }
+/* --- RIDER BRAND HEADER --- */
+.rider-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent; /* Forces the background to be clear */
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.rider-header .logo {
+  height: 50px;
+  margin-bottom: 8px;
+  object-fit: contain;
+}
+
+.rider-header h1 { 
+  color: #ea580c; 
+  margin: 0; 
+  font-size: 1.8rem; 
+  letter-spacing: 1px; 
+}
+
+.rider-header p { 
+  color: #9a3412; 
+  margin: 5px 0 0 0; 
+  font-size: 0.95rem; 
+}
+
 
 .rider-input {
   width: 100%;
@@ -55,7 +85,7 @@
   font-size: 0.9rem;
 }
 
-.back-to-home-vendor {
+.back-to-home-rider {
   margin-top: 20px;
   background: none;
   border: none;
@@ -64,3 +94,4 @@
   font-size: 0.85rem;
   text-decoration: underline;
 }
+

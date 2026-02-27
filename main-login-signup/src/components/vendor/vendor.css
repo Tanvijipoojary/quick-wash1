@@ -1,9 +1,12 @@
+/* ==========================================
+   VENDOR LOGIN (GREEN)
+========================================== */
 .vendor-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); /* Light Green */
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); /* Light Green Gradient */
   font-family: 'Segoe UI', sans-serif;
 }
 
@@ -15,11 +18,36 @@
   width: 100%;
   max-width: 380px;
   text-align: center;
-  border-top: 5px solid #16a34a;
+  border-top: 5px solid #22c55e;
 }
 
-.vendor-header h1 { color: #15803d; margin: 0; }
-.vendor-header p { color: #166534; margin-bottom: 20px; font-size: 0.9rem; }
+.vendor-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent; /* Forces the background to be clear */
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.vendor-header .logo {
+  height: 50px;
+  margin-bottom: 8px;
+  object-fit: contain;
+}
+
+.vendor-header h1 { 
+  color: #16a34a; 
+  margin: 0; 
+  font-size: 1.8rem; 
+  letter-spacing: 1px; 
+}
+
+.vendor-header p { 
+  color: #15803d; 
+  margin: 5px 0 0 0; 
+  font-size: 0.95rem; 
+}
 
 .vendor-input {
   width: 100%;
@@ -31,7 +59,10 @@
   box-sizing: border-box;
 }
 
-.vendor-input:focus { border-color: #16a34a; background-color: #f0fdf4; }
+.vendor-input:focus { 
+  border-color: #22c55e; 
+  background-color: #f0fdf4; 
+}
 
 .vendor-btn {
   width: 100%;
@@ -40,13 +71,21 @@
   color: white;
   border: none;
   border-radius: 6px;
+  font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
   margin-top: 15px;
   transition: 0.3s;
 }
 
-.vendor-btn:hover { background-color: #15803d; }
+.vendor-btn:hover { 
+  background-color: #15803d; 
+}
+
+.vendor-btn:disabled {
+  background-color: #86efac;
+  cursor: not-allowed;
+}
 
 .toggle-vendor {
   color: #15803d;
@@ -55,8 +94,12 @@
   font-size: 0.9rem;
 }
 
+.toggle-vendor:hover {
+  text-decoration: underline;
+}
+
 .back-to-home-vendor {
-  margin-top: 20px;
+  margin-top: 25px;
   background: none;
   border: none;
   color: #14532d;
@@ -64,3 +107,5 @@
   font-size: 0.85rem;
   text-decoration: underline;
 }
+
+/* --- VENDOR BRAND HEADER --- */

@@ -116,8 +116,6 @@ const CustomerHome = () => {
         <section className="web-banner">
           <div className="banner-text">
             <h1>Fresh Clothes, <br/> Delivered to Your Door.</h1>
-            <p>Get 20% off your first wash with code <strong>QUICK20</strong></p>
-            {/* Removed the unstyled button from here! */}
           </div>
         </section>
 
