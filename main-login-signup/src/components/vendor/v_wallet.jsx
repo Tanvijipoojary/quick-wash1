@@ -45,9 +45,16 @@ const VendorWallet = () => {
   return (
     <div className="vwal-container">
       
-      {/* Glassmorphism Header (View Earnings button removed) */}
-      <header className="vwal-header" style={{ justifyContent: 'center' }}>
+      {/* Glassmorphism Header (With Back Arrow) */}
+      <header className="vwal-header">
+        <button className="vwal-back-btn" onClick={() => navigate(-1)}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
         <h1 className="vwal-header-title">Wallet</h1>
+        <div style={{ width: 24 }}></div> {/* Invisible spacer keeps the title perfectly centered */}
       </header>
 
       <main className="vwal-main-content">
