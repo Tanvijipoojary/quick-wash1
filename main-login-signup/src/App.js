@@ -33,6 +33,7 @@ import RiderLanguage from './components/rider/r_language';
 import RiderVehicle from './components/rider/r_vehicle';
 import RiderBank from './components/rider/r_bank';
 import RiderSchedule from './components/rider/r_schedule';
+import RiderOnboarding from './components/rider/r_onboarding';
 
 // ==========================================
 // 🟢 VENDOR PORTAL IMPORTS
@@ -84,6 +85,8 @@ function App() {
           <Route path="/rider-vehicle" element={<RiderVehicle />} />
           <Route path="/rider-bank" element={<RiderBank />} />
           <Route path="/rider-schedule" element={<RiderSchedule />} />
+          <Route path="/rider-register" element={<RiderOnboarding />} />
+          
           
           
           {/* --- Vendor Routes --- */}
