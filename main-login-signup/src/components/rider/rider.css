@@ -16,8 +16,9 @@
 .rlog-form-title { margin: 0 0 8px 0; font-size: 22px; font-weight: 800; color: #2b2522; }
 .rlog-instruction { margin: 0 0 24px 0; font-size: 14px; color: #666; text-align: center; }
 
-.rlog-input-group { display: flex !important; flex-direction: column !important; width: 100%; gap: 8px; margin-bottom: 24px; }
+.rlog-input-group { display: flex !important; flex-direction: column !important; width: 100%; gap: 8px; margin-bottom: 24px;}
 .rlog-input-group label { font-size: 13px; font-weight: 800; color: #2b2522; }
+.rlog-input-group input { width: 100%; padding: 16px; border: 2px solid #f0e6dd; border-radius: 8px; font-size: 16px; font-weight: 600; color: #2b2522; box-sizing: border-box; outline: none; transition: all 0.2s; background-color: #fff;}
 
 .rlog-phone-input-wrapper { display: flex !important; align-items: center; width: 100%; border: 2px solid #f0e6dd; border-radius: 8px; overflow: hidden; transition: all 0.2s; background-color: #fff;}
 .rlog-phone-input-wrapper:focus-within { border-color: #eb6d1e; box-shadow: 0 0 0 3px rgba(235, 109, 30, 0.15); }

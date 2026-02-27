@@ -8,13 +8,13 @@ const VendorLogin = () => {
   // --- STATE MANAGEMENT ---
   const [step, setStep] = useState(1); // 1 = Email, 2 = OTP
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
+  const [Email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']); // 4-digit OTP
 
   // --- HANDLERS ---
   const handleSendOTP = (e) => {
     e.preventDefault();
-    if (!email) return;
+    if (!Email) return;
     
     setIsLoading(true);
     // Simulate API call to send OTP
@@ -75,13 +75,13 @@ const VendorLogin = () => {
               <input 
                 type="email" 
                 placeholder="e.g., vendor@example.com" 
-                value={email}
+                value={Email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
 
-            <button type="submit" className="vlog-submit-btn" disabled={isLoading || !email}>
+            <button type="submit" className="vlog-submit-btn" disabled={isLoading || !Email}>
               {isLoading ? 'Sending OTP...' : 'Continue'}
             </button>
             
@@ -103,7 +103,7 @@ const VendorLogin = () => {
           <form className="vlog-form" onSubmit={handleVerifyOTP}>
             <h2 className="vlog-form-title">Enter OTP</h2>
             <p className="vlog-instruction">
-              We've sent a 4-digit code to <strong>{email}</strong>
+              We've sent a 4-digit code to <strong>{Email}</strong>
             </p>
             
             <div className="vlog-otp-container">

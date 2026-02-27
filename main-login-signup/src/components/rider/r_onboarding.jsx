@@ -9,8 +9,9 @@ const RiderOnboarding = () => {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Added 'email' to formData
   const [formData, setFormData] = useState({
-    fullName: '', phone: '', city: '',
+    fullName: '', phone: '', email: '', city: '',
     vehicleType: 'Two Wheeler (Bike/Scooter)', vehicleNumber: ''
   });
 
@@ -20,7 +21,8 @@ const RiderOnboarding = () => {
 
   const handleSendOTP = (e) => {
     e.preventDefault();
-    if (!formData.fullName || !formData.phone) return;
+    // Now requires email to proceed
+    if (!formData.fullName || !formData.phone || !formData.email || !formData.city) return;
     setIsLoading(true);
     setTimeout(() => { setIsLoading(false); setOtpSent(true); }, 1000);
   };
@@ -40,7 +42,7 @@ const RiderOnboarding = () => {
     if (element.nextSibling && element.value !== '') element.nextSibling.focus();
   };
 
-  // Step 1: Rider Basic Registration
+  // Step 1: Rider Basic Registration (Now with Email)
   const renderStep1 = () => (
     <div className="ronb-step-content">
       <div className="ronb-text-header">
@@ -58,12 +60,17 @@ const RiderOnboarding = () => {
             <label>Phone Number</label>
             <input type="tel" name="phone" placeholder="+91 98765 43210" value={formData.phone} onChange={handleInputChange} required />
           </div>
+          {/* NEW: Email Address Field */}
+          <div className="ronb-input-group">
+            <label>Email Address</label>
+            <input type="email" name="email" placeholder="rider@quickwash.com" value={formData.email} onChange={handleInputChange} required />
+          </div>
           <div className="ronb-input-group">
             <label>City</label>
             <input type="text" name="city" placeholder="e.g. Mangaluru" value={formData.city} onChange={handleInputChange} required />
           </div>
           <button type="submit" className="ronb-action-btn" disabled={isLoading}>
-            {isLoading ? 'Sending OTP...' : 'Send Verification OTP'}
+            {isLoading ? 'Sending OTP...' : 'Send OTP to Email'}
           </button>
           <button type="button" className="ronb-text-btn" onClick={() => navigate('/rider')}>
             Already registered? Log in
@@ -71,8 +78,9 @@ const RiderOnboarding = () => {
         </form>
       ) : (
         <form onSubmit={handleVerifyOTP} style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+          {/* UPDATED: Displays the Email Address instead of Phone */}
           <p style={{textAlign: 'center', color: '#2b2522', fontWeight: '600', marginBottom: '24px'}}>
-            Enter the 4-digit code sent to <br/><span style={{color: '#eb6d1e'}}>{formData.phone}</span>
+            Enter the 4-digit code sent to <br/><span style={{color: '#eb6d1e'}}>{formData.email}</span>
           </p>
           <div className="ronb-otp-container">
             {otp.map((data, index) => (
@@ -82,7 +90,7 @@ const RiderOnboarding = () => {
           <button type="submit" className="ronb-action-btn" disabled={isLoading || otp.join('').length < 4}>
             {isLoading ? 'Verifying...' : 'Verify & Continue'}
           </button>
-          <button type="button" className="ronb-text-btn" onClick={() => setOtpSent(false)} style={{color: '#666'}}>Edit Phone Number</button>
+          <button type="button" className="ronb-text-btn" onClick={() => setOtpSent(false)} style={{color: '#666'}}>Edit Details</button>
         </form>
       )}
     </div>
@@ -113,7 +121,7 @@ const RiderOnboarding = () => {
     </div>
   );
 
-  // Step 3: Rider KYC (Only Required Docs)
+  // Step 3: Rider KYC (Now with Vehicle Insurance!)
   const renderStep3 = () => (
     <div className="ronb-step-content">
       <div className="ronb-text-header">
@@ -134,6 +142,15 @@ const RiderOnboarding = () => {
           <div className="ronb-upload-header">
             <span className="ronb-upload-icon">🏍️</span>
             <div><strong>RC Book / Smart Card</strong><small>Vehicle Registration</small></div>
+          </div>
+          <button className="ronb-upload-btn">Upload</button>
+        </div>
+
+        {/* NEW: Vehicle Insurance Box */}
+        <div className="ronb-upload-box">
+          <div className="ronb-upload-header">
+            <span className="ronb-upload-icon">🛡️</span>
+            <div><strong>Vehicle Insurance</strong><small>Valid Policy Copy</small></div>
           </div>
           <button className="ronb-upload-btn">Upload</button>
         </div>
@@ -171,9 +188,9 @@ const RiderOnboarding = () => {
       <h2>Profile Under Review</h2>
       <p>Thanks for applying, <strong>{formData.fullName || 'Rider'}</strong>!</p>
       <div className="ronb-info-card">
-        Our onboarding team is reviewing your Driving License and Vehicle RC. This usually takes <strong>24 hours</strong>.
+        Our onboarding team is reviewing your Driving License, RC, and Insurance. This usually takes <strong>24 hours</strong>.
       </div>
-      <p className="ronb-sub-text">We will send you an SMS once your background check is clear and you can start accepting deliveries!</p>
+      <p className="ronb-sub-text">We will send you an email once your background check is clear and you can start accepting deliveries!</p>
       
       <button className="ronb-text-btn" style={{marginTop: '32px'}} onClick={() => navigate('/rider')}>
         ← Return to Login Screen
