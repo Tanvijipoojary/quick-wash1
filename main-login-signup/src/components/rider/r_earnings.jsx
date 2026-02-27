@@ -162,10 +162,10 @@ const RiderEarnings = () => {
           <span>💲</span>
           <small>Earnings</small>
         </button>
-        <button className="rearn-nav-item">
-          <span>👤</span>
-          <small>Profile</small>
-        </button>
+       <button className="rhome-nav-item" onClick={() => navigate('/rider-profile')}>
+  <span>👤</span>
+  <small>Profile</small>
+</button>
       </footer>
     </div>
   );

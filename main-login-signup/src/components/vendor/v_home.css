@@ -1,154 +1,289 @@
-/* v_home.css */
+/* v_home.css - PREMIUM DARK GREEN THEME (Fixed Sidebar Alignment) */
 
-.vhome-container {
-  width: 100%;
-  margin: 0 auto;
+.vhome-container { 
+  width: 100%; 
+  margin: 0 auto; 
   min-height: 100vh; 
-  background-color: #fdf4eb; /* Quick wash peach background */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  display: flex !important;
-  flex-direction: column !important;
+  background-color: #f2f7f4; 
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
+  display: flex !important; 
+  flex-direction: column !important; 
+  position: relative; 
 }
 
-/* --- Header --- */
-.vhome-header {
-  display: flex !important;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  background-color: #fff;
+/* --- Header & Nav (Glassmorphism Effect) --- */
+.vhome-header { 
+  display: flex !important; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 16px 24px; 
+  background-color: rgba(255, 255, 255, 0.85); 
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(27, 94, 32, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-sizing: border-box;
 }
 
-.vhome-menu-btn { background: none; border: none; cursor: pointer; color: #333; }
-.vhome-header-title { font-size: 20px; font-weight: 800; color: #000; margin: 0; }
+.vhome-menu-btn { background: none; border: none; cursor: pointer; color: #1b5e20; transition: transform 0.2s; }
+.vhome-menu-btn:hover { transform: scale(1.1); }
+.vhome-header-title { font-size: 20px; font-weight: 800; color: #1b5e20; margin: 0; letter-spacing: 0.5px;}
 
-/* --- Top Main Tabs --- */
-.vhome-main-tabs {
-  display: flex !important;
-  background-color: #fff;
-  border-bottom: 1px solid #f0e6dd;
-  padding: 0 24px;
+.vhome-main-tabs { 
+  display: flex !important; 
+  background-color: #fff; 
+  border-bottom: 1px solid #e2ece6; 
+  padding: 0 24px; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  box-sizing: border-box;
 }
 
-.vhome-tab {
-  flex: 1;
-  background: none;
-  border: none;
-  padding: 16px 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #888;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.2s;
+.vhome-tab { 
+  flex: 1; 
+  background: none; 
+  border: none; 
+  padding: 16px 0; 
+  font-size: 15px; 
+  font-weight: 600; 
+  color: #94a3b8; 
+  cursor: pointer; 
+  border-bottom: 3px solid transparent; 
+  transition: all 0.3s ease; 
 }
 
-.vhome-tab.active {
-  color: #2b2522;
-  border-bottom: 3px solid #11993e; /* Quick wash orange underline */
+.vhome-tab.active { 
+  color: #1b5e20; 
+  border-bottom: 3px solid #1b5e20; 
 }
 
 /* --- Centered Main Content Area --- */
-.vhome-main-content {
-  flex: 1;
-  width: 100%;
-  max-width: 600px; /* Perfect centered card size for desktop */
-  margin: 0 auto;
-  padding: 24px 20px;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 24px;
+.vhome-main-content { 
+  flex: 1; 
+  width: 100%; 
+  max-width: 800px; 
+  margin: 0 auto; 
+  padding: 24px 20px 100px 20px; 
+  display: flex !important; 
+  flex-direction: column !important; 
+  gap: 24px; 
+  box-sizing: border-box;
 }
 
-/* --- Sub Tabs (Pill Buttons) --- */
-.vhome-sub-tabs {
-  display: flex !important;
-  gap: 12px;
+/* Sub-Tabs */
+.vhome-sub-tabs { display: flex !important; gap: 12px; }
+.vhome-sub-tab { 
+  flex: 1; padding: 12px; border-radius: 12px; border: none; 
+  background-color: #fff; color: #64748b; font-weight: 600; 
+  font-size: 14px; cursor: pointer; border: 1px solid #e2ece6; 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+.vhome-sub-tab.active { 
+  background: linear-gradient(135deg, #2e7d32, #1b5e20); 
+  color: #fff; border-color: #1b5e20;
+  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.25);
 }
 
-.vhome-sub-tab {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  background-color: #fff;
-  color: #666;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  border: 1px solid #e0d5cb;
-  transition: all 0.2s;
-}
-
-.vhome-sub-tab.active {
-  background-color: #11993e; /* Quick wash orange pill */
-  color: #fff;
-  border-color: #11993e;
-}
+.vhome-orders-list { display: flex !important; flex-direction: column !important; gap: 24px; }
 
 /* --- Order Cards --- */
-.vhome-orders-list {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 24px;
+.vhome-order-card { 
+  background-color: #fff; border-radius: 20px; padding: 24px; 
+  border: 1px solid #e2ece6; box-shadow: 0 6px 16px rgba(27, 94, 32, 0.04); 
+  display: flex !important; flex-direction: column !important; gap: 16px; 
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-sizing: border-box;
 }
+.vhome-order-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(27, 94, 32, 0.08); }
 
-.vhome-order-card {
-  background-color: #fff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgba(235, 109, 30, 0.05);
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 16px;
+.vhome-card-header { display: flex !important; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2ece6; padding-bottom: 16px; }
+.vhome-id-block { display: flex !important; flex-direction: column !important; gap: 4px; }
+.vhome-id { font-size: 18px; font-weight: 800; color: #0f172a; }
+.vhome-label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Status Pills */
+.vhome-pill { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px;}
+.vhome-pill-active { background-color: #e8f5e9; color: #1b5e20; }
+.vhome-pill-warning { background-color: #fef3c7; color: #d97706; }
+.vhome-pill-alert { background-color: #ffe4e6; color: #e11d48; }
+.vhome-pill-success { background-color: #dcfce7; color: #059669; }
+
+/* Customer Info */
+.vhome-customer-details { display: flex !important; align-items: center; gap: 16px; }
+.vhome-avatar { 
+  width: 52px; height: 52px; background: linear-gradient(135deg, #10b981, #047857); 
+  color: #fff; border-radius: 16px; display: flex !important; align-items: center; justify-content: center; 
+  font-size: 22px; font-weight: 800; box-shadow: 0 4px 10px rgba(4, 120, 87, 0.3);
 }
+.vhome-customer-name { margin: 0 0 4px 0; font-size: 18px; font-weight: 800; color: #0f172a; }
+.vhome-service-text { margin: 0; font-size: 14px; color: #64748b; font-weight: 600;}
 
-.vhome-card-header { display: flex !important; flex-direction: column !important; gap: 12px; border-bottom: 1px solid #f0e6dd; padding-bottom: 12px; }
-.vhome-id-block { display: flex !important; justify-content: space-between; align-items: center; }
-.vhome-id { font-size: 18px; font-weight: 800; color: #2b2522; }
+.vhome-comment-box { background-color: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2ece6; border-left: 4px solid #94a3b8;}
+.vhome-comment-text { margin: 6px 0 0 0; font-size: 14px; font-style: italic; color: #334155; line-height: 1.5;}
 
-.vhome-price-header-labels { display: flex !important; justify-content: space-between; }
-.vhome-label { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; }
-
-/* Items List */
-.vhome-items-list { display: flex !important; flex-direction: column !important; gap: 16px; border-bottom: 1px solid #f0e6dd; padding-bottom: 16px; }
-.vhome-item-row { display: flex !important; gap: 16px; align-items: flex-start; }
-.vhome-item-image { width: 48px; height: 48px; background-color: #fdf4eb; border-radius: 8px; display: flex !important; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
-.vhome-item-details { flex: 1; display: flex !important; flex-direction: column !important; gap: 4px; }
-.vhome-item-details h4 { margin: 0; font-size: 15px; font-weight: 700; color: #2b2522; }
-.vhome-item-details p { margin: 0; font-size: 13px; color: #888; }
-.vhome-item-qty { font-size: 13px; font-weight: 700; color: #2b2522; margin-top: 4px; }
-.vhome-item-price { font-size: 15px; font-weight: 800; color: #2b2522; }
-
-/* Totals & Comments */
-.vhome-total-row { display: flex !important; justify-content: space-between; align-items: center; }
-.vhome-total-label { font-size: 16px; font-weight: 800; color: #2b2522; }
-.vhome-total-amount { font-size: 18px; font-weight: 800; color: #2b2522; }
-
-.vhome-comment-box { background-color: #fdfaf7; padding: 12px; border-radius: 8px; }
-.vhome-comment-text { margin: 4px 0 0 0; font-size: 14px; font-style: italic; color: #444; }
-
-/* Action Buttons */
+/* Actions */
 .vhome-actions { display: flex !important; gap: 16px; margin-top: 8px; }
-.vhome-btn-decline { flex: 1; background: none; border: 1px solid #11993e; color: #11993e; padding: 14px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; }
-.vhome-btn-decline:hover { background-color: #fcebeb; }
-.vhome-btn-accept { flex: 1; background-color: #11993e; color: #fff; border: none; padding: 14px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
-.vhome-btn-accept:active { transform: scale(0.98); }
+.vhome-btn-decline { 
+  flex: 1; background: none; border: 1px solid #e11d48; color: #e11d48; 
+  padding: 14px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; 
+}
+.vhome-btn-decline:hover { background-color: #ffe4e6; transform: scale(0.98); }
+.vhome-btn-accept { 
+  flex: 1; background: linear-gradient(135deg, #2e7d32, #1b5e20); color: #fff; border: none; padding: 14px; border-radius: 24px; 
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(27, 94, 32, 0.2);
+}
+.vhome-btn-accept:hover { background: linear-gradient(135deg, #388e3c, #2e7d32); box-shadow: 0 6px 16px rgba(27, 94, 32, 0.3); }
+.vhome-btn-accept:active { transform: scale(0.96); }
+.vhome-btn-accept.disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+.vhome-btn-full { width: 100%; background-color: #0f172a; color: #fff; border: none; padding: 16px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: transform 0.2s; }
+.vhome-btn-full:active { transform: scale(0.98); }
 
-.vhome-empty { text-align: center; color: #888; padding: 40px; font-weight: 500; }
+/* Processing & Laundry Trackers */
+.vhome-processing-area { display: flex !important; flex-direction: column !important; gap: 16px; border-top: 1px dashed #cbd5e1; padding-top: 20px; }
+.vhome-pricing-alert { text-align: center; background-color: #f0fdf4; padding: 24px; border-radius: 16px; border: 1px dashed #10b981; }
+.vhome-pricing-alert p { margin: 0 0 16px 0; font-size: 15px; font-weight: 600; color: #047857; }
 
-/* --- Bottom Nav --- */
-.vhome-bottom-nav {
-  margin-top: auto; 
-  background-color: #2b2522; 
-  display: flex !important; 
-  flex-direction: row !important; 
-  justify-content: center; 
-  gap: 64px; 
-  padding: 16px 0; 
-  width: 100%; 
+.vhome-laundry-tracker { display: flex !important; flex-direction: column !important; gap: 16px; }
+.vhome-weight-row { display: flex !important; justify-content: space-between; background-color: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2ece6; }
+.vhome-weight-row strong { color: #1b5e20; font-size: 16px; margin-left: 8px; font-weight: 800;}
+
+.vhome-timeline-banner { display: flex !important; align-items: center; gap: 16px; background: linear-gradient(to right, #fffbeb, #fef3c7); padding: 16px; border-radius: 12px; border-left: 4px solid #f59e0b; margin-top: -4px; }
+.vhome-timer-icon { font-size: 24px; }
+.vhome-timeline-text { display: flex !important; flex-direction: column !important; gap: 4px; }
+.vhome-timeline-text strong { font-size: 16px; font-weight: 800; color: #b45309; }
+
+.vhome-stage-selector { display: flex !important; flex-direction: column !important; gap: 8px; }
+.vhome-select-dropdown { width: 100%; padding: 16px; border: 2px solid #e2ece6; border-radius: 12px; font-size: 15px; font-weight: 700; color: #0f172a; outline: none; background-color: #f8fafc; cursor: pointer; transition: border-color 0.2s; box-sizing: border-box;}
+.vhome-select-dropdown:focus { border-color: #10b981; background-color: #fff; }
+
+.vhome-dispatched-info { display: flex !important; flex-direction: column !important; gap: 16px; border-top: 1px dashed #cbd5e1; padding-top: 20px; }
+.vhome-info-row { display: flex !important; justify-content: space-between; align-items: center; background-color: #f8fafc; padding: 12px 16px; border-radius: 8px;}
+.vhome-info-row strong { font-size: 15px; color: #0f172a; }
+.vhome-empty { text-align: center; color: #94a3b8; padding: 60px 20px; font-weight: 600; font-size: 16px; }
+
+/* Pricing Modal */
+.vhome-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); display: flex !important; align-items: center; justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+.vhome-pricing-modal { background-color: #fff; border-radius: 24px; width: 100%; max-width: 420px; padding: 40px 32px; position: relative; display: flex !important; flex-direction: column !important; box-shadow: 0 24px 48px rgba(0,0,0,0.2); box-sizing: border-box;}
+.vhome-modal-close { position: absolute; top: 24px; right: 24px; background: #f1f5f9; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex !important; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s;}
+.vhome-modal-close:hover { background: #e2ece6; color: #0f172a; transform: rotate(90deg); }
+.vhome-modal-title { font-size: 22px; font-weight: 800; color: #1b5e20; margin: 0 0 12px 0; }
+.vhome-modal-subtitle { font-size: 15px; color: #64748b; margin: 0 0 32px 0; line-height: 1.5; }
+.vhome-input-group { display: flex !important; flex-direction: column !important; gap: 8px; margin-bottom: 20px; width: 100%;}
+.vhome-input-group label { font-size: 13px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;}
+.vhome-input-group input { width: 100%; padding: 16px; border: 2px solid #e2ece6; border-radius: 12px; font-size: 16px; font-weight: 600; box-sizing: border-box; outline: none; transition: border-color 0.2s, box-shadow 0.2s;}
+.vhome-input-group input:focus { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+.vhome-date-input { font-family: inherit; color: #0f172a; background-color: #fff; }
+.vhome-date-input::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.5; transition: 0.2s; padding: 4px; border-radius: 4px;}
+.vhome-date-input::-webkit-calendar-picker-indicator:hover { opacity: 1; background-color: #f1f5f9; }
+
+/* =========================================
+   PERFECTLY ALIGNED SIDEBAR MENU STYLES
+   ========================================= */
+
+.vhome-sidebar-overlay { 
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+  background-color: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px);
+  z-index: 1000; display: flex !important; 
 }
 
-.vhome-nav-item { background: none; border: none; color: #a0aab2; display: flex !important; flex-direction: row !important; align-items: center; gap: 10px; cursor: pointer; font-weight: 500; font-size: 15px; transition: color 0.2s; }
+.vhome-sidebar { 
+  width: 85%; max-width: 340px; height: 100%; background-color: #fff; 
+  box-shadow: 4px 0 32px rgba(0,0,0,0.15); display: flex !important; 
+  flex-direction: column !important; animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; 
+  box-sizing: border-box;
+}
+
+@keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+/* Header is perfectly left-aligned and stacked cleanly */
+.vhome-sidebar-header { 
+  background: #104A22; /* Deep solid green */
+  padding: 48px 24px 32px 24px; 
+  display: flex !important; 
+  flex-direction: column !important; 
+  align-items: flex-start; /* Aligns avatar and text nicely to the left */
+  gap: 16px; 
+  box-sizing: border-box;
+}
+
+.vhome-avatar-small { 
+  width: 64px; height: 64px; background-color: #fff; color: #104A22; 
+  border-radius: 18px; /* Rounded square to match image */
+  display: flex !important; align-items: center; justify-content: center; 
+  font-size: 24px; font-weight: 800; box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+}
+
+.vhome-sidebar-user-text {
+  display: flex !important; flex-direction: column !important; gap: 4px;
+}
+.vhome-sidebar-user-text h2 { color: #fff; font-size: 22px; margin: 0; font-weight: 800; }
+.vhome-sidebar-user-text p { color: rgba(255,255,255,0.8); font-size: 14px; margin: 0; font-weight: 500;}
+
+/* Menu Items */
+.vhome-sidebar-menu { 
+  flex: 1; overflow-y: auto; padding: 12px 0; 
+  display: flex !important; flex-direction: column !important; 
+}
+
+.vhome-side-item { 
+  display: flex !important; flex-direction: row !important; 
+  justify-content: space-between; align-items: center; 
+  padding: 18px 24px; /* Proper padding so toggle stays inside */
+  background: none; border: none; border-bottom: 1px solid #f1f5f9; 
+  cursor: pointer; transition: background-color 0.2s; width: 100%; 
+  box-sizing: border-box; /* PREVENTS OVERFLOWING */
+}
+
+.vhome-side-item:hover { background-color: #f8fafc; }
+
+.vhome-side-left { 
+  display: flex !important; flex-direction: row !important; 
+  align-items: center; gap: 16px; 
+}
+
+.vhome-side-icon { 
+  font-size: 22px; color: #64748b; 
+  width: 28px; /* Fixed width ensures all text labels line up perfectly straight! */
+  display: flex; justify-content: center;
+}
+
+.vhome-side-label { font-size: 16px; font-weight: 600; color: #334155; }
+.vhome-side-arrow { font-size: 20px; color: #cbd5e1; }
+
+/* The Toggle Switch */
+.vhome-toggle-wrapper { display: flex !important; flex-direction: column !important; align-items: flex-end; gap: 4px; }
+.vhome-toggle { position: relative; display: inline-block; width: 48px; height: 26px; }
+.vhome-toggle input { opacity: 0; width: 0; height: 0; }
+.vhome-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 24px; }
+.vhome-slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
+input:checked + .vhome-slider { background-color: #10b981; }
+input:checked + .vhome-slider:before { transform: translateX(22px); }
+
+/* --- Final Handover Alert Box --- */
+.vhome-rider-arriving-box { background-color: #f8fafc; border: 1px solid #e2ece6; border-radius: 16px; padding: 24px; margin-top: 16px; display: flex !important; flex-direction: column !important; box-sizing: border-box;}
+.vhome-rider-header { display: flex !important; align-items: center; gap: 16px; }
+.vhome-rider-icon { width: 52px; height: 52px; background-color: #fff; border-radius: 16px; display: flex !important; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.vhome-rider-header h4 { margin: 0 0 4px 0; font-size: 16px; font-weight: 800; color: #0f172a; }
+.vhome-rider-header p { margin: 0; font-size: 14px; color: #64748b; font-weight: 500; }
+
+/* =========================================
+   BOTTOM NAVIGATION (Glassmorphism)
+   ========================================= */
+.vhome-bottom-nav { 
+  margin-top: auto; 
+  background-color: rgba(16, 74, 34, 0.95); /* Deep green */
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  display: flex !important; flex-direction: row !important; 
+  justify-content: center; gap: 64px; padding: 16px 0; 
+  width: 100%; position: sticky; bottom: 0; z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1); box-sizing: border-box;
+}
+
+.vhome-nav-item { 
+  background: none; border: none; color: #94a3b8; 
+  display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; 
+  cursor: pointer; font-weight: 600; font-size: 15px; transition: color 0.3s ease; 
+}
 .vhome-nav-item:hover { color: #fff; }
-.vhome-nav-item.active { color: #11993e; }
+.vhome-nav-item.active { color: #34d399; }
