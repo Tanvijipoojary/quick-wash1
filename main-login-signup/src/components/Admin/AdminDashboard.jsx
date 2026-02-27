@@ -128,8 +128,7 @@ const AdminDashboard = () => {
       recentTasks: [],
       // MOCK UPLOADED RIDER DOCUMENTS
       vehicleInfo: { make: "Honda Activa 6G", plate: "KA 19 AB 1234" },
-      documents: { dl: "DL_FrontBack.jpg", insurance: "Vehicle_Insurance.pdf", aadhaar: "Rider_Aadhaar.jpg", pan: "Rider_PAN.jpg" }
-    },
+      documents: { dl: "DL_FrontBack.jpg", rc: "Vehicle_RC.pdf", insurance: "Vehicle_Insurance.pdf", aadhaar: "Rider_Aadhaar.jpg", pan: "Rider_PAN.jpg" }    },
     { 
       id: "R-3005", name: "Suresh Shetty", phone: "+91 8888855555", zone: "Surathkal", rating: 4.9, status: "Active", 
       stats: { totalTasks: 320, completed: 310, declined: 5, active: 5, totalEarned: 32000, withdrawn: 30000, walletBal: 2000 },
@@ -1210,6 +1209,7 @@ const AdminDashboard = () => {
                   <>
                     {[
                       { label: "Driving License (DL)", file: reviewingRider.documents.dl },
+                      { label: "Vehicle RC", file: reviewingRider.documents.rc }, // <-- NEW: Added RC to the review list!
                       { label: "Vehicle Insurance", file: reviewingRider.documents.insurance },
                       { label: "Aadhaar Card", file: reviewingRider.documents.aadhaar },
                       { label: "PAN Card", file: reviewingRider.documents.pan }
