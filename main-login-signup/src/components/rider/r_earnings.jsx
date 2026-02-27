@@ -4,169 +4,206 @@ import './r_earnings.css';
 
 const RiderEarnings = () => {
   const navigate = useNavigate();
+  const [timeframe, setTimeframe] = useState('week'); // 'today', 'week', 'month'
+  
+  // NEW: State to hold the specific trip a rider clicks on for details
+  const [selectedTrip, setSelectedTrip] = useState(null);
 
-  // State to manage the popup modal
-  const [selectedEarning, setSelectedEarning] = useState(null);
-
+  // Mock Chart Data for the Week
   const weeklyData = [
-    { id: 1, dateRange: '02 Feb- 08 Feb', amount: 200, height: '40%' },
-    { id: 2, dateRange: '09 Feb- 15 Feb', amount: 400, height: '65%' },
-    { id: 3, dateRange: '16 Feb- 22 Feb', amount: 600, height: '100%' }, 
-    { id: 4, dateRange: '23 Feb- 01 Mar', amount: 300, height: '50%' },
+    { day: 'Mon', amount: 350, height: '40%' },
+    { day: 'Tue', amount: 420, height: '50%' },
+    { day: 'Wed', amount: 210, height: '25%' },
+    { day: 'Thu', amount: 680, height: '80%' },
+    { day: 'Fri', amount: 550, height: '65%' },
+    { day: 'Sat', amount: 890, height: '100%' }, 
+    { day: 'Sun', amount: 190, height: '20%' }, 
   ];
 
-  // Updated mock data with detailed breakdown for the modal
-  const recentActivity = [
-    { id: 1, date: '20.02.2023', type: 'Total Earning', amount: 'Rs. 600', hours: '6h 1m', tips: 'Rs. 50', deliveriesCount: 8, deliveryEarnings: 'Rs. 550' },
-    { id: 2, date: '19.02.2023', type: 'Total Earning', amount: 'Rs. 100', hours: '1h 30m', tips: 'Rs. 10', deliveriesCount: 2, deliveryEarnings: 'Rs. 90' },
-    { id: 3, date: '18.02.2023', type: 'Total Earning', amount: 'Rs. 150', hours: '2h 15m', tips: 'Rs. 20', deliveriesCount: 3, deliveryEarnings: 'Rs. 130' },
-    { id: 4, date: '17.02.2023', type: 'Total Earning', amount: 'Rs. 200', hours: '3h 0m', tips: 'Rs. 0', deliveriesCount: 4, deliveryEarnings: 'Rs. 200' },
-    { id: 5, date: '16.02.2023', type: 'Total Earning', amount: 'Rs. 300', hours: '4h 45m', tips: 'Rs. 40', deliveriesCount: 5, deliveryEarnings: 'Rs. 260' },
-    { id: 6, date: '15.02.2023', type: 'Total Earning', amount: 'Rs. 100', hours: '1h 10m', tips: 'Rs. 5', deliveriesCount: 1, deliveryEarnings: 'Rs. 95' },
-  ];
-
-  // Function to close modal
-  const closeModal = () => {
-    setSelectedEarning(null);
+  // Dynamic Breakdown based on Timeframe
+  const getBreakdown = () => {
+    if (timeframe === 'today') return { total: '190', fares: '150', bonus: '0', tips: '40', hours: '3h 15m', trips: '4' };
+    if (timeframe === 'month') return { total: '12,450', fares: '10,200', bonus: '1,500', tips: '750', hours: '98h 30m', trips: '142' };
+    return { total: '3,290', fares: '2,650', bonus: '500', tips: '140', hours: '24h 15m', trips: '42' }; // Week default
   };
+
+  const currentStats = getBreakdown();
+
+  // Mock Trip History with Detailed Breakdown
+  const recentTrips = [
+    { id: 'TSK-8821XB', type: 'Collection', time: 'Today, 2:30 PM', total: 'Rs. 80', baseFare: 'Rs. 50', distancePay: 'Rs. 20', tip: 'Rs. 10' },
+    { id: 'TSK-9942YC', type: 'Delivery', time: 'Today, 1:15 PM', total: 'Rs. 110', baseFare: 'Rs. 50', distancePay: 'Rs. 40', tip: 'Rs. 20' },
+    { id: 'TSK-5522AA', type: 'Collection', time: 'Yesterday, 9:30 AM', total: 'Rs. 60', baseFare: 'Rs. 50', distancePay: 'Rs. 10', tip: 'Rs. 0' },
+  ];
 
   return (
     <div className="rearn-container">
+      
+      {/* --- HEADER --- */}
       <header className="rearn-header">
-        <div className="rearn-header-left">
-          <button className="rearn-back-btn" onClick={() => navigate('/rider-home')}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="19" y1="12" x2="5" y2="12"></line>
-              <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-          </button>
-          <h1 className="rearn-header-title">EARNINGS</h1>
-        </div>
+        <button className="rearn-back-btn" onClick={() => navigate(-1)}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <h1 className="rearn-title">Earnings</h1>
+        <div style={{ width: 24 }}></div> 
       </header>
 
       <main className="rearn-main-content">
         
-        {/* Weekly Earnings Chart Section */}
-        <div className="rearn-chart-section">
-          <h3 className="rearn-section-title" style={{ textAlign: 'center', marginBottom: '24px' }}>
-            Weekly Earnings
-          </h3>
-          
-          <div className="rearn-chart-container">
-            {weeklyData.map((data) => (
-              <div key={data.id} className="rearn-chart-column">
-                <div className="rearn-chart-bar-wrapper">
-                  <span className="rearn-chart-amount">Rs. {data.amount}</span>
-                  <div className="rearn-chart-bar" style={{ height: data.height }}></div>
+        {/* --- TIMEFRAME TOGGLE --- */}
+        <div className="rearn-toggle-wrapper">
+          <button className={`rearn-toggle-btn ${timeframe === 'today' ? 'active' : ''}`} onClick={() => setTimeframe('today')}>Today</button>
+          <button className={`rearn-toggle-btn ${timeframe === 'week' ? 'active' : ''}`} onClick={() => setTimeframe('week')}>This Week</button>
+          <button className={`rearn-toggle-btn ${timeframe === 'month' ? 'active' : ''}`} onClick={() => setTimeframe('month')}>This Month</button>
+        </div>
+
+        {/* --- BIG EARNINGS DISPLAY --- */}
+        <div className="rearn-hero-section">
+          <small>Total Earnings ({timeframe === 'week' ? 'Mon - Sun' : timeframe === 'today' ? 'Today' : 'Feb 1 - Feb 28'})</small>
+          <h2>Rs. {currentStats.total}</h2>
+          <div className="rearn-online-time">
+            <span>⏱️ {currentStats.hours} Online</span>
+            <span>🛵 {currentStats.trips} Trips</span>
+          </div>
+        </div>
+
+        {/* --- CSS BAR CHART (Shows only on 'week' view) --- */}
+        {timeframe === 'week' && (
+          <div className="rearn-chart-card">
+            <div className="rearn-chart-header">
+              <h3>Weekly Trends</h3>
+              <span>Best Day: Saturday</span>
+            </div>
+            
+            <div className="rearn-chart-area">
+              {weeklyData.map((data, index) => (
+                <div key={index} className="rearn-bar-column">
+                  <div className="rearn-bar-track">
+                    <div 
+                      className={`rearn-bar-fill ${data.day === 'Sat' ? 'peak' : ''}`} 
+                      style={{ height: data.height }}
+                    ></div>
+                  </div>
+                  <span className="rearn-day-label">{data.day}</span>
                 </div>
-                <div className="rearn-chart-date-wrapper">
-                  <span className="rearn-chart-date">{data.dateRange}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* --- EARNINGS BREAKDOWN --- */}
+        <div className="rearn-breakdown-card">
+          <h3>Earnings Breakdown</h3>
+          <div className="rearn-breakdown-row">
+            <div className="rearn-bd-left">
+              <span className="rearn-bd-icon" style={{background: '#e0f2fe', color: '#0284c7'}}>🛵</span>
+              <span>Trip Fares</span>
+            </div>
+            <strong>Rs. {currentStats.fares}</strong>
+          </div>
+          <div className="rearn-breakdown-row">
+            <div className="rearn-bd-left">
+              <span className="rearn-bd-icon" style={{background: '#dcfce7', color: '#10b981'}}>🎁</span>
+              <span>Bonuses</span>
+            </div>
+            <strong>Rs. {currentStats.bonus}</strong>
+          </div>
+          <div className="rearn-breakdown-row">
+            <div className="rearn-bd-left">
+              <span className="rearn-bd-icon" style={{background: '#fef3c7', color: '#d97706'}}>⭐</span>
+              <span>Customer Tips</span>
+            </div>
+            <strong>Rs. {currentStats.tips}</strong>
+          </div>
+        </div>
+
+        {/* --- RECENT TRIPS (Now Clickable!) --- */}
+        <div className="rearn-trips-section">
+          <div className="rearn-section-header">
+            <h3>Recent Trips</h3>
+            {/* Navigates to Wallet to see the full transaction history */}
+            <button className="rearn-text-link" onClick={() => navigate('/rider-wallet')}>See Wallet</button>
+          </div>
+          <div className="rearn-trips-list">
+            {recentTrips.map((trip, idx) => (
+              <div key={idx} className="rearn-trip-item clickable" onClick={() => setSelectedTrip(trip)}>
+                <div className="rearn-trip-left">
+                  <div className={`rearn-trip-dot ${trip.type === 'Collection' ? 'collection' : 'delivery'}`}></div>
+                  <div className="rearn-trip-info">
+                    <strong>{trip.type} Run</strong>
+                    <small>{trip.time}</small>
+                  </div>
+                </div>
+                <div className="rearn-trip-right">
+                  <strong>{trip.total}</strong>
+                  <span className="rearn-trip-arrow">›</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="rearn-activity-section">
-          <div className="rearn-activity-header">
-            <h3 className="rearn-section-title">Recent Activity</h3>
-     <button className="rearn-see-more-btn"onClick={() => navigate('/rider-earnings-history')}>
-  See More
-</button>
-          </div>
-          
-          <div className="rearn-activity-list">
-            {recentActivity.map((activity) => (
-              <div 
-                key={activity.id} 
-                className="rearn-activity-item"
-                onClick={() => setSelectedEarning(activity)} // Opens the popup!
-              >
-                <div className="rearn-activity-left">
-                  <span className="rearn-activity-date">{activity.date}</span>
-                  <span className="rearn-activity-type">{activity.type}</span>
-                </div>
-                <div className="rearn-activity-right">
-                  <span className="rearn-activity-amount">{activity.amount}</span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </main>
 
-      {/* =========================================
-          EARNINGS DETAILS MODAL
-          ========================================= */}
-      {selectedEarning && (
+      {/* --- NEW: DETAILED EARNING RECEIPT MODAL --- */}
+      {selectedTrip && (
         <div className="rearn-modal-overlay">
-          <div className="rearn-modal-box">
-            
-            {/* Modal Header */}
+          <div className="rearn-modal-card">
             <div className="rearn-modal-header">
-              <h3 className="rearn-modal-title">Earnings</h3>
-              <button className="rearn-modal-close" onClick={closeModal}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+              <h2>Trip Earning Details</h2>
+              <button className="rearn-close-btn" onClick={() => setSelectedTrip(null)}>✕</button>
             </div>
-
-            {/* Total Row (Gray Background) */}
-            <div className="rearn-modal-total-row">
-              <span>Total Earnings</span>
-              <span>{selectedEarning.amount}</span>
-            </div>
-
-            {/* Breakdown Rows */}
-            <div className="rearn-modal-breakdown">
-              <div className="rearn-modal-row">
-                <span className="rearn-modal-label">Hours Worked</span>
-                <span className="rearn-modal-value">{selectedEarning.hours}</span>
-              </div>
-              <div className="rearn-modal-row">
-                <span className="rearn-modal-label">Tips</span>
-                <span className="rearn-modal-value">{selectedEarning.tips}</span>
-              </div>
-              <div className="rearn-modal-row rearn-modal-link-row">
-                <span className="rearn-modal-blue-text">Deliveries({selectedEarning.deliveriesCount})</span>
-                <span className="rearn-modal-blue-text">
-                  {selectedEarning.deliveryEarnings}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: '4px', marginBottom: '-3px' }}>
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
+            
+            <div className="rearn-receipt-body">
+              <div className="rearn-receipt-top">
+                <span className="rearn-receipt-id">ID: {selectedTrip.id}</span>
+                <h3 className="rearn-receipt-total">{selectedTrip.total}</h3>
+                <span className={`rearn-receipt-badge ${selectedTrip.type === 'Collection' ? 'collection' : 'delivery'}`}>
+                  {selectedTrip.type} Run
                 </span>
               </div>
+              
+              <div className="rearn-receipt-divider"></div>
+
+              <div className="rearn-receipt-row">
+                <span>Base Fare</span>
+                <strong>{selectedTrip.baseFare}</strong>
+              </div>
+              <div className="rearn-receipt-row">
+                <span>Distance Pay</span>
+                <strong>{selectedTrip.distancePay}</strong>
+              </div>
+              <div className="rearn-receipt-row">
+                <span>Customer Tip</span>
+                <strong style={{color: '#10b981'}}>{selectedTrip.tip}</strong>
+              </div>
             </div>
 
+            <button className="rearn-submit-btn" onClick={() => setSelectedTrip(null)}>Close Details</button>
           </div>
         </div>
       )}
 
-      {/* Bottom Nav */}
+      {/* --- BOTTOM NAVIGATION (Fully Wired!) --- */}
       <footer className="rearn-bottom-nav">
         <button className="rearn-nav-item" onClick={() => navigate('/rider-home')}>
-          <span>🏠</span>
-          <small>Home</small>
+          <span className="rearn-nav-icon">🛵</span><small>Ride</small>
         </button>
         <button className="rearn-nav-item" onClick={() => navigate('/rider-wallet')}>
-          <span>💳</span>
-          <small>Wallet</small>
+          <span className="rearn-nav-icon">💳</span><small>Wallet</small>
         </button>
-        <button className="rearn-nav-item rearn-nav-active">
-          <span>💲</span>
-          <small>Earnings</small>
+        <button className="rearn-nav-item active" onClick={() => navigate('/rider-earnings')}>
+          <span className="rearn-nav-icon">💲</span><small>Earnings</small>
         </button>
-       <button className="rhome-nav-item" onClick={() => navigate('/rider-profile')}>
-  <span>👤</span>
-  <small>Profile</small>
-</button>
+        {/* We will build the profile page next! */}
+        <button className="rearn-nav-item" onClick={() => navigate('/rider-profile')}>
+          <span className="rearn-nav-icon">👤</span><small>Profile</small>
+        </button>
       </footer>
+
     </div>
   );
 };

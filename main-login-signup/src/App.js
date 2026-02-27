@@ -27,7 +27,6 @@ import RiderLogin from './components/rider/rider';
 import RiderHome from './components/rider/r_home';
 import RiderWallet from './components/rider/r_wallet';
 import RiderEarnings from './components/rider/r_earnings';
-import RiderEarningsHistory from './components/rider/r_earnings_history';
 import RiderProfile from './components/rider/r_profile';
 import RiderLanguage from './components/rider/r_language';
 import RiderVehicle from './components/rider/r_vehicle';
@@ -79,7 +78,6 @@ function App() {
           <Route path="/rider-home" element={<RiderHome />} />
           <Route path="/rider-wallet" element={<RiderWallet />} />
           <Route path="/rider-earnings" element={<RiderEarnings />} />
-          <Route path="/rider-earnings-history" element={<RiderEarningsHistory />} />
           <Route path="/rider-profile" element={<RiderProfile />} />
           <Route path="/rider-language" element={<RiderLanguage />} />
           <Route path="/rider-vehicle" element={<RiderVehicle />} />
