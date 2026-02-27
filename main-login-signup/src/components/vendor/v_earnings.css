@@ -1,0 +1,122 @@
+/* v_earnings.css - PREMIUM DARK GREEN THEME */
+
+.vearn-container { width: 100%; margin: 0 auto; min-height: 100vh; background-color: #f2f7f4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; display: flex !important; flex-direction: column !important; position: relative; }
+
+/* --- Glassmorphism Header --- */
+.vearn-header { display: flex !important; justify-content: space-between; align-items: center; padding: 16px 24px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(27, 94, 32, 0.1); position: sticky; top: 0; z-index: 50; box-sizing: border-box; }
+.vearn-back-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex !important; align-items: center; color: #1b5e20; transition: transform 0.2s; }
+.vearn-back-btn:hover { transform: translateX(-4px); }
+.vearn-header-title { font-size: 22px; font-weight: 800; color: #1b5e20; margin: 0; letter-spacing: 0.5px;}
+
+/* --- Main Layout --- */
+.vearn-main-content { flex: 1; width: 100%; max-width: 800px; margin: 0 auto; padding: 32px 24px 100px 24px; display: flex !important; flex-direction: column !important; gap: 32px; box-sizing: border-box; }
+
+/* --- Premium Chart Card --- */
+.vearn-chart-card { background-color: #fff; border-radius: 24px; padding: 32px 24px; border: 1px solid #e2ece6; box-shadow: 0 6px 16px rgba(27, 94, 32, 0.04); display: flex !important; flex-direction: column !important; gap: 32px; }
+.vearn-chart-header { display: flex !important; justify-content: space-between; align-items: flex-start; }
+.vearn-chart-label { font-size: 14px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+.vearn-chart-total { font-size: 36px; font-weight: 800; color: #0f172a; margin: 8px 0 0 0; }
+.vearn-trend-badge { background-color: #dcfce7; color: #059669; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 800; }
+
+.vearn-bar-chart { display: flex !important; justify-content: space-between; align-items: flex-end; height: 180px; padding-top: 20px; border-bottom: 2px solid #f1f5f9; }
+.vearn-bar-column { display: flex !important; flex-direction: column !important; align-items: center; justify-content: flex-end; flex: 1; height: 100%; gap: 12px; }
+.vearn-bar-wrapper { width: 24px; height: 100%; background-color: #f1f5f9; border-radius: 12px; display: flex !important; align-items: flex-end; overflow: hidden; }
+.vearn-bar-fill { width: 100%; background: linear-gradient(to top, #10b981, #34d399); border-radius: 12px; animation: growUp 1s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes growUp { from { height: 0%; } }
+.vearn-bar-day { font-size: 13px; color: #64748b; font-weight: 600; }
+
+
+/* =========================================
+   IMPROVED DATE FILTER PANEL
+   ========================================= */
+.vearn-history-section { display: flex !important; flex-direction: column !important; gap: 16px; }
+.vearn-history-header { display: flex !important; flex-direction: column !important; gap: 16px; margin-bottom: 8px;}
+.vearn-section-title { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0; }
+
+.vearn-date-filters { 
+  display: flex !important; align-items: center; gap: 12px; flex-wrap: wrap; 
+  background-color: #fff; padding: 12px 16px; border-radius: 16px; 
+  border: 1px solid #e2ece6; box-shadow: 0 4px 12px rgba(27, 94, 32, 0.03);
+}
+
+.vearn-date-input-wrapper { 
+  background-color: #f8fafc; border: 1px solid #e2ece6; border-radius: 10px; 
+  padding: 10px 14px; display: flex; align-items: center; flex: 1; min-width: 140px;
+  transition: all 0.3s ease; cursor: pointer;
+}
+.vearn-date-input-wrapper:hover { border-color: #10b981; background-color: #fff; }
+.vearn-date-input-wrapper:focus-within { 
+  border-color: #10b981; background-color: #fff; 
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); 
+}
+
+.vearn-filter-input { 
+  border: none; outline: none; background: transparent; font-family: inherit; 
+  font-size: 14px; font-weight: 700; color: #0f172a; width: 100%; cursor: pointer;
+}
+.vearn-filter-input::-webkit-calendar-picker-indicator { 
+  cursor: pointer; opacity: 0.5; transition: 0.2s; padding: 4px; border-radius: 6px;
+}
+.vearn-filter-input::-webkit-calendar-picker-indicator:hover { 
+  opacity: 1; background-color: #e2ece6; color: #10b981;
+}
+
+.vearn-filter-to { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;}
+
+.vearn-clear-filters { 
+  background-color: #fee2e2; color: #ef4444; border: none; border-radius: 10px; 
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; 
+  font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.2s; 
+}
+.vearn-clear-filters:hover { background-color: #ef4444; color: #fff; transform: scale(1.05); box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);}
+
+
+/* --- Earnings History List --- */
+.vearn-history-list { background-color: #fff; border-radius: 20px; border: 1px solid #e2ece6; box-shadow: 0 6px 16px rgba(27, 94, 32, 0.04); overflow: hidden; }
+.vearn-history-item { display: flex !important; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background-color 0.2s; }
+.vearn-history-item:hover { background-color: #f8fafc; }
+.vearn-history-item:last-child { border-bottom: none; }
+.vearn-item-left { display: flex !important; align-items: center; gap: 16px; }
+.vearn-item-icon { width: 48px; height: 48px; background-color: #e8f5e9; color: #1b5e20; border-radius: 12px; display: flex !important; align-items: center; justify-content: center; font-size: 20px; }
+.vearn-item-details { display: flex !important; flex-direction: column !important; gap: 4px; }
+.vearn-item-title { font-weight: 800; font-size: 16px; color: #0f172a; }
+.vearn-item-date { font-size: 13px; font-weight: 600; color: #64748b; }
+.vearn-item-right { display: flex !important; align-items: center; }
+.vearn-item-amount { font-weight: 800; font-size: 16px; color: #059669; }
+
+.vearn-empty-state { text-align: center; color: #94a3b8; padding: 40px 20px; font-weight: 600; font-size: 15px; }
+
+
+/* =========================================
+   BREAKDOWN MODAL
+   ========================================= */
+.vearn-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); display: flex !important; align-items: center; justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+.vearn-modal-box { background-color: #fff; border-radius: 24px; width: 100%; max-width: 400px; padding: 32px; box-shadow: 0 24px 48px rgba(0,0,0,0.2); display: flex !important; flex-direction: column !important; position: relative; animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.vearn-close-x { position: absolute; top: 24px; right: 24px; background: #f1f5f9; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex !important; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s; }
+.vearn-close-x:hover { background: #e2ece6; color: #0f172a; transform: rotate(90deg); }
+
+.vearn-modal-title { font-size: 22px; font-weight: 800; color: #1b5e20; margin: 0 0 4px 0; text-align: center; }
+.vearn-modal-subtitle { font-size: 14px; font-weight: 600; color: #64748b; margin: 0 0 24px 0; text-align: center; }
+
+.vearn-modal-total-box { background: linear-gradient(135deg, #1b5e20, #064e3b); color: #fff; padding: 20px; border-radius: 16px; display: flex !important; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 8px 16px rgba(6, 78, 59, 0.2); }
+.vearn-modal-total-box span { font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.8); }
+.vearn-modal-total-box strong { font-size: 24px; font-weight: 800; }
+
+.vearn-modal-details { display: flex !important; flex-direction: column !important; gap: 16px; background-color: #f8fafc; padding: 20px; border-radius: 16px; border: 1px solid #e2ece6; }
+.vearn-detail-row { display: flex !important; justify-content: space-between; align-items: center; }
+.vearn-detail-row span { font-size: 14px; color: #64748b; font-weight: 600; }
+.vearn-detail-row strong { font-size: 14px; color: #0f172a; font-weight: 800; }
+.vearn-detail-divider { height: 1px; background-color: #cbd5e1; margin: 4px 0; }
+.vearn-fee-row span { color: #e11d48; }
+.vearn-fee-row strong { color: #e11d48; }
+
+.vearn-action-btn { width: 100%; background: #cbd5e1; color: #fff; border: none; padding: 16px; border-radius: 30px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 24px; transition: all 0.3s ease; }
+.vearn-action-btn:hover { background: #94a3b8; transform: translateY(-2px); }
+
+/* =========================================
+   BOTTOM NAVIGATION
+   ========================================= */
+.vearn-bottom-nav { margin-top: auto; background-color: rgba(16, 74, 34, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex !important; flex-direction: row !important; justify-content: center; gap: 64px; padding: 16px 0; width: 100%; position: sticky; bottom: 0; z-index: 100; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); box-sizing: border-box; }
+.vearn-nav-item { background: none; border: none; color: #94a3b8; display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 15px; transition: color 0.3s ease; }
+.vearn-nav-item:hover { color: #fff; }
+.vearn-nav-item.active { color: #34d399; }

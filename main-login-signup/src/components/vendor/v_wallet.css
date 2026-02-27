@@ -5,6 +5,12 @@
 /* --- Glassmorphism Header --- */
 .vwal-header { display: flex !important; justify-content: space-between; align-items: center; padding: 16px 24px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(27, 94, 32, 0.1); position: sticky; top: 0; z-index: 50; box-sizing: border-box; }
 .vwal-header-title { font-size: 22px; font-weight: 800; color: #1b5e20; margin: 0; letter-spacing: 0.5px;}
+.vwal-back-btn { 
+  background: none; border: none; cursor: pointer; padding: 0; 
+  display: flex !important; align-items: center; color: #1b5e20; 
+  transition: transform 0.2s;
+}
+.vwal-back-btn:hover { transform: translateX(-4px); }
 .vwal-history-btn { background: none; border: none; color: #10b981; font-weight: 700; font-size: 15px; cursor: pointer; transition: color 0.2s; }
 .vwal-history-btn:hover { color: #047857; text-decoration: underline; }
 

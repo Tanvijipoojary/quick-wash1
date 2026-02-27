@@ -1,111 +1,218 @@
-/* ==========================================
-   VENDOR LOGIN (GREEN)
-========================================== */
-.vendor-container {
-  display: flex;
+/* vendor.css - Vendor Login Styling */
+
+.vlog-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #eafbea; /* Light mint background from screenshot */
+  display: flex !important;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); /* Light Green Gradient */
-  font-family: 'Segoe UI', sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-.vendor-box {
-  background: white;
-  padding: 40px;
-  border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(22, 163, 74, 0.15); /* Green shadow */
+.vlog-card {
+  background-color: #fff;
   width: 100%;
-  max-width: 380px;
-  text-align: center;
-  border-top: 5px solid #22c55e;
+  max-width: 420px;
+  border-radius: 16px;
+  /* Replicates the green top border from the image */
+  border-top: 8px solid #10b981; 
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.1);
+  padding: 40px 32px;
+  box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column !important;
+  animation: slideUp 0.4s ease forwards;
 }
 
-.vendor-header {
-  display: flex;
-  flex-direction: column;
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Header Section */
+.vlog-header {
+  display: flex !important;
+  flex-direction: column !important;
   align-items: center;
-  background: transparent; /* Forces the background to be clear */
-  padding: 0;
-  margin-bottom: 20px;
+  text-align: center;
 }
 
-.vendor-header .logo {
-  height: 50px;
-  margin-bottom: 8px;
-  object-fit: contain;
+.vlog-icon {
+  font-size: 32px;
+  background-color: #eafbea;
+  width: 56px;
+  height: 56px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  margin-bottom: 12px;
 }
 
-.vendor-header h1 { 
-  color: #16a34a; 
-  margin: 0; 
-  font-size: 1.8rem; 
-  letter-spacing: 1px; 
+.vlog-brand-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #10b981;
+  letter-spacing: 1px;
 }
 
-.vendor-header p { 
-  color: #15803d; 
-  margin: 5px 0 0 0; 
-  font-size: 0.95rem; 
+.vlog-brand-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 15px;
+  color: #1b5e20;
+  font-weight: 500;
 }
 
-.vendor-input {
+.vlog-divider {
   width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  border: 1px solid #bbf7d0;
-  border-radius: 6px;
+  height: 1px;
+  background-color: #e2ece6;
+  margin: 24px 0;
+}
+
+/* Form Section */
+.vlog-form {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center;
+  width: 100%;
+}
+
+.vlog-form-title {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.vlog-instruction {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #064e3b;
+  text-align: center;
+}
+
+.vlog-input-group {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100%;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.vlog-input-group label {
+  font-size: 13px;
+  font-weight: 800;
+  color: #064e3b;
+}
+
+.vlog-input-group input {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #10b981;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #0f172a;
   outline: none;
   box-sizing: border-box;
+  transition: all 0.2s;
 }
 
-.vendor-input:focus { 
-  border-color: #22c55e; 
-  background-color: #f0fdf4; 
+.vlog-input-group input:focus {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
-.vendor-btn {
+/* OTP Inputs */
+.vlog-otp-container {
+  display: flex !important;
+  justify-content: center;
+  gap: 12px;
   width: 100%;
-  padding: 12px;
-  background-color: #16a34a;
-  color: white;
+  margin-bottom: 24px;
+}
+
+.vlog-otp-input {
+  width: 50px;
+  height: 60px;
+  font-size: 24px;
+  font-weight: 800;
+  text-align: center;
+  border: 1px solid #10b981;
+  border-radius: 12px;
+  outline: none;
+  color: #0f172a;
+  transition: all 0.2s;
+}
+
+.vlog-otp-input:focus {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+/* Buttons */
+.vlog-submit-btn {
+  width: 100%;
+  background-color: #10b981;
+  color: #fff;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: bold;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
   cursor: pointer;
-  margin-top: 15px;
-  transition: 0.3s;
+  transition: all 0.2s;
 }
 
-.vendor-btn:hover { 
-  background-color: #15803d; 
+.vlog-submit-btn:hover:not(:disabled) {
+  background-color: #059669;
 }
 
-.vendor-btn:disabled {
-  background-color: #86efac;
+.vlog-submit-btn:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-.toggle-vendor {
-  color: #15803d;
-  cursor: pointer;
-  margin-top: 15px;
-  font-size: 0.9rem;
+/* Footer Links */
+.vlog-footer-links {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  width: 100%;
 }
 
-.toggle-vendor:hover {
-  text-decoration: underline;
-}
-
-.back-to-home-vendor {
-  margin-top: 25px;
+.vlog-text-link {
   background: none;
   border: none;
-  color: #14532d;
+  color: #10b981;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.85rem;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.vlog-text-link:hover {
+  color: #059669;
   text-decoration: underline;
 }
 
-/* --- VENDOR BRAND HEADER --- */
+.vlog-back-app-link {
+  background: none;
+  border: none;
+  color: #064e3b;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.vlog-back-app-link:hover {
+  color: #10b981;
+}

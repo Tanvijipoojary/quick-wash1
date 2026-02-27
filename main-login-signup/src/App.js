@@ -43,6 +43,9 @@ import VendorLanguage from './components/vendor/v_language';
 import VendorBank from './components/vendor/v_bank';
 import VendorSchedule from './components/vendor/v_schedule';
 import VendorWallet from './components/vendor/v_wallet';
+import VendorEarnings from './components/vendor/v_earnings';
+import VendorProfile from './components/vendor/v_profile';
+import VendorOnboarding from './components/vendor/v_onboarding';
 
 // Global App CSS (if you have one)
 import './App.css'; 
@@ -90,6 +93,10 @@ function App() {
           <Route path="/vendor-bank" element={<VendorBank />} />
           <Route path="/vendor-schedule" element={<VendorSchedule />} />
           <Route path="/vendor-wallet" element={<VendorWallet />} />
+          <Route path="/vendor-earnings" element={<VendorEarnings />} />
+          <Route path="/vendor-profile" element={<VendorProfile />} />
+          <Route path="/vendor-register" element={<VendorOnboarding />} />
+          
         </Routes>
       </div>
     </Router>
