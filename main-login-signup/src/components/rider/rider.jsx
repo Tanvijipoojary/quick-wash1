@@ -1,155 +1,124 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Pointing to your new specific rider CSS file!
-import './rider.css'; 
-import logo from '../assets/quickwash-logo.png';
+import './rider.css';
 
 const RiderLogin = () => {
   const navigate = useNavigate();
 
   // --- STATE MANAGEMENT ---
-  const [isLoginMode, setIsLoginMode] = useState(true); 
-  const [step, setStep] = useState(1); 
+  const [step, setStep] = useState(1); // 1 = Phone, 2 = OTP
   const [isLoading, setIsLoading] = useState(false);
-
-  // Form Data 
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', vehicle: '' });
-  const [otp, setOtp] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '']); 
 
   // --- HANDLERS ---
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleToggleMode = () => {
-    setIsLoginMode(!isLoginMode);
-    setStep(1); 
-    setOtp(''); 
-  };
-
-  const handleContinue = (e) => {
+  const handleSendOTP = (e) => {
     e.preventDefault();
+    if (!phone) return;
+    
     setIsLoading(true);
-
     setTimeout(() => {
       setIsLoading(false);
       setStep(2); 
-    }, 1000);
+    }, 1200);
   };
 
-  const handleVerify = (e) => {
+  const handleVerifyOTP = (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (otp.join('').length < 4) return;
 
+    setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      if (otp.length === 4) {
-        // Redirects to the new Rider Home page!
-        navigate('/rider-home'); 
-      } else {
-        alert("Please enter a valid 4-digit OTP.");
-      }
+      navigate('/rider-home'); // Unlock app and go to rider dashboard
     }, 1500);
   };
 
+  const handleOtpChange = (element, index) => {
+    if (isNaN(element.value)) return;
+    let newOtp = [...otp];
+    newOtp[index] = element.value;
+    setOtp(newOtp);
+
+    if (element.nextSibling && element.value !== '') {
+      element.nextSibling.focus();
+    }
+  };
+
   return (
-    <div className="rider-container">
-      <div className="rider-box">
+    <div className="rlog-container">
+      <div className="rlog-card">
         
-        {/* --- BRAND HEADER --- */}
-        <div className="rider-header">
-          <img src={logo} alt="Quick Wash Logo" className="logo" />
-          <h1>QUICK WASH</h1>
-          <p>Delivery Rider Portal</p>
+        {/* --- HEADER SECTION --- */}
+        <div className="rlog-header">
+          <div className="rlog-icon">🛵</div>
+          <h1 className="rlog-brand-title">QUICK WASH</h1>
+          <p className="rlog-brand-subtitle">Delivery Partner Portal</p>
         </div>
+        
+        <div className="rlog-divider"></div>
 
-        {/* ==========================================
-            STEP 1: EMAIL ENTRY
-        ========================================== */}
+        {/* --- STEP 1: PHONE ENTRY --- */}
         {step === 1 && (
-          <form onSubmit={handleContinue}>
-            <h2 style={{ color: '#ea580c', margin: '0 0 5px 0', fontSize: '1.3rem' }}>
-              {isLoginMode ? 'Rider Log In' : 'Join the Fleet'}
-            </h2>
-            <p style={{ color: '#9a3412', fontSize: '0.85rem', marginBottom: '20px' }}>
-              {isLoginMode 
-                ? 'Enter your registered email to start your shift.' 
-                : 'Fill in your details to become a delivery partner.'}
-            </p>
+          <form className="rlog-form" onSubmit={handleSendOTP}>
+            <h2 className="rlog-form-title">Rider Log In</h2>
+            <p className="rlog-instruction">Enter your registered phone number to hit the road.</p>
             
-            {!isLoginMode && (
-              <>
-                <div style={{ textAlign: 'left' }}>
-                  <label style={{ fontSize: '0.85rem', color: '#9a3412', fontWeight: 'bold' }}>Full Name</label>
-                  <input type="text" name="name" className="rider-input" placeholder="e.g., Kiran Kumar" value={formData.name} onChange={handleInputChange} required />
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <label style={{ fontSize: '0.85rem', color: '#9a3412', fontWeight: 'bold' }}>Phone Number</label>
-                  <input type="tel" name="phone" className="rider-input" placeholder="e.g., +91 99999 11111" value={formData.phone} onChange={handleInputChange} required />
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <label style={{ fontSize: '0.85rem', color: '#9a3412', fontWeight: 'bold' }}>Vehicle Type & Number</label>
-                  <input type="text" name="vehicle" className="rider-input" placeholder="e.g., Scooter - KA 19 AB 1234" value={formData.vehicle} onChange={handleInputChange} required />
-                </div>
-              </>
-            )}
-
-            <div style={{ textAlign: 'left' }}>
-              <label style={{ fontSize: '0.85rem', color: '#9a3412', fontWeight: 'bold' }}>Email Address</label>
-              <input type="email" name="email" className="rider-input" placeholder="e.g., rider@example.com" value={formData.email} onChange={handleInputChange} required autoFocus />
-            </div>
-            
-            {/* Rider Button uses CSS class entirely */}
-            <button type="submit" className="rider-btn" disabled={isLoading}>
-              {isLoading ? 'Processing...' : 'Continue'}
-            </button>
-
-            <div className="toggle-rider" onClick={handleToggleMode}>
-              {isLoginMode ? "Want to join our delivery fleet? Apply Now" : "Already a rider? Log In"}
+            <div className="rlog-input-group">
+              <label>Phone Number</label>
+              <div className="rlog-phone-input-wrapper">
+                <span className="rlog-country-code">+91</span>
+                <input 
+                  type="tel" 
+                  placeholder="98765 43210" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
-            {/* Back to Customer App Button uses new specific class */}
-            <button type="button" className="back-to-home-rider" onClick={() => navigate('/')}>
-              ← Back to Main App
+            <button type="submit" className="rlog-submit-btn" disabled={isLoading || !phone}>
+              {isLoading ? 'Sending OTP...' : 'Continue'}
             </button>
+            
+            <div className="rlog-footer-links">
+              <button type="button" className="rlog-text-link" onClick={() => navigate('/rider-register')}>
+                Want to ride with us? Register Here
+              </button>
+              <button type="button" className="rlog-back-app-link" onClick={() => navigate('/')}>
+                ← Back to Main App
+              </button>
+            </div>
           </form>
         )}
 
-        {/* ==========================================
-            STEP 2: OTP VERIFICATION
-        ========================================== */}
+        {/* --- STEP 2: OTP VERIFICATION --- */}
         {step === 2 && (
-          <form onSubmit={handleVerify}>
-            <h2 style={{ color: '#ea580c', margin: '0 0 5px 0', fontSize: '1.3rem' }}>Verify your Email</h2>
-            <p style={{ color: '#9a3412', fontSize: '0.85rem', marginBottom: '20px' }}>
-              Enter the 4-digit code sent to <strong>{formData.email}</strong>
+          <form className="rlog-form" onSubmit={handleVerifyOTP}>
+            <h2 className="rlog-form-title">Enter OTP</h2>
+            <p className="rlog-instruction">
+              We've sent a 4-digit code to <strong>+91 {phone}</strong>
             </p>
             
-            <div>
-              <input 
-                type="text" 
-                className="rider-input"
-                style={{ textAlign: 'center', fontSize: '1.5rem', letterSpacing: '15px', fontWeight: 'bold' }}
-                placeholder="• • • •" 
-                maxLength="4"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} 
-                required 
-                autoFocus
-              />
+            <div className="rlog-otp-container">
+              {otp.map((data, index) => (
+                <input
+                  key={index} type="text" maxLength="1" className="rlog-otp-input"
+                  value={data} onChange={(e) => handleOtpChange(e.target, index)}
+                  onFocus={(e) => e.target.select()}
+                />
+              ))}
             </div>
-            
-            <button type="submit" className="rider-btn" disabled={isLoading || otp.length < 4}>
-              {isLoading ? 'Verifying...' : 'Access Deliveries'}
-            </button>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px' }}>
-              <span className="toggle-rider" style={{ marginTop: 0 }} onClick={() => setStep(1)}>
-                ✎ Back
-              </span>
-              <span className="toggle-rider" style={{ marginTop: 0 }} onClick={handleContinue}>
-                ↻ Resend Code
-              </span>
+            <button type="submit" className="rlog-submit-btn" disabled={isLoading || otp.join('').length < 4}>
+              {isLoading ? 'Verifying...' : 'Start Riding'}
+            </button>
+            
+            <div className="rlog-footer-links">
+              <button type="button" className="rlog-text-link" onClick={() => setStep(1)} style={{color: '#666'}}>
+                Wrong number? Go back
+              </button>
             </div>
           </form>
         )}

@@ -1,97 +1,39 @@
-/* ==========================================
-   RIDER LOGIN (ORANGE)
-========================================== */
-.rider-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); /* Light Orange */
-  font-family: 'Segoe UI', sans-serif;
-}
+/* rider.css - Rider Login Styling (Orange Theme) */
 
-.rider-box {
-  background: white;
-  padding: 40px;
-  border-radius: 15px;
-  box-shadow: 0 10px 25px rgba(234, 88, 12, 0.15); /* Orange shadow */
-  width: 100%;
-  max-width: 380px;
-  text-align: center;
-  border-top: 5px solid #f97316;
-}
+.rlog-container { width: 100%; min-height: 100vh; background-color: #fdfaf7; display: flex !important; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
 
-/* --- RIDER BRAND HEADER --- */
-.rider-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: transparent; /* Forces the background to be clear */
-  padding: 0;
-  margin-bottom: 20px;
-}
+.rlog-card { background-color: #fff; width: 100%; max-width: 420px; border-radius: 16px; border-top: 8px solid #eb6d1e; box-shadow: 0 10px 25px rgba(235, 109, 30, 0.1); padding: 40px 32px; box-sizing: border-box; display: flex !important; flex-direction: column !important; animation: slideUp 0.4s ease forwards; }
 
-.rider-header .logo {
-  height: 50px;
-  margin-bottom: 8px;
-  object-fit: contain;
-}
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-.rider-header h1 { 
-  color: #ea580c; 
-  margin: 0; 
-  font-size: 1.8rem; 
-  letter-spacing: 1px; 
-}
+.rlog-header { display: flex !important; flex-direction: column !important; align-items: center; text-align: center; }
+.rlog-icon { font-size: 32px; background-color: #fff4e5; width: 56px; height: 56px; display: flex !important; align-items: center; justify-content: center; border-radius: 12px; margin-bottom: 12px; }
+.rlog-brand-title { margin: 0; font-size: 26px; font-weight: 800; color: #eb6d1e; letter-spacing: 1px; }
+.rlog-brand-subtitle { margin: 4px 0 0 0; font-size: 15px; color: #2b2522; font-weight: 600; }
+.rlog-divider { width: 100%; height: 1px; background-color: #f0e6dd; margin: 24px 0; }
 
-.rider-header p { 
-  color: #9a3412; 
-  margin: 5px 0 0 0; 
-  font-size: 0.95rem; 
-}
+.rlog-form { display: flex !important; flex-direction: column !important; align-items: center; width: 100%; }
+.rlog-form-title { margin: 0 0 8px 0; font-size: 22px; font-weight: 800; color: #2b2522; }
+.rlog-instruction { margin: 0 0 24px 0; font-size: 14px; color: #666; text-align: center; }
 
+.rlog-input-group { display: flex !important; flex-direction: column !important; width: 100%; gap: 8px; margin-bottom: 24px; }
+.rlog-input-group label { font-size: 13px; font-weight: 800; color: #2b2522; }
 
-.rider-input {
-  width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  border: 1px solid #fed7aa;
-  border-radius: 6px;
-  outline: none;
-  box-sizing: border-box;
-}
+.rlog-phone-input-wrapper { display: flex !important; align-items: center; width: 100%; border: 2px solid #f0e6dd; border-radius: 8px; overflow: hidden; transition: all 0.2s; background-color: #fff;}
+.rlog-phone-input-wrapper:focus-within { border-color: #eb6d1e; box-shadow: 0 0 0 3px rgba(235, 109, 30, 0.15); }
+.rlog-country-code { padding: 16px; background-color: #fdfaf7; color: #666; font-weight: 700; border-right: 1px solid #f0e6dd; }
+.rlog-phone-input-wrapper input { flex: 1; padding: 16px; border: none; font-size: 16px; font-weight: 600; color: #2b2522; outline: none; }
 
-.rider-input:focus { border-color: #f97316; background-color: #fffaf0; }
+.rlog-otp-container { display: flex !important; justify-content: center; gap: 12px; width: 100%; margin-bottom: 24px; }
+.rlog-otp-input { width: 50px; height: 60px; font-size: 24px; font-weight: 800; text-align: center; border: 2px solid #f0e6dd; border-radius: 12px; outline: none; color: #2b2522; transition: all 0.2s; }
+.rlog-otp-input:focus { border-color: #eb6d1e; box-shadow: 0 0 0 3px rgba(235, 109, 30, 0.15); }
 
-.rider-btn {
-  width: 100%;
-  padding: 12px;
-  background-color: #f97316;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 15px;
-  transition: 0.3s;
-}
+.rlog-submit-btn { width: 100%; background-color: #eb6d1e; color: #fff; border: none; padding: 16px; border-radius: 8px; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.2s; }
+.rlog-submit-btn:hover:not(:disabled) { background-color: #d86118; }
+.rlog-submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
-.rider-btn:hover { background-color: #ea580c; }
-
-.toggle-rider {
-  color: #ea580c;
-  cursor: pointer;
-  margin-top: 15px;
-  font-size: 0.9rem;
-}
-
-.back-to-home-rider {
-  margin-top: 20px;
-  background: none;
-  border: none;
-  color: #7c2d12;
-  cursor: pointer;
-  font-size: 0.85rem;
-  text-decoration: underline;
-}
-
+.rlog-footer-links { display: flex !important; flex-direction: column !important; align-items: center; gap: 16px; margin-top: 24px; width: 100%; }
+.rlog-text-link { background: none; border: none; color: #eb6d1e; font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; transition: color 0.2s; }
+.rlog-text-link:hover { text-decoration: underline; }
+.rlog-back-app-link { background: none; border: none; color: #666; font-size: 14px; font-weight: 600; text-decoration: underline; cursor: pointer; padding: 0; transition: color 0.2s; }
+.rlog-back-app-link:hover { color: #2b2522; }
