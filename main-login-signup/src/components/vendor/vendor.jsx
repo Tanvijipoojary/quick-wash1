@@ -36,14 +36,15 @@ const VendorLogin = () => {
     }, 1000);
   };
 
-  const handleVerify = (e) => {
+    const handleVerify = (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     setTimeout(() => {
       setIsLoading(false);
       if (otp.length === 4) {
-        navigate('/vendor'); // Routes to the Vendor Dashboard
+        // Redirects to the new Vendor Home page!
+        navigate('/vendor-home'); 
       } else {
         alert("Please enter a valid 4-digit OTP.");
       }

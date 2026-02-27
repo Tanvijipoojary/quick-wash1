@@ -44,7 +44,8 @@ const RiderLogin = () => {
     setTimeout(() => {
       setIsLoading(false);
       if (otp.length === 4) {
-        navigate('/rider'); // Routes to the Rider App
+        // Redirects to the new Rider Home page!
+        navigate('/rider-home'); 
       } else {
         alert("Please enter a valid 4-digit OTP.");
       }
