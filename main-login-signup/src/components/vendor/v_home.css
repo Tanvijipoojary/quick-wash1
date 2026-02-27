@@ -1,0 +1,154 @@
+/* v_home.css */
+
+.vhome-container {
+  width: 100%;
+  margin: 0 auto;
+  min-height: 100vh; 
+  background-color: #fdf4eb; /* Quick wash peach background */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* --- Header --- */
+.vhome-header {
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: #fff;
+}
+
+.vhome-menu-btn { background: none; border: none; cursor: pointer; color: #333; }
+.vhome-header-title { font-size: 20px; font-weight: 800; color: #000; margin: 0; }
+
+/* --- Top Main Tabs --- */
+.vhome-main-tabs {
+  display: flex !important;
+  background-color: #fff;
+  border-bottom: 1px solid #f0e6dd;
+  padding: 0 24px;
+}
+
+.vhome-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 16px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.vhome-tab.active {
+  color: #2b2522;
+  border-bottom: 3px solid #11993e; /* Quick wash orange underline */
+}
+
+/* --- Centered Main Content Area --- */
+.vhome-main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 600px; /* Perfect centered card size for desktop */
+  margin: 0 auto;
+  padding: 24px 20px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px;
+}
+
+/* --- Sub Tabs (Pill Buttons) --- */
+.vhome-sub-tabs {
+  display: flex !important;
+  gap: 12px;
+}
+
+.vhome-sub-tab {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: #fff;
+  color: #666;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid #e0d5cb;
+  transition: all 0.2s;
+}
+
+.vhome-sub-tab.active {
+  background-color: #11993e; /* Quick wash orange pill */
+  color: #fff;
+  border-color: #11993e;
+}
+
+/* --- Order Cards --- */
+.vhome-orders-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px;
+}
+
+.vhome-order-card {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(235, 109, 30, 0.05);
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px;
+}
+
+.vhome-card-header { display: flex !important; flex-direction: column !important; gap: 12px; border-bottom: 1px solid #f0e6dd; padding-bottom: 12px; }
+.vhome-id-block { display: flex !important; justify-content: space-between; align-items: center; }
+.vhome-id { font-size: 18px; font-weight: 800; color: #2b2522; }
+
+.vhome-price-header-labels { display: flex !important; justify-content: space-between; }
+.vhome-label { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; }
+
+/* Items List */
+.vhome-items-list { display: flex !important; flex-direction: column !important; gap: 16px; border-bottom: 1px solid #f0e6dd; padding-bottom: 16px; }
+.vhome-item-row { display: flex !important; gap: 16px; align-items: flex-start; }
+.vhome-item-image { width: 48px; height: 48px; background-color: #fdf4eb; border-radius: 8px; display: flex !important; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+.vhome-item-details { flex: 1; display: flex !important; flex-direction: column !important; gap: 4px; }
+.vhome-item-details h4 { margin: 0; font-size: 15px; font-weight: 700; color: #2b2522; }
+.vhome-item-details p { margin: 0; font-size: 13px; color: #888; }
+.vhome-item-qty { font-size: 13px; font-weight: 700; color: #2b2522; margin-top: 4px; }
+.vhome-item-price { font-size: 15px; font-weight: 800; color: #2b2522; }
+
+/* Totals & Comments */
+.vhome-total-row { display: flex !important; justify-content: space-between; align-items: center; }
+.vhome-total-label { font-size: 16px; font-weight: 800; color: #2b2522; }
+.vhome-total-amount { font-size: 18px; font-weight: 800; color: #2b2522; }
+
+.vhome-comment-box { background-color: #fdfaf7; padding: 12px; border-radius: 8px; }
+.vhome-comment-text { margin: 4px 0 0 0; font-size: 14px; font-style: italic; color: #444; }
+
+/* Action Buttons */
+.vhome-actions { display: flex !important; gap: 16px; margin-top: 8px; }
+.vhome-btn-decline { flex: 1; background: none; border: 1px solid #11993e; color: #11993e; padding: 14px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background-color 0.2s; }
+.vhome-btn-decline:hover { background-color: #fcebeb; }
+.vhome-btn-accept { flex: 1; background-color: #11993e; color: #fff; border: none; padding: 14px; border-radius: 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform 0.1s; }
+.vhome-btn-accept:active { transform: scale(0.98); }
+
+.vhome-empty { text-align: center; color: #888; padding: 40px; font-weight: 500; }
+
+/* --- Bottom Nav --- */
+.vhome-bottom-nav {
+  margin-top: auto; 
+  background-color: #2b2522; 
+  display: flex !important; 
+  flex-direction: row !important; 
+  justify-content: center; 
+  gap: 64px; 
+  padding: 16px 0; 
+  width: 100%; 
+}
+
+.vhome-nav-item { background: none; border: none; color: #a0aab2; display: flex !important; flex-direction: row !important; align-items: center; gap: 10px; cursor: pointer; font-weight: 500; font-size: 15px; transition: color 0.2s; }
+.vhome-nav-item:hover { color: #fff; }
+.vhome-nav-item.active { color: #11993e; }
