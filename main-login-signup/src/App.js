@@ -39,6 +39,10 @@ import RiderSchedule from './components/rider/r_schedule';
 // ==========================================
 import VendorLogin from './components/vendor/vendor';
 import VendorHome from './components/vendor/v_home';
+import VendorLanguage from './components/vendor/v_language';
+import VendorBank from './components/vendor/v_bank';
+import VendorSchedule from './components/vendor/v_schedule';
+import VendorWallet from './components/vendor/v_wallet';
 
 // Global App CSS (if you have one)
 import './App.css'; 
@@ -82,6 +86,10 @@ function App() {
           {/* --- Vendor Routes --- */}
           <Route path="/vendor" element={<VendorLogin />} />
           <Route path="/vendor-home" element={<VendorHome />} />
+          <Route path="/vendor-language" element={<VendorLanguage />} />
+          <Route path="/vendor-bank" element={<VendorBank />} />
+          <Route path="/vendor-schedule" element={<VendorSchedule />} />
+          <Route path="/vendor-wallet" element={<VendorWallet />} />
         </Routes>
       </div>
     </Router>

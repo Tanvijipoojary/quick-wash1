@@ -1,0 +1,139 @@
+/* v_settings.css - PREMIUM DARK GREEN THEME (Shared for Language, Bank, Schedule) */
+
+.vset-container {
+  width: 100%; 
+  margin: 0 auto; 
+  min-height: 100vh; 
+  background-color: #f2f7f4; /* Minty-grey background */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  display: flex !important; 
+  flex-direction: column !important;
+}
+
+/* --- Glassmorphism Header --- */
+.vset-header {
+  display: flex !important; 
+  flex-direction: row !important; 
+  align-items: center;
+  padding: 16px 24px; 
+  background-color: rgba(255, 255, 255, 0.85); 
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(27, 94, 32, 0.1); 
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.vset-back-btn { 
+  background: none; border: none; cursor: pointer; padding: 0; 
+  display: flex !important; align-items: center; color: #1b5e20; 
+  transition: transform 0.2s;
+}
+.vset-back-btn:hover { transform: translateX(-4px); }
+.vset-header-title { font-size: 20px; font-weight: 800; margin: 0; color: #1b5e20; letter-spacing: 0.5px;}
+
+/* --- Main Layout --- */
+.vset-main-content {
+  flex: 1; width: 100%; max-width: 800px; margin: 0 auto; 
+  padding: 32px 24px 100px 24px;
+  display: flex !important; flex-direction: column !important; gap: 24px;
+  box-sizing: border-box;
+}
+
+/* --- Premium Cards (Used in Language & Bank) --- */
+.vset-card { 
+  background-color: #fff; 
+  border-radius: 20px; 
+  border: 1px solid #e2ece6; 
+  padding: 8px 24px; 
+  box-shadow: 0 6px 16px rgba(27, 94, 32, 0.04);
+}
+
+.vset-form-card {
+  padding: 32px 24px 12px 24px; /* Slightly more padding for the form */
+}
+
+/* --- Language List Items --- */
+.vset-list-item { 
+  display: flex !important; justify-content: space-between; align-items: center; 
+  padding: 20px 0; border-bottom: 1px solid #e2ece6; cursor: pointer; 
+  transition: all 0.2s;
+}
+.vset-list-item:hover { transform: translateX(4px); }
+.vset-list-item:last-child { border-bottom: none; }
+.vset-item-left { display: flex !important; align-items: center; gap: 16px; font-size: 16px; font-weight: 700; color: #0f172a; }
+
+/* Custom Radio Buttons */
+.vset-radio { 
+  width: 24px; height: 24px; border-radius: 50%; 
+  border: 2px solid #cbd5e1; display: flex !important; 
+  align-items: center; justify-content: center; transition: all 0.2s;
+}
+.vset-radio-active { border-color: #10b981; background-color: #e8f5e9; }
+.vset-radio-dot { width: 12px; height: 12px; background-color: #10b981; border-radius: 50%; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.4);}
+
+/* --- Form Inputs (Bank Management) --- */
+.vset-input-group { display: flex !important; flex-direction: column !important; gap: 8px; margin-bottom: 24px; }
+.vset-input-group label { font-size: 13px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;}
+.vset-input, .vset-select { 
+  width: 100%; padding: 16px; border: 2px solid #e2ece6; 
+  border-radius: 12px; font-size: 16px; font-weight: 600; color: #0f172a; 
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s; 
+  box-sizing: border-box; background-color: #f8fafc;
+}
+.vset-input:focus, .vset-select:focus { 
+  border-color: #10b981; 
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); 
+  background-color: #fff;
+}
+
+/* --- Action Button (Gradient) --- */
+.vset-action-btn { 
+  width: 100%; 
+  background: linear-gradient(135deg, #2e7d32, #1b5e20); 
+  color: #fff; border: none; padding: 18px; border-radius: 30px; 
+  font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 16px; 
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(27, 94, 32, 0.25);
+  letter-spacing: 0.5px;
+}
+.vset-action-btn:hover { 
+  background: linear-gradient(135deg, #388e3c, #2e7d32); 
+  box-shadow: 0 10px 24px rgba(27, 94, 32, 0.35); 
+  transform: translateY(-2px);
+}
+.vset-action-btn:active { transform: translateY(1px); }
+
+/* --- Schedule Cards --- */
+.vset-sched-card { 
+  background-color: #fff; border-radius: 20px; border: 1px solid #e2ece6; 
+  padding: 24px; display: flex !important; flex-direction: column !important; gap: 16px; 
+  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.04);
+  transition: transform 0.3s ease;
+}
+.vset-sched-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(27, 94, 32, 0.08); }
+.vset-sched-header { display: flex !important; justify-content: space-between; align-items: center; }
+.vset-sched-day { font-weight: 800; font-size: 18px; color: #0f172a; letter-spacing: 1px;}
+.vset-sched-times { display: flex !important; align-items: center; gap: 12px; margin-top: 8px;}
+.vset-time-input { 
+  flex: 1; padding: 14px; border: 2px solid #e2ece6; border-radius: 12px; 
+  text-align: center; font-weight: 700; font-size: 15px; color: #1b5e20; 
+  outline: none; background-color: #f8fafc; transition: border-color 0.2s;
+}
+.vset-time-input:focus { border-color: #10b981; background-color: #fff;}
+.vset-add-btn { 
+  width: 44px; height: 44px; border-radius: 14px; 
+  background-color: #e8f5e9; color: #1b5e20; border: none; 
+  font-size: 24px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.vset-add-btn:hover { background-color: #10b981; color: #fff; transform: scale(1.05);}
+
+/* --- Reused Toggle Switch --- */
+.vset-toggle { position: relative; display: inline-block; width: 52px; height: 28px; }
+.vset-toggle input { opacity: 0; width: 0; height: 0; }
+.vset-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 28px; }
+.vset-slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
+input:checked + .vset-slider { background-color: #10b981; }
+input:checked + .vset-slider:before { transform: translateX(24px); }

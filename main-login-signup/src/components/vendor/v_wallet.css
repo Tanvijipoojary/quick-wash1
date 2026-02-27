@@ -1,0 +1,118 @@
+/* v_wallet.css - PREMIUM DARK GREEN THEME (Withdrawals Only) */
+
+.vwal-container { width: 100%; margin: 0 auto; min-height: 100vh; background-color: #f2f7f4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; display: flex !important; flex-direction: column !important; position: relative; }
+
+/* --- Glassmorphism Header --- */
+.vwal-header { display: flex !important; justify-content: space-between; align-items: center; padding: 16px 24px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(27, 94, 32, 0.1); position: sticky; top: 0; z-index: 50; box-sizing: border-box; }
+.vwal-header-title { font-size: 22px; font-weight: 800; color: #1b5e20; margin: 0; letter-spacing: 0.5px;}
+.vwal-history-btn { background: none; border: none; color: #10b981; font-weight: 700; font-size: 15px; cursor: pointer; transition: color 0.2s; }
+.vwal-history-btn:hover { color: #047857; text-decoration: underline; }
+
+/* --- Main Layout --- */
+.vwal-main-content { flex: 1; width: 100%; max-width: 800px; margin: 0 auto; padding: 32px 24px 100px 24px; display: flex !important; flex-direction: column !important; gap: 32px; box-sizing: border-box; }
+
+/* --- Premium Balance Card --- */
+.vwal-balance-card { background: linear-gradient(135deg, #1b5e20, #064e3b); border-radius: 24px; padding: 32px; color: #fff; box-shadow: 0 16px 32px rgba(6, 78, 59, 0.3); display: flex !important; flex-direction: column !important; gap: 16px; position: relative; overflow: hidden; }
+.vwal-balance-card::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%); pointer-events: none; }
+
+.vwal-card-top { display: flex !important; justify-content: space-between; align-items: center; }
+.vwal-balance-label { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.8); text-transform: uppercase; letter-spacing: 1px;}
+.vwal-currency-badge { background-color: rgba(255, 255, 255, 0.2); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; }
+.vwal-balance-amount { font-size: 42px; font-weight: 800; margin: 8px 0 24px 0; letter-spacing: 1px;}
+
+.vwal-card-bottom { display: flex !important; justify-content: space-between; align-items: flex-end; }
+.vwal-bank-info { display: flex !important; align-items: flex-start; gap: 12px; font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.95); }
+.vwal-bank-info .vwal-bank-icon { font-size: 22px; margin-top: 2px;}
+
+/* NEW: Change Account Link */
+.vwal-bank-text-stack { display: flex !important; flex-direction: column !important; gap: 4px; align-items: flex-start;}
+.vwal-change-bank-link { 
+  background: none; border: none; padding: 0; color: #34d399; font-size: 13px; font-weight: 700; 
+  cursor: pointer; display: flex !important; align-items: center; transition: color 0.2s; z-index: 2;
+}
+.vwal-change-bank-link:hover { color: #fff; text-decoration: underline; }
+
+.vwal-withdraw-btn { background-color: #10b981; color: #fff; border: none; padding: 12px 24px; border-radius: 20px; font-size: 15px; font-weight: 800; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); z-index: 2; }
+.vwal-withdraw-btn:hover { background-color: #34d399; transform: translateY(-2px); }
+.vwal-withdraw-btn:active { transform: translateY(1px); }
+
+/* --- Withdrawal Requests List --- */
+.vwal-transactions-section { display: flex !important; flex-direction: column !important; gap: 16px; }
+.vwal-section-title { font-size: 18px; font-weight: 800; color: #0f172a; margin: 0; }
+.vwal-transactions-list { background-color: #fff; border-radius: 20px; border: 1px solid #e2ece6; box-shadow: 0 6px 16px rgba(27, 94, 32, 0.04); overflow: hidden; }
+
+/* Clickable Transaction Items */
+.vwal-transaction-item { display: flex !important; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #f1f5f9; transition: background-color 0.2s; }
+.vwal-clickable { cursor: pointer; }
+.vwal-clickable:hover { background-color: #f8fafc; }
+.vwal-transaction-item:last-child { border-bottom: none; }
+
+.vwal-tx-left { display: flex !important; align-items: center; gap: 16px; }
+.vwal-tx-icon { width: 44px; height: 44px; border-radius: 12px; display: flex !important; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; }
+.vwal-icon-debit { background-color: #f1f5f9; color: #0f172a; }
+
+.vwal-tx-details { display: flex !important; flex-direction: column !important; gap: 4px; }
+.vwal-tx-title { font-weight: 800; font-size: 16px; color: #0f172a; }
+.vwal-tx-date { font-size: 13px; font-weight: 600; color: #64748b; }
+
+.vwal-tx-right { display: flex !important; flex-direction: column !important; align-items: flex-end; gap: 6px; }
+.vwal-tx-amount { font-weight: 800; font-size: 16px; }
+.vwal-text-debit { color: #0f172a; }
+
+.vwal-status-pill { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+.vwal-status-pending { background-color: #fef3c7; color: #d97706; }
+.vwal-status-completed { background-color: #dcfce7; color: #059669; }
+
+/* =========================================
+   MODALS (Frosted Glass Overlay)
+   ========================================= */
+.vwal-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); display: flex !important; align-items: center; justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+.vwal-modal-box { background-color: #fff; border-radius: 24px; width: 100%; max-width: 400px; padding: 32px; box-shadow: 0 24px 48px rgba(0,0,0,0.2); display: flex !important; flex-direction: column !important; position: relative; animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.vwal-modal-top-row { display: flex !important; justify-content: space-between; align-items: center; padding-bottom: 24px; border-bottom: 1px solid #e2ece6; margin-bottom: 24px; }
+.vwal-modal-label { font-size: 14px; color: #64748b; font-weight: 600; }
+.vwal-modal-balance { font-size: 18px; font-weight: 800; color: #1b5e20; }
+
+.vwal-input-group { display: flex !important; flex-direction: column !important; gap: 8px; margin-bottom: 24px; }
+.vwal-input-group label { font-size: 13px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px;}
+.vwal-input-group input { width: 100%; padding: 18px; border: 2px solid #e2ece6; border-radius: 16px; font-size: 20px; font-weight: 800; color: #0f172a; box-sizing: border-box; outline: none; transition: border-color 0.2s, box-shadow 0.2s; background-color: #f8fafc; }
+.vwal-input-group input:focus { border-color: #10b981; background-color: #fff; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+
+.vwal-bank-preview { display: flex !important; align-items: center; gap: 16px; background-color: #f1f5f9; padding: 16px; border-radius: 16px; margin-bottom: 24px; }
+.vwal-bank-preview .vwal-bank-icon { font-size: 24px; }
+.vwal-bank-text { display: flex !important; flex-direction: column !important; gap: 2px; }
+.vwal-bank-text strong { font-size: 15px; color: #0f172a; }
+.vwal-bank-text span { font-size: 13px; color: #64748b; font-weight: 600; }
+
+.vwal-confirm-btn { width: 100%; background-color: #cbd5e1; color: #fff; border: none; padding: 18px; border-radius: 30px; font-size: 16px; font-weight: 800; transition: all 0.3s ease; margin-bottom: 12px; }
+.vwal-confirm-btn.active { background: linear-gradient(135deg, #2e7d32, #1b5e20); cursor: pointer; box-shadow: 0 8px 20px rgba(27, 94, 32, 0.25); }
+.vwal-confirm-btn.active:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(27, 94, 32, 0.35); }
+.vwal-cancel-btn { background: none; border: none; color: #64748b; font-size: 15px; font-weight: 700; cursor: pointer; transition: color 0.2s; }
+.vwal-cancel-btn:hover { color: #0f172a; }
+
+/* Success Box */
+.vwal-success-box { text-align: center; align-items: center; padding: 48px 32px; }
+.vwal-close-x { position: absolute; top: 20px; right: 20px; background: #f1f5f9; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex !important; align-items: center; justify-content: center; cursor: pointer; color: #64748b; transition: all 0.2s; }
+.vwal-close-x:hover { background: #e2ece6; color: #0f172a; transform: rotate(90deg); }
+.vwal-success-icon { width: 72px; height: 72px; background-color: #dcfce7; border-radius: 50%; display: flex !important; align-items: center; justify-content: center; margin-bottom: 24px; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2); }
+.vwal-success-title { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 12px 0; }
+.vwal-success-subtitle { font-size: 15px; color: #64748b; margin: 0 0 24px 0; line-height: 1.6; }
+.vwal-success-subtitle strong { color: #0f172a; }
+
+/* --- NEW: Transaction Receipt Details --- */
+.vwal-modal-title { font-size: 20px; font-weight: 800; color: #0f172a; }
+.vwal-receipt-header { display: flex !important; flex-direction: column !important; align-items: center; padding: 24px 0; border-bottom: 1px dashed #cbd5e1; margin-bottom: 16px; }
+.vwal-receipt-amount { font-size: 36px; font-weight: 800; color: #1b5e20; }
+.vwal-receipt-body { display: flex !important; flex-direction: column !important; gap: 16px; }
+.vwal-receipt-row { display: flex !important; justify-content: space-between; align-items: center; }
+.vwal-receipt-row span { font-size: 14px; color: #64748b; font-weight: 600; }
+.vwal-receipt-row strong { font-size: 15px; color: #0f172a; font-weight: 700; }
+
+/* =========================================
+   BOTTOM NAVIGATION
+   ========================================= */
+.vwal-bottom-nav { margin-top: auto; background-color: rgba(16, 74, 34, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex !important; flex-direction: row !important; justify-content: center; gap: 64px; padding: 16px 0; width: 100%; position: sticky; bottom: 0; z-index: 100; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); box-sizing: border-box; }
+.vwal-nav-item { background: none; border: none; color: #94a3b8; display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 15px; transition: color 0.3s ease; }
+.vwal-nav-item:hover { color: #fff; }
+.vwal-nav-item.active { color: #34d399; }
