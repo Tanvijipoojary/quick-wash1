@@ -6,21 +6,67 @@ const VendorLogin = () => {
   const navigate = useNavigate();
 
   // --- STATE MANAGEMENT ---
-  const [step, setStep] = useState(1); // 1 = Email, 2 = OTP
+  const [isLoginMode, setIsLoginMode] = useState(true); // Toggle Login/Signup
+  const [step, setStep] = useState(1); // 1 = Email/Details, 2 = OTP
   const [isLoading, setIsLoading] = useState(false);
-  const [Email, setEmail] = useState('');
+
+  // Notification States
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Simulated Database (In a real app, this would be your backend)
+  const [mockVendors, setMockVendors] = useState(['vendor@example.com']); 
+
+  // Form Data
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
   const [otp, setOtp] = useState(['', '', '', '']); // 4-digit OTP
 
   // --- HANDLERS ---
-  const handleSendOTP = (e) => {
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrorMessage('');
+    setSuccessMessage('');
+  };
+
+  const handleToggleMode = () => {
+    setIsLoginMode(!isLoginMode);
+    setStep(1);
+    setOtp(['', '', '', '']);
+    setErrorMessage('');
+    setSuccessMessage('');
+  };
+
+  const handleContinue = (e) => {
     e.preventDefault();
-    if (!Email) return;
+    if (!formData.email) return;
     
     setIsLoading(true);
-    // Simulate API call to send OTP
+    setErrorMessage('');
+    setSuccessMessage('');
+
     setTimeout(() => {
       setIsLoading(false);
-      setStep(2); // Move to OTP step
+      const enteredEmail = formData.email.toLowerCase();
+
+      if (isLoginMode) {
+        // LOGIN CHECK: Does the vendor exist?
+        if (mockVendors.includes(enteredEmail)) {
+          setStep(2); // Move to OTP step
+        } else {
+          setErrorMessage("Shop account not found. Please register first.");
+        }
+      } else {
+        // SIGNUP CHECK: Is the email already used?
+        if (mockVendors.includes(enteredEmail)) {
+          setErrorMessage("Email already registered. Please log in.");
+        } else {
+          // Register the vendor
+          setMockVendors([...mockVendors, enteredEmail]);
+          setSuccessMessage("Registration successful! Please log in.");
+          setIsLoginMode(true); // Switch back to login view
+          setFormData({ ...formData, name: '', phone: '' }); // Clear name/phone, keep email prefilled
+        }
+      }
     }, 1200);
   };
 
@@ -64,34 +110,68 @@ const VendorLogin = () => {
         
         <div className="vlog-divider"></div>
 
-        {/* --- STEP 1: EMAIL ENTRY --- */}
+        {/* --- STEP 1: EMAIL / REGISTRATION ENTRY --- */}
         {step === 1 && (
-          <form className="vlog-form" onSubmit={handleSendOTP}>
-            <h2 className="vlog-form-title">Vendor Log In</h2>
-            <p className="vlog-instruction">Enter your registered email to manage your shop.</p>
+          <form className="vlog-form" onSubmit={handleContinue}>
+            <h2 className="vlog-form-title">{isLoginMode ? 'Vendor Log In' : 'Partner With Us'}</h2>
+            <p className="vlog-instruction">
+              {isLoginMode ? 'Enter your registered email to manage your shop.' : 'Fill in your details to register your laundry shop.'}
+            </p>
             
+            {/* Error & Success Messages */}
+            {errorMessage && <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #fecaca' }}>{errorMessage}</div>}
+            {successMessage && <div style={{ color: '#166534', backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #bbf7d0' }}>{successMessage}</div>}
+
+            {/* Show extra fields only if signing up */}
+            {!isLoginMode && (
+              <>
+                <div className="vlog-input-group">
+                  <label>Owner Name</label>
+                  <input 
+                    type="text" 
+                    name="name" 
+                    placeholder="e.g., Ramesh Kumar" 
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="vlog-input-group">
+                  <label>Phone Number</label>
+                  <input 
+                    type="tel" 
+                    name="phone" 
+                    placeholder="e.g., +91 98765 43210" 
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </>
+            )}
+
             <div className="vlog-input-group">
               <label>Email Address</label>
               <input 
                 type="email" 
+                name="email"
                 placeholder="e.g., vendor@example.com" 
-                value={Email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={handleInputChange}
                 required
               />
             </div>
 
-            <button type="submit" className="vlog-submit-btn" disabled={isLoading || !Email}>
-              {isLoading ? 'Sending OTP...' : 'Continue'}
+            <button type="submit" className="vlog-submit-btn" disabled={isLoading || !formData.email}>
+              {isLoading ? 'Processing...' : (isLoginMode ? 'Continue' : 'Register Shop')}
             </button>
             
             <div className="vlog-footer-links">
-              {/* This links directly to the 4-step Verification flow we built! */}
-              <button type="button" className="vlog-text-link" onClick={() => navigate('/vendor-register')}>
-                Not registered? Partner with Us
+              <button type="button" className="vlog-text-link" onClick={handleToggleMode} style={{color: '#2563eb', fontWeight: 'bold'}}>
+                {isLoginMode ? 'Not registered? Partner with Us' : 'Already registered? Log In'}
               </button>
               
-              <button type="button" className="vlog-back-app-link" onClick={() => navigate('/')}>
+              <button type="button" className="vlog-back-app-link" onClick={() => navigate('/')} style={{marginTop: '10px'}}>
                 ← Back to Main App
               </button>
             </div>
@@ -103,7 +183,7 @@ const VendorLogin = () => {
           <form className="vlog-form" onSubmit={handleVerifyOTP}>
             <h2 className="vlog-form-title">Enter OTP</h2>
             <p className="vlog-instruction">
-              We've sent a 4-digit code to <strong>{Email}</strong>
+              We've sent a 4-digit code to <strong>{formData.email}</strong>
             </p>
             
             <div className="vlog-otp-container">

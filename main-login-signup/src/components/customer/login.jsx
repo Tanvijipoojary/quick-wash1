@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './login.css';
-import logo from '../assets/quickwash-logo.png';
+import logo from '../assets/quickwash-logo.png'; 
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,6 +12,13 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false); 
 
+  // Notification States
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Simulated Database (In a real app, this would be your backend)
+  const [mockUsers, setMockUsers] = useState(['user@example.com']); 
+
   // Form Data
   const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
   const [otp, setOtp] = useState('');
@@ -20,6 +27,8 @@ const Login = () => {
   // --- HANDLERS ---
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrorMessage('');
+    setSuccessMessage('');
   };
 
   const handleToggleMode = () => {
@@ -28,23 +37,53 @@ const Login = () => {
     setOtp(''); 
     setPassword('');
     setIsAdminMode(false);
+    setErrorMessage('');
+    setSuccessMessage('');
   };
 
   const handleContinue = (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
 
     setTimeout(() => {
       setIsLoading(false);
-      
-      // MAGIC CHECK: Is this the Admin?
-      if (formData.email.toLowerCase() === 'admin@quickwash.com') {
+      const enteredEmail = formData.email.toLowerCase();
+
+      // ==========================================
+      // ADMIN LOGIN (Untouched & Bypasses Checks)
+      // ==========================================
+      if (enteredEmail === 'admin@quickwash.com') {
         setIsAdminMode(true);
-      } else {
-        setIsAdminMode(false);
-      }
+        setStep(2);
+        return; 
+      } 
       
-      setStep(2); 
+      setIsAdminMode(false);
+
+      // ==========================================
+      // CUSTOMER LOGIN / SIGN UP LOGIC
+      // ==========================================
+      if (isLoginMode) {
+        // Logging in: Check if user exists
+        if (mockUsers.includes(enteredEmail)) {
+          setStep(2); 
+        } else {
+          setErrorMessage("Account not found. Please sign up first.");
+        }
+      } else {
+        // Signing up: Check if user already exists
+        if (mockUsers.includes(enteredEmail)) {
+          setErrorMessage("Email already registered. Please log in.");
+        } else {
+          // Register the user
+          setMockUsers([...mockUsers, enteredEmail]);
+          setSuccessMessage("Account created successfully! Please log in.");
+          setIsLoginMode(true); 
+          setFormData({ ...formData, name: '', phone: '' }); 
+        }
+      }
     }, 1000);
   };
 
@@ -56,12 +95,14 @@ const Login = () => {
       setIsLoading(false);
 
       if (isAdminMode) {
+        // Admin verification remains exactly the same
         if (password === 'admin123') {
           navigate('/admin');
         } else {
           alert("Incorrect Admin Password!");
         }
       } else {
+        // Customer OTP verification
         if (otp.length === 4) {
           navigate('/home');
         } else {
@@ -93,6 +134,10 @@ const Login = () => {
                 ? 'Enter your email to continue.' 
                 : 'Fill in your details to get started.'}
             </p>
+
+            {/* Error/Success Banners */}
+            {errorMessage && <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #fecaca' }}>{errorMessage}</div>}
+            {successMessage && <div style={{ color: '#166534', backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #bbf7d0' }}>{successMessage}</div>}
             
             {!isLoginMode && (
               <>
@@ -113,32 +158,28 @@ const Login = () => {
             </div>
             
             <button type="submit" className="login-btn" disabled={isLoading}>
-              {isLoading ? 'Processing...' : 'Continue'}
+              {isLoading ? 'Processing...' : (isLoginMode ? 'Continue' : 'Sign Up')}
             </button>
 
             <div className="toggle-mode-text">
               {isLoginMode ? "Don't have an account? " : "Already have an account? "}
-              <span className="text-link" onClick={handleToggleMode}>
+              <span className="text-link" onClick={handleToggleMode} style={{cursor: 'pointer', color: '#2563eb', fontWeight: 'bold'}}>
                 {isLoginMode ? "Sign Up" : "Log In"}
               </span>
             </div>
 
-            {/* --- PARTNER LINKS (RESTORED) --- */}
             <div className="partner-section">
               <div className="partner-divider"><span>OR</span></div>
               <p className="partner-title">Partner with Quick Wash</p>
               <div className="partner-buttons">
-                {/* Routes to the Vendor Login page */}
                 <button type="button" className="partner-btn vendor-btn" onClick={() => navigate('/vendor')}>
                   🏪 Shop Owner
                 </button>
-                {/* Routes to the Rider Login page */}
                 <button type="button" className="partner-btn rider-btn" onClick={() => navigate('/rider')}>
                   🛵 Delivery Rider
                 </button>
               </div>
             </div>
-
           </form>
         )}
 
@@ -184,11 +225,11 @@ const Login = () => {
             </button>
 
             <div className="otp-helpers">
-              <button type="button" className="text-link" onClick={() => setStep(1)}>
+              <button type="button" className="text-link" onClick={() => setStep(1)} style={{cursor: 'pointer', background: 'none', border: 'none', color: '#2563eb'}}>
                 ✎ Back
               </button>
               {!isAdminMode && (
-                <button type="button" className="text-link" onClick={handleContinue}>
+                <button type="button" className="text-link" onClick={(e) => { e.preventDefault(); alert("New OTP Sent!"); }} style={{cursor: 'pointer', background: 'none', border: 'none', color: '#2563eb'}}>
                   ↻ Resend Code
                 </button>
               )}
