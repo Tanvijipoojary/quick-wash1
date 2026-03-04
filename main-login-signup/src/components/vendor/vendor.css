@@ -1,218 +1,408 @@
-/* vendor.css - Vendor Login Styling */
-
-.vlog-container {
-  width: 100%;
-  min-height: 100vh;
-  background-color: #eafbea; /* Light mint background from screenshot */
-  display: flex !important;
-  justify-content: center;
+/* --- Global Container --- */
+.v-page-container {
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #eefdf4; /* Light green background from screenshots */
+  font-family: 'Inter', -apple-system, sans-serif;
   padding: 20px;
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-.vlog-card {
-  background-color: #fff;
+/* --- Card Setup --- */
+.v-card {
+  background: white;
   width: 100%;
   max-width: 420px;
-  border-radius: 16px;
-  /* Replicates the green top border from the image */
-  border-top: 8px solid #10b981; 
-  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.1);
-  padding: 40px 32px;
+  border-radius: 20px;
+  padding: 40px 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
-  display: flex !important;
-  flex-direction: column !important;
-  animation: slideUp 0.4s ease forwards;
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+.login-card {
+  border-top: 8px solid #23c582; /* Teal top border for login */
 }
 
-/* Header Section */
-.vlog-header {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center;
+/* --- Login Specific Header --- */
+.v-header-section {
   text-align: center;
+  margin-bottom: 25px;
 }
 
-.vlog-icon {
-  font-size: 32px;
-  background-color: #eafbea;
-  width: 56px;
-  height: 56px;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  margin-bottom: 12px;
-}
 
-.vlog-brand-title {
-  margin: 0;
-  font-size: 26px;
-  font-weight: 800;
-  color: #10b981;
-  letter-spacing: 1px;
-}
 
-.vlog-brand-subtitle {
-  margin: 4px 0 0 0;
-  font-size: 15px;
-  color: #1b5e20;
-  font-weight: 500;
-}
-
-.vlog-divider {
-  width: 100%;
-  height: 1px;
-  background-color: #e2ece6;
-  margin: 24px 0;
-}
-
-/* Form Section */
-.vlog-form {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center;
-  width: 100%;
-}
-
-.vlog-form-title {
-  margin: 0 0 8px 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: #10b981;
-}
-
-.vlog-instruction {
-  margin: 0 0 24px 0;
-  font-size: 14px;
-  color: #064e3b;
-  text-align: center;
-}
-
-.vlog-input-group {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100%;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.vlog-input-group label {
-  font-size: 13px;
-  font-weight: 800;
-  color: #064e3b;
-}
-
-.vlog-input-group input {
-  width: 100%;
-  padding: 16px;
-  border: 1px solid #10b981;
-  border-radius: 8px;
-  font-size: 15px;
-  color: #0f172a;
-  outline: none;
-  box-sizing: border-box;
-  transition: all 0.2s;
-}
-
-.vlog-input-group input:focus {
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-/* OTP Inputs */
-.vlog-otp-container {
-  display: flex !important;
-  justify-content: center;
-  gap: 12px;
-  width: 100%;
-  margin-bottom: 24px;
-}
-
-.vlog-otp-input {
-  width: 50px;
-  height: 60px;
+.v-brand-title {
+  color: #1eb372;
   font-size: 24px;
   font-weight: 800;
+  letter-spacing: 1px;
+  margin: 0 0 5px 0;
+}
+
+.v-brand-subtitle {
+  color: #1c3d2e;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.v-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin-top: 25px;
+}
+
+/* --- Signup Specific Header (Outside Card) --- */
+.v-signup-header {
   text-align: center;
-  border: 1px solid #10b981;
-  border-radius: 12px;
-  outline: none;
-  color: #0f172a;
-  transition: all 0.2s;
-}
-
-.vlog-otp-input:focus {
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-/* Buttons */
-.vlog-submit-btn {
+  margin-bottom: 20px;
   width: 100%;
-  background-color: #10b981;
-  color: #fff;
+  max-width: 420px;
+}
+
+.v-signup-header h1 {
+  color: #1c3d2e;
+  font-size: 26px;
+  font-weight: 800;
+  margin-bottom: 25px;
+}
+
+.v-signup-header h1 span {
+  color: #1eb372; /* Teal 'Vendor' word */
+}
+
+/* --- Stepper UI --- */
+.v-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.v-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.v-step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  transition: 0.3s ease;
+}
+
+.v-step-circle.active {
+  background: #0ba96c;
+}
+
+.v-step-item span {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.v-step-item span.active-text {
+  color: #1c3d2e;
+}
+
+.v-step-line {
+  height: 3px;
+  width: 60px;
+  background: #e2e8f0;
+  margin: -20px 10px 0 10px;
+  transition: 0.3s ease;
+}
+
+.v-step-line.active-line {
+  background: #0ba96c;
+}
+
+/* --- Typography & Forms --- */
+.v-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.v-form-title {
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+  margin: 0 0 10px 0;
+  color: #1eb372; /* Default Login Teal */
+}
+
+.v-form-title.dark {
+  color: #0f172a; /* Dark Blue/Black for Signup */
+}
+
+.v-form-desc {
+  text-align: center;
+  font-size: 14px;
+  color: #1c3d2e;
+  margin: 0 0 25px 0;
+}
+
+.v-form-desc.gray {
+  color: #64748b;
+}
+
+.v-error {
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 15px;
+  border: 1px solid #fca5a5;
+}
+
+/* --- Inputs --- */
+.v-input-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.v-input-group label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.v-input-group input,
+.v-input-group textarea {
+  padding: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 15px;
+  color: #334155;
+  outline: none;
+  font-family: inherit;
+  transition: border 0.2s;
+}
+
+.v-input-group input:focus,
+.v-input-group textarea:focus {
+  border-color: #1eb372;
+}
+
+/* --- OTP Setup --- */
+.v-otp-section {
+  text-align: center;
+}
+
+.v-otp-prompt {
+  font-size: 15px;
+  color: #0f172a;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.v-otp-target {
+  color: #0ba96c;
+}
+
+.v-otp-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.v-otp-box {
+  width: 50px;
+  height: 60px;
+  border: 1px solid #1eb372;
+  border-radius: 12px;
+  font-size: 24px;
+  text-align: center;
+  font-weight: bold;
+  color: #0f172a;
+  outline: none;
+}
+
+.v-otp-box:focus {
+  box-shadow: 0 0 0 3px rgba(30, 179, 114, 0.2);
+}
+
+/* --- Buttons --- */
+.v-btn-teal {
+  background: #51cd9d;
+  color: white;
   border: none;
-  padding: 16px;
-  border-radius: 8px;
+  padding: 15px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.v-btn-teal:hover { background: #45b88a; }
+.v-btn-teal:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.v-btn-darkgreen {
+  background: #236f2e;
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 25px; /* Pill shape for signup */
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.vlog-submit-btn:hover:not(:disabled) {
-  background-color: #059669;
-}
-
-.vlog-submit-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* Footer Links */
-.vlog-footer-links {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center;
-  gap: 16px;
-  margin-top: 24px;
+  transition: 0.2s;
   width: 100%;
 }
 
-.vlog-text-link {
+.v-btn-darkgreen:hover { background: #1c5925; }
+
+.v-btn-row {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.v-btn-lightgray {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* --- Links --- */
+.v-footer-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.v-footer-links button, .mt-4 { margin-top: 15px; }
+
+button[class^="v-link"] {
   background: none;
   border: none;
-  color: #10b981;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  padding: 0;
-  transition: color 0.2s;
 }
 
-.vlog-text-link:hover {
-  color: #059669;
-  text-decoration: underline;
+.v-link-teal { color: #1eb372; }
+.v-link-dark { color: #1c3d2e; text-decoration: underline; }
+.v-link-gray { color: #64748b; }
+
+/* --- KYC List UI --- */
+.v-kyc-scroll-area {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.vlog-back-app-link {
+/* Custom Scrollbar */
+.v-kyc-scroll-area::-webkit-scrollbar { width: 6px; }
+.v-kyc-scroll-area::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+.v-kyc-scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.v-kyc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px dashed #cbd5e1;
+  padding: 12px 15px;
+  border-radius: 12px;
+}
+
+.v-kyc-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.v-kyc-icon { font-size: 24px; }
+
+.v-kyc-info h4 { margin: 0; font-size: 14px; color: #0f172a; font-weight: 700; }
+.v-kyc-info p { margin: 2px 0 0 0; font-size: 12px; color: #64748b; }
+
+.v-kyc-upload-btn {
+  background: #eefdf4;
+  color: #1eb372;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* --- Under Review Screen (Vendor) --- */
+.v-center-content {
+  text-align: center;
+  align-items: center;
+}
+
+.v-hourglass-container {
+  width: 80px;
+  height: 80px;
+  background-color: white;
+  border: 4px solid #bbf7d0; /* Soft green ring */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+}
+
+.v-hourglass-icon {
+  font-size: 32px;
+}
+
+.v-review-box {
+  background-color: #f0fdf4; /* Very light green background */
+  border: 1px dashed #cbd5e1;
+  padding: 20px;
+  border-radius: 12px;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.v-review-subtext {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.v-link-teal-bold {
+  color: #0ba96c;
+  font-weight: 800;
   background: none;
   border: none;
-  color: #064e3b;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: underline;
   cursor: pointer;
-  padding: 0;
-  transition: color 0.2s;
-}
-
-.vlog-back-app-link:hover {
-  color: #10b981;
 }
