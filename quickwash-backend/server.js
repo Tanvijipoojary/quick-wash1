@@ -1,0 +1,45 @@
+const path = require('path')
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+
+const app = express();
+
+// --- MIDDLEWARE ---
+// CORS allows your React app (on port 3000) to talk to this server (on port 5000)
+app.use(cors());
+// This allows the server to understand JSON data sent in the request body
+app.use(express.json());
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// --- ROUTES ---
+// This links all your authentication logic (OTP, Signup, Login)
+// Your URLs will look like: http://localhost:5000/api/auth/send-otp
+app.use('/api/auth', authRoutes);
+
+app.use('/api/admin', adminRoutes);
+
+// --- DATABASE CONNECTION ---
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/quickwash_db';
+
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    console.log('------------------------------------------');
+    console.log('✅ Connected to MongoDB Compass');
+    console.log(`📂 Database: quickwash_db`);
+    console.log('------------------------------------------');
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB Connection Error:', err);
+  });
+
+// --- SERVER INITIALIZATION ---
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🔗 API Base URL: http://localhost:${PORT}/api/auth`);
+});
