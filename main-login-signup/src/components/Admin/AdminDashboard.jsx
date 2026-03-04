@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AdminDashboard.css';
 import logo from '../assets/quickwash-logo.png';
+import axios from 'axios';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -54,40 +55,56 @@ const AdminDashboard = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [viewingUser, setViewingUser] = useState(null); 
 
-  const [shopsData, setShopsData] = useState([
-    { 
-      id: "S-2001", name: "Sparkle Clean Laundry", owner: "Ramesh M.", phone: "+91 8888811111", location: "City Centre", rating: 4.8, status: "Active", 
-      stats: { totalOrders: 450, accepted: 430, rejected: 10, pending: 10, totalEarned: 125000, withdrawn: 105000, walletBal: 20000 },
-      recentOrders: [
-        { id: "#ORD-9921", date: "Feb 26, 2026", customer: "Rahul M.", amount: 270, status: "Completed" }
-      ],
-      documents: null // Already verified
-    },
-    { 
-      id: "S-2002", name: "Ocean Fresh Laundry", owner: "Vikram S.", phone: "+91 8888844444", location: "Surathkal", rating: "N/A", status: "Pending", 
-      stats: { totalOrders: 0, accepted: 0, rejected: 0, pending: 0, totalEarned: 0, withdrawn: 0, walletBal: 0 },
-      recentOrders: [],
-      // MOCK UPLOADED DOCUMENTS
-      documents: {
-        gst: "GST_Certificate_2002.pdf",
-        shopAct: "Shop_Establishment_2002.pdf",
-        aadhaar: "Owner_Aadhaar.jpg",
-        pan: "Owner_PAN.jpg",
-        cheque: "Cancelled_Cheque.jpg"
-      }
-    }
-  ]);
+  const [shopsData, setShopsData] = useState([]); // Start empty
 
+  // Fetch real vendors from database when the dashboard loads
+  // Fetch real vendors from database when the dashboard loads
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/admin/vendors');
+        
+        const formattedVendors = response.data.map(v => ({
+          id: v._id, 
+          name: v.hub_name,
+          owner: v.owner_name,
+          phone: v.phone_number,
+          location: v.hub_address,
+          rating: v.rating || "N/A",
+          status: v.status,
+          stats: { 
+            totalOrders: 0, accepted: 0, rejected: 0, pending: 0, 
+            totalEarned: 0, withdrawn: 0, walletBal: 0 
+          },
+          recentOrders: [],
+          
+          // ✅ THIS IS THE FIX! Use the real documents from the database
+          documents: v.documents || {} 
+        }));
+        setShopsData(formattedVendors);
+      } catch (error) {
+        console.error("Error fetching vendors:", error);
+      }
+    };
+
+    fetchVendors();
+  }, []);
   // NEW: State for the Document Review Modal
   const [reviewingShop, setReviewingShop] = useState(null);
   const [isShopEditModalOpen, setIsShopEditModalOpen] = useState(false);
   const [editingShop, setEditingShop] = useState(null);
   const [viewingShop, setViewingShop] = useState(null);
 
-  const handleApproveShop = (id) => {
-    setShopsData(shopsData.map(s => s.id === id ? { ...s, status: 'Active' } : s));
-    setReviewingShop(null);
-    alert("✅ Shop approved successfully! They can now receive orders.");
+  const handleApproveShop = async (id) => {
+    try {
+      await axios.put(`http://localhost:5000/api/admin/vendor-status/${id}`, { status: 'Active' });
+      // Update UI
+      setShopsData(shopsData.map(s => s.id === id ? { ...s, status: 'Active' } : s));
+      setReviewingShop(null);
+      alert("✅ Shop approved successfully! They can now receive orders.");
+    } catch (error) {
+      alert("Error approving shop.");
+    }
   };
 
   // --- RIDER KYC HANDLERS ---
@@ -103,10 +120,16 @@ const AdminDashboard = () => {
     alert("❌ Rider application rejected.");
   };
 
-  const handleRejectShop = (id) => {
-    setShopsData(shopsData.map(s => s.id === id ? { ...s, status: 'Suspended' } : s));
-    setReviewingShop(null);
-    alert("❌ Shop application rejected.");
+  const handleRejectShop = async (id) => {
+    try {
+      await axios.put(`http://localhost:5000/api/admin/vendor-status/${id}`, { status: 'Suspended' });
+      // Update UI
+      setShopsData(shopsData.map(s => s.id === id ? { ...s, status: 'Suspended' } : s));
+      setReviewingShop(null);
+      alert("❌ Shop application rejected.");
+    } catch (error) {
+      alert("Error rejecting shop.");
+    }
   };
  
 
@@ -1330,35 +1353,43 @@ const AdminDashboard = () => {
               </div>
 
               {/* Right Column: Uploaded Documents */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <h3 style={{ margin: '0 0 5px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Uploaded Documents</h3>
-                
-                {reviewingShop.documents ? (
-                  <>
-                    {[
-                      { label: "GST Registration", file: reviewingShop.documents.gst },
-                      { label: "Shop & Establishment", file: reviewingShop.documents.shopAct },
-                      { label: "Owner Aadhaar Card", file: reviewingShop.documents.aadhaar },
-                      { label: "Owner PAN Card", file: reviewingShop.documents.pan },
-                      { label: "Cancelled Cheque", file: reviewingShop.documents.cheque }
-                    ].map((doc, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px 15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                        <span style={{ color: '#0f172a', fontWeight: '500', fontSize: '0.9rem' }}>📄 {doc.label}</span>
-                        {/* Changed from <a> to <button> to fix the ESLint warning! */}
-                        <button 
-                          type="button"
-                          onClick={() => alert(`Opening ${doc.file} in new tab...`)} 
-                          style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}
-                        >
-                          View File ↗
-                        </button>
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  <p style={{ color: '#dc2626', fontWeight: 'bold' }}>⚠️ No documents found.</p>
-                )}
-              </div>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+  <h3 style={{ margin: '0 0 5px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Uploaded Documents</h3>
+  
+  {reviewingShop.documents ? (
+    <>
+      {[
+        { label: "GST Registration", file: reviewingShop.documents.gst },
+        { label: "Shop & Establishment", file: reviewingShop.documents.shopAct },
+        { label: "Owner Aadhaar Card", file: reviewingShop.documents.aadhaar },
+        { label: "Owner PAN Card", file: reviewingShop.documents.pan },
+        { label: "Cancelled Cheque", file: reviewingShop.documents.cheque }
+      ].map((doc, idx) => (
+        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px 15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+          <span style={{ color: '#0f172a', fontWeight: '500', fontSize: '0.9rem' }}>📄 {doc.label}</span>
+          
+          {/* --- THE MAGIC HAPPENS HERE --- */}
+          {/* We check if the file actually exists in the database. If yes, show the button. If no, show "Not Uploaded" */}
+          {doc.file ? (
+            <button 
+              type="button"
+              onClick={() => window.open(`http://localhost:5000/uploads/${doc.file}`, '_blank')} 
+              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}
+            >
+              View File ↗
+            </button>
+          ) : (
+             <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Missing / Mock Data</span>
+          )}
+          {/* -------------------------------- */}
+
+        </div>
+      ))}
+    </>
+  ) : (
+    <p style={{ color: '#dc2626', fontWeight: 'bold' }}>⚠️ No documents found.</p>
+  )}
+</div>
             </div>
 
             {/* Admin Actions */}
