@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './checkout.css';
 import logo from '../assets/quickwash-logo.png';
 
 const Checkout = () => {
   const navigate = useNavigate();
 
-  // ==========================================
-  // 🚀 SCHEDULING & USER STATE
-  // ==========================================
+  // --- 1. REAL DATA LOADING ---
+  const [cartData, setCartData] = useState(null);
   const [user, setUser] = useState({
-    name: "John Doe",
-    phone: "+91 98765 43210",
-    address: "Flat 4B, Seaview Apartments, Bejai Main Road, Mangaluru, Karnataka 575004"
+    name: "Tanvi",
+    phone: "+91 7353863409",
+    address: "Bejai Main Road, Mangaluru, Karnataka 575004"
   });
+
+  useEffect(() => {
+    const savedCart = localStorage.getItem('quickwash_cart');
+    if (savedCart) {
+      setCartData(JSON.parse(savedCart));
+    } else {
+      // If someone lands here with no cart, send them back home
+      navigate('/home');
+    }
+  }, [navigate]);
 
   const [schedule, setSchedule] = useState({
     date: '',
@@ -21,7 +31,6 @@ const Checkout = () => {
     instructions: ''
   });
 
-  // --- New Address Editing State ---
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user.name,
@@ -29,9 +38,7 @@ const Checkout = () => {
     address: user.address
   });
 
-  const vendorsToPickup = ["Sparkle Clean Laundry", "Elite Dry Cleaners"];
   const deliveryFee = 40;
-
   const timeSlots = [
     "09:00 AM - 11:00 AM",
     "12:00 PM - 02:00 PM",
@@ -39,34 +46,65 @@ const Checkout = () => {
     "06:00 PM - 08:00 PM"
   ];
 
-  // --- Handlers for Address ---
   const handleAddressSave = () => {
-    setUser({ ...user, ...editForm }); // Update main user state
-    setIsEditingAddress(false); // Close edit mode
+    setUser({ ...user, ...editForm });
+    setIsEditingAddress(false);
   };
 
   const handleAddressCancel = () => {
-    // Reset form back to original user data if they cancel
     setEditForm({ name: user.name, phone: user.phone, address: user.address });
     setIsEditingAddress(false); 
   };
 
-const handleConfirmOrder = (e) => {
+  // --- 2. PRACTICAL ORDER CONFIRMATION ---
+  const handleConfirmOrder = async (e) => {
     e.preventDefault();
     if (!schedule.date || !schedule.timeSlot) {
-      alert("Please select a valid pickup date and time slot.");
+      alert("Please select a pickup date and time.");
       return;
     }
-    
-    // Create a fake order ID to simulate a successful booking
-    const newOrderId = "ORD-" + Math.floor(Math.random() * 90000 + 10000); 
-    
-    // Send user straight to the tracking page!
-    navigate(`/order/${newOrderId}`); 
+
+    try {
+      // Package the data for your Backend API
+      const orderPayload = {
+        customerId: "CUST_123", // In a real app, get this from Auth state
+        customerName: user.name,
+        customerPhone: user.phone,
+        pickupAddress: user.address,
+        shopId: cartData.shopId,
+        shopName: cartData.shopName,
+        items: cartData.items,
+        pickupDate: schedule.date,
+        pickupSlot: schedule.timeSlot,
+        instructions: schedule.instructions,
+        deliveryFee: deliveryFee
+      };
+
+      console.log("Sending order to backend:", orderPayload);
+
+      // --- MOCK SUCCESS FOR NOW ---
+      const fakeOrderId = "ORD-" + Math.floor(Math.random() * 90000 + 10000);
+      
+      // Clear cart as it's now a real order
+      localStorage.removeItem('quickwash_cart');
+      
+      // Navigate to tracking
+      navigate(`/order/${fakeOrderId}`); 
+      
+      // In next step, we will replace this with:
+      // const res = await axios.post('http://localhost:5000/api/orders/create', orderPayload);
+      // navigate(`/order/${res.data.orderId}`);
+      
+    } catch (error) {
+      console.error("Order failed:", error);
+      alert("Something went wrong. Please try again.");
+    }
   };
+
+  if (!cartData) return <div style={{padding: '50px', textAlign: 'center'}}>Preparing checkout...</div>;
+
   return (
     <div className="web-container">
-      {/* --- TOP NAVBAR --- */}
       <nav className="top-navbar">
         <div className="nav-brand" onClick={() => navigate('/home')}>
           <img src={logo} alt="Quick Wash Logo" className="nav-logo" />
@@ -84,23 +122,14 @@ const handleConfirmOrder = (e) => {
         <h1 className="checkout-title">Schedule Pickup</h1>
 
         <div className="checkout-layout">
-          
-          {/* --- LEFT COLUMN: SCHEDULING FORM --- */}
           <div className="checkout-form-section">
             <form onSubmit={handleConfirmOrder}>
               
-              {/* 1. Address Section (Now Editable!) */}
               <div className="form-card">
                 <div className="card-header">
                   <h3>📍 Pickup Location</h3>
                   {!isEditingAddress && (
-                    <button 
-                      type="button" 
-                      className="edit-link" 
-                      onClick={() => setIsEditingAddress(true)}
-                    >
-                      Edit
-                    </button>
+                    <button type="button" className="edit-link" onClick={() => setIsEditingAddress(true)}>Edit</button>
                   )}
                 </div>
 
@@ -108,26 +137,15 @@ const handleConfirmOrder = (e) => {
                   <div className="address-edit-box animate-fade">
                     <div className="input-group">
                       <label>Contact Name</label>
-                      <input 
-                        type="text" 
-                        value={editForm.name} 
-                        onChange={(e) => setEditForm({...editForm, name: e.target.value})} 
-                      />
+                      <input type="text" value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} />
                     </div>
                     <div className="input-group">
                       <label>Phone Number</label>
-                      <input 
-                        type="text" 
-                        value={editForm.phone} 
-                        onChange={(e) => setEditForm({...editForm, phone: e.target.value})} 
-                      />
+                      <input type="text" value={editForm.phone} onChange={(e) => setEditForm({...editForm, phone: e.target.value})} />
                     </div>
                     <div className="input-group">
                       <label>Full Address</label>
-                      <textarea 
-                        value={editForm.address} 
-                        onChange={(e) => setEditForm({...editForm, address: e.target.value})}
-                      ></textarea>
+                      <textarea value={editForm.address} onChange={(e) => setEditForm({...editForm, address: e.target.value})}></textarea>
                     </div>
                     <div className="address-action-btns">
                       <button type="button" className="address-cancel-btn" onClick={handleAddressCancel}>Cancel</button>
@@ -142,10 +160,8 @@ const handleConfirmOrder = (e) => {
                 )}
               </div>
 
-              {/* 2. Date & Time Section */}
               <div className="form-card">
                 <h3>📅 Select Date & Time</h3>
-                
                 <div className="input-group">
                   <label>Pickup Date</label>
                   <input 
@@ -173,34 +189,31 @@ const handleConfirmOrder = (e) => {
                 </div>
               </div>
 
-              {/* 3. Instructions Section */}
               <div className="form-card">
                 <h3>📝 Rider Instructions (Optional)</h3>
                 <textarea 
-                  placeholder="e.g., Ring the doorbell twice, or leave bags at the security gate."
+                  placeholder="e.g., Gate code is 1234, please call before arriving."
                   value={schedule.instructions}
                   onChange={(e) => setSchedule({...schedule, instructions: e.target.value})}
                 ></textarea>
               </div>
-
             </form>
           </div>
 
-          {/* --- RIGHT COLUMN: ORDER SUMMARY --- */}
           <div className="checkout-summary-section">
             <div className="summary-card">
               <h2>Booking Summary</h2>
               
               <div className="pickup-vendors">
-                <p><strong>Vendors for Pickup:</strong></p>
+                <p><strong>Laundry Hub:</strong></p>
                 <ul>
-                  {vendorsToPickup.map((v, i) => <li key={i}>{v}</li>)}
+                  <li>{cartData.shopName}</li>
                 </ul>
               </div>
 
               <div className="summary-row">
-                <span>Wash Bill</span>
-                <span className="pending-text">To be calculated</span>
+                <span>Services Requested</span>
+                <span>{Object.keys(cartData.items).length}</span>
               </div>
               <div className="summary-row">
                 <span>Delivery Fee</span>
@@ -211,20 +224,19 @@ const handleConfirmOrder = (e) => {
 
               <div className="total-info-box">
                 <p><strong>Total Due Now: ₹0.00</strong></p>
-                <small>Pay after your clothes are weighed and billed by the vendor.</small>
+                <small>Payment is collected after the vendor weighs and bills your clothes.</small>
               </div>
 
               <button 
                 type="submit" 
                 className="confirm-btn" 
                 onClick={handleConfirmOrder}
-                disabled={!schedule.date || !schedule.timeSlot || isEditingAddress} // Disables if they are still editing their address
+                disabled={!schedule.date || !schedule.timeSlot || isEditingAddress}
               >
                 Confirm Booking ➔
               </button>
             </div>
           </div>
-
         </div>
       </main>
     </div>

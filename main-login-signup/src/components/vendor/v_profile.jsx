@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './v_profile.css';
 
 const VendorProfile = () => {
@@ -7,37 +8,110 @@ const VendorProfile = () => {
   
   // Sidebar & Status State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAvailable, setIsAvailable] = useState(true);
 
   // Modals State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeDocument, setActiveDocument] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Dynamic Profile Data State (Includes Services now!)
+  // Dynamic Profile Data State
   const [profileData, setProfileData] = useState({
-    hubName: 'Quick Wash Premium Hub',
-    owner: 'Anurag S.',
-    capacity: '150',
-    turnaround: '24',
-    services: 'Wash & Fold, Steam Ironing, Dry Cleaning, Shoe Cleaning',
-    address: 'Shop No. 12, Ground Floor, Crystal Arcade,\nKoramangala, Bengaluru, Karnataka 560034'
+    hubName: '', owner: '', capacity: '', turnaround: '', services: '', address: '', adminStatus: 'Pending'
   });
-
+  
+  // This state controls the Open/Closed switch and talks to the database
+  const [isOpen, setIsOpen] = useState(true); 
   const [editForm, setEditForm] = useState({ ...profileData });
 
-  const handleSaveProfile = () => {
-    setProfileData({ ...editForm });
-    setIsEditModalOpen(false);
+  // --- 1. FETCH PROFILE ON LOAD ---
+  useEffect(() => {
+    const fetchVendorProfile = async () => {
+      const email = localStorage.getItem('vendorEmail');
+      if (!email) { navigate('/'); return; }
+
+      try {
+        const response = await axios.get(`http://localhost:5000/api/vendors/profile?email=${email}`);
+        const vendor = response.data;
+        
+        const mappedData = {
+          hubName: vendor.hub_name || '',
+          owner: vendor.owner_name || '',
+          capacity: vendor.washing_capacity_kg || '',
+          turnaround: vendor.turnaround_time || '24', 
+          services: vendor.services || 'Wash & Fold, Ironing', 
+          address: vendor.hub_address || '',
+          adminStatus: vendor.status || 'Pending' // Get Admin approval status!
+        };
+
+        setProfileData(mappedData);
+        setEditForm(mappedData);
+        // Set the toggle switch based on what the database remembers
+        setIsOpen(vendor.is_open !== undefined ? vendor.is_open : true); 
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchVendorProfile();
+  }, [navigate]);
+
+  // --- NEW: HANDLE TOGGLE SWITCH ---
+  const handleToggleStatus = async () => {
+    const email = localStorage.getItem('vendorEmail');
+    const newStatus = !isOpen;
+    setIsOpen(newStatus); // Instantly flip UI switch for a fast user experience
+
+    try {
+      await axios.put('http://localhost:5000/api/vendors/toggle-status', {
+        email: email,
+        is_open: newStatus
+      });
+    } catch (error) {
+      console.error("Failed to update status", error);
+      setIsOpen(!newStatus); // Flip it back if the database fails
+      alert("Failed to update status on server.");
+    }
+  };
+
+  // --- 2. SAVE PROFILE EDITS TO BACKEND ---
+  const handleSaveProfile = async () => {
+    const email = localStorage.getItem('vendorEmail');
+    try {
+      await axios.put('http://localhost:5000/api/vendors/profile', {
+        email: email,
+        hub_name: editForm.hubName,
+        owner_name: editForm.owner,
+        washing_capacity_kg: editForm.capacity,
+        turnaround_time: editForm.turnaround,
+        services: editForm.services,
+        hub_address: editForm.address
+      });
+      
+      setProfileData({ ...editForm });
+      setIsEditModalOpen(false);
+      alert("✅ Profile updated successfully!");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("❌ Failed to update profile.");
+    }
   };
 
   const handleDocumentAction = (docName, action) => {
     setActiveDocument({ name: docName, action: action });
   };
 
+  // --- 3. SECURE LOGOUT ---
+  const handleLogout = () => {
+    localStorage.removeItem('vendorEmail'); // Delete the saved login
+    navigate('/'); // Send back to main screen
+  };
+
+  if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading Profile... ⏳</div>;
+
   return (
     <div className="vprof-container">
       
-      {/* --- Updated Header: Back on Left, Menu on Right --- */}
       <header className="vprof-header">
         <button className="vprof-back-btn" onClick={() => navigate(-1)}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -45,9 +119,7 @@ const VendorProfile = () => {
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        
         <h1 className="vprof-header-title">Business Profile</h1>
-        
         <button className="vprof-menu-btn" onClick={() => setIsSidebarOpen(true)}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -59,10 +131,9 @@ const VendorProfile = () => {
 
       <main className="vprof-main-content">
         
-        {/* --- Top Identity Card --- */}
         <div className="vprof-identity-card">
           <div className="vprof-identity-top">
-            <div className="vprof-avatar-large">QW</div>
+            <div className="vprof-avatar-large">{profileData.hubName ? profileData.hubName.substring(0,2).toUpperCase() : 'QW'}</div>
             <div className="vprof-identity-text">
               <h2>{profileData.hubName}</h2>
               <p>Owner: {profileData.owner}</p>
@@ -85,7 +156,6 @@ const VendorProfile = () => {
           </div>
         </div>
 
-        {/* --- Hub Operations Details --- */}
         <div className="vprof-section">
           <h3 className="vprof-section-title">Hub Operations</h3>
           <div className="vprof-card">
@@ -106,7 +176,6 @@ const VendorProfile = () => {
             <div className="vprof-info-block">
               <span className="vprof-label">Services Offered</span>
               <div className="vprof-tags-wrapper">
-                {/* Dynamically generates tags based on comma-separated string */}
                 {profileData.services.split(',').map((service, index) => (
                   <span key={index} className="vprof-tag">{service.trim()}</span>
                 ))}
@@ -125,66 +194,37 @@ const VendorProfile = () => {
           </div>
         </div>
 
-        {/* --- Compliance & KYC --- */}
         <div className="vprof-section">
           <h3 className="vprof-section-title">Compliance & KYC</h3>
           <div className="vprof-card vprof-docs-card">
             
-            <div className="vprof-doc-item">
-              <div className="vprof-doc-left">
-                <span className="vprof-doc-icon">📄</span>
-                <div className="vprof-doc-text">
-                  <strong>GST Registration</strong>
-                  <span className="vprof-pill vprof-pill-success">Verified</span>
-                </div>
-              </div>
-              <button className="vprof-doc-action" onClick={() => handleDocumentAction('GST Registration', 'View')}>View</button>
-            </div>
+            {/* Dynamic Status Logic */}
+            {(() => {
+              const isVerified = profileData.adminStatus === 'Active';
+              const statusText = isVerified ? 'Verified' : 'Pending Review';
+              const pillClass = isVerified ? 'vprof-pill-success' : 'vprof-pill-warning';
 
-            <div className="vprof-doc-item">
-              <div className="vprof-doc-left">
-                <span className="vprof-doc-icon">🏬</span>
-                <div className="vprof-doc-text">
-                  <strong>Shop & Establishment</strong>
-                  <span className="vprof-pill vprof-pill-success">Verified</span>
-                </div>
-              </div>
-              <button className="vprof-doc-action" onClick={() => handleDocumentAction('Shop & Establishment', 'View')}>View</button>
-            </div>
+              const docs = [
+                { name: 'GST Registration', icon: '📄' },
+                { name: 'Shop & Establishment', icon: '🏬' },
+                { name: 'Aadhar Card', icon: '🪪' },
+                { name: 'Owner PAN Card', icon: '💳' },
+                { name: 'Cancelled Cheque', icon: '🏦' }
+              ];
 
-            {/* NEW: Aadhar Card */}
-            <div className="vprof-doc-item">
-              <div className="vprof-doc-left">
-                <span className="vprof-doc-icon">🪪</span>
-                <div className="vprof-doc-text">
-                  <strong>Aadhar Card</strong>
-                  <span className="vprof-pill vprof-pill-success">Verified</span>
+              return docs.map((doc, idx) => (
+                <div key={idx} className="vprof-doc-item" style={{ borderBottom: idx === 4 ? 'none' : '' }}>
+                  <div className="vprof-doc-left">
+                    <span className="vprof-doc-icon">{doc.icon}</span>
+                    <div className="vprof-doc-text">
+                      <strong>{doc.name}</strong>
+                      <span className={`vprof-pill ${pillClass}`}>{statusText}</span>
+                    </div>
+                  </div>
+                  <button className="vprof-doc-action" onClick={() => handleDocumentAction(doc.name, 'View')}>View</button>
                 </div>
-              </div>
-              <button className="vprof-doc-action" onClick={() => handleDocumentAction('Aadhar Card', 'View')}>View</button>
-            </div>
-
-            <div className="vprof-doc-item">
-              <div className="vprof-doc-left">
-                <span className="vprof-doc-icon">💳</span>
-                <div className="vprof-doc-text">
-                  <strong>Owner PAN Card</strong>
-                  <span className="vprof-pill vprof-pill-warning">Pending Review</span>
-                </div>
-              </div>
-              <button className="vprof-doc-action" onClick={() => handleDocumentAction('Owner PAN Card', 'Update')}>Update</button>
-            </div>
-
-            <div className="vprof-doc-item" style={{ borderBottom: 'none' }}>
-              <div className="vprof-doc-left">
-                <span className="vprof-doc-icon" style={{color: '#e11d48'}}>⚠️</span>
-                <div className="vprof-doc-text">
-                  <strong>Cancelled Cheque</strong>
-                  <span className="vprof-pill vprof-pill-danger">Missing</span>
-                </div>
-              </div>
-              <button className="vprof-doc-action" style={{color: '#e11d48'}} onClick={() => handleDocumentAction('Cancelled Cheque', 'Upload')}>Upload</button>
-            </div>
+              ));
+            })()}
 
           </div>
         </div>
@@ -193,11 +233,7 @@ const VendorProfile = () => {
 
       </main>
 
-      {/* =========================================
-          MODALS
-          ========================================= */}
-      
-      {/* 1. Edit Profile Modal */}
+      {/* Edit Profile Modal */}
       {isEditModalOpen && (
         <div className="vprof-modal-overlay">
           <div className="vprof-modal-box vprof-scrollable-modal">
@@ -223,7 +259,6 @@ const VendorProfile = () => {
               </div>
             </div>
             
-            {/* NEW: Editable Services */}
             <div className="vprof-input-group">
               <label>Services (Comma Separated)</label>
               <textarea rows="2" value={editForm.services} onChange={(e) => setEditForm({...editForm, services: e.target.value})}></textarea>
@@ -239,7 +274,7 @@ const VendorProfile = () => {
         </div>
       )}
 
-      {/* 2. Document Action Modal */}
+      {/* Document Action Modal */}
       {activeDocument && (
         <div className="vprof-modal-overlay">
           <div className="vprof-modal-box" style={{textAlign: 'center', alignItems: 'center', padding: '40px 32px'}}>
@@ -257,22 +292,25 @@ const VendorProfile = () => {
         </div>
       )}
 
-      {/* =========================================
-          SLIDE-OUT SIDEBAR MENU
-          ========================================= */}
+      {/* SLIDE-OUT SIDEBAR MENU */}
       {isSidebarOpen && (
         <div className="vprof-sidebar-overlay" onClick={() => setIsSidebarOpen(false)}>
           <div className="vprof-sidebar" onClick={(e) => e.stopPropagation()}>
             <div className="vprof-sidebar-header">
-              <div className="vprof-avatar-small">AS</div>
-              <div className="vprof-sidebar-user-text"><h2>{profileData.owner}</h2><p>Vendor ID-7853</p></div>
+              <div className="vprof-avatar-small">{profileData.owner ? profileData.owner.substring(0,2).toUpperCase() : 'AS'}</div>
+              <div className="vprof-sidebar-user-text"><h2>{profileData.owner}</h2><p>Active Vendor</p></div>
             </div>
             <div className="vprof-sidebar-menu">
+              
+              {/* THE UPDATED OPEN/CLOSED SWITCH */}
               <div className="vprof-side-item">
-                <div className="vprof-side-left"><span className="vprof-side-icon">⏱️</span><span className="vprof-side-label">Store Open</span></div>
+                <div className="vprof-side-left">
+                  <span className="vprof-side-icon">⏱️</span>
+                  <span className="vprof-side-label">{isOpen ? 'Store Open' : 'Store Closed'}</span>
+                </div>
                 <div className="vprof-toggle-wrapper">
                   <label className="vprof-toggle">
-                    <input type="checkbox" checked={isAvailable} onChange={() => setIsAvailable(!isAvailable)}/>
+                    <input type="checkbox" checked={isOpen} onChange={handleToggleStatus}/>
                     <span className="vprof-slider"></span>
                   </label>
                 </div>
@@ -281,13 +319,13 @@ const VendorProfile = () => {
               <button className="vprof-side-item" onClick={() => navigate('/vendor-language')}><div className="vprof-side-left"><span className="vprof-side-icon">🌐</span><span className="vprof-side-label">Language</span></div><span className="vprof-side-arrow">›</span></button>
               <button className="vprof-side-item" onClick={() => navigate('/vendor-bank')}><div className="vprof-side-left"><span className="vprof-side-icon">💳</span><span className="vprof-side-label">Bank Management</span></div><span className="vprof-side-arrow">›</span></button>
               <button className="vprof-side-item" onClick={() => navigate('/vendor-schedule')}><div className="vprof-side-left"><span className="vprof-side-icon">📅</span><span className="vprof-side-label">Work schedule</span></div><span className="vprof-side-arrow">›</span></button>
-              <button className="vprof-side-item" onClick={() => navigate('/vendor-profile')}><div className="vprof-side-left"><span className="vprof-side-icon" style={{color: '#10b981'}}>👤</span><span className="vprof-side-label" style={{color: '#10b981'}}>Profile</span></div><span className="vprof-side-arrow">›</span></button>
+              <button className="vprof-side-item" onClick={() => { setIsSidebarOpen(false); setIsEditModalOpen(true); }}><div className="vprof-side-left"><span className="vprof-side-icon" style={{color: '#10b981'}}>👤</span><span className="vprof-side-label" style={{color: '#10b981'}}>Edit Profile</span></div><span className="vprof-side-arrow">›</span></button>
               
               <button className="vprof-side-item" onClick={() => alert('Opening Privacy Policy...')}><div className="vprof-side-left"><span className="vprof-side-icon">🔒</span><span className="vprof-side-label">Privacy Policy</span></div><span className="vprof-side-arrow">›</span></button>
               <button className="vprof-side-item" onClick={() => alert('Opening About Us...')}><div className="vprof-side-left"><span className="vprof-side-icon">ℹ️</span><span className="vprof-side-label">About Us</span></div><span className="vprof-side-arrow">›</span></button>
               <button className="vprof-side-item" onClick={() => alert('Connecting to Support...')}><div className="vprof-side-left"><span className="vprof-side-icon">❓</span><span className="vprof-side-label">Help</span></div><span className="vprof-side-arrow">›</span></button>
 
-              <button className="vprof-side-item" onClick={() => navigate('/')}><div className="vprof-side-left"><span className="vprof-side-icon" style={{color: '#e11d48'}}>🚪</span><span className="vprof-side-label" style={{color: '#e11d48'}}>Logout</span></div></button>
+              <button className="vprof-side-item" onClick={handleLogout}><div className="vprof-side-left"><span className="vprof-side-icon" style={{color: '#e11d48'}}>🚪</span><span className="vprof-side-label" style={{color: '#e11d48'}}>Logout</span></div></button>
             </div>
           </div>
         </div>

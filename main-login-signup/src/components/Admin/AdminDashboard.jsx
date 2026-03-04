@@ -56,9 +56,11 @@ const AdminDashboard = () => {
   const [viewingUser, setViewingUser] = useState(null); 
 
   const [shopsData, setShopsData] = useState([]); // Start empty
+  
 
   // Fetch real vendors from database when the dashboard loads
   // Fetch real vendors from database when the dashboard loads
+ // Fetch real vendors from database when the dashboard loads
   useEffect(() => {
     const fetchVendors = async () => {
       try {
@@ -66,29 +68,65 @@ const AdminDashboard = () => {
         
         const formattedVendors = response.data.map(v => ({
           id: v._id, 
-          name: v.hub_name,
-          owner: v.owner_name,
-          phone: v.phone_number,
-          location: v.hub_address,
+          name: v.hub_name || "Unknown Shop",
+          owner: v.owner_name || "Unknown Owner",
+          phone: v.phone_number || "N/A",
+          location: v.hub_address || "No Address Provided",
           rating: v.rating || "N/A",
-          status: v.status,
-          stats: { 
-            totalOrders: 0, accepted: 0, rejected: 0, pending: 0, 
-            totalEarned: 0, withdrawn: 0, walletBal: 0 
-          },
-          recentOrders: [],
+          status: v.status || "Pending",
+          documents: v.documents || {},
           
-          // ✅ THIS IS THE FIX! Use the real documents from the database
-          documents: v.documents || {} 
+          // 👇 ADD THIS SECTION TO PREVENT THE UI CRASH 👇
+          stats: {
+            totalOrders: v.total_orders || 0,
+            accepted: v.accepted_orders || 0,
+            rejected: v.rejected_orders || 0,
+            pending: v.pending_orders || 0,
+            walletBal: v.wallet_balance || 0,
+            totalEarned: v.total_earnings || 0
+          },
+          recentOrders: v.recent_orders || [] // Prevents crash in Viewing Modal
+          // --------------------------------------------------
         }));
+        
         setShopsData(formattedVendors);
       } catch (error) {
         console.error("Error fetching vendors:", error);
       }
     };
 
-    fetchVendors();
-  }, []);
+    const fetchRiders = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/admin/riders');
+      const formattedRiders = response.data.map(r => ({
+        id: r._id,
+        name: r.name,
+        phone: r.phone,
+        email: r.email,
+        zone: r.zone || "Mangaluru", // Default or real zone
+        status: r.status,
+        vehicleInfo: { 
+          make: r.vehicle_type, 
+          plate: r.vehicle_number 
+        },
+        stats: {
+          totalTasks: r.total_tasks || 0,
+          completed: r.completed_tasks || 0,
+          walletBal: r.wallet_balance || 0,
+          totalEarned: r.total_earnings || 0
+        },
+        documents: r.documents || {} // Real KYC docs including insurance
+      }));
+      setRidersData(formattedRiders);
+    } catch (error) {
+      console.error("Error fetching riders:", error);
+    }
+  };
+
+  fetchVendors();
+  fetchRiders(); // 👈 Call the new rider fetcher
+}, []);
+
   // NEW: State for the Document Review Modal
   const [reviewingShop, setReviewingShop] = useState(null);
   const [isShopEditModalOpen, setIsShopEditModalOpen] = useState(false);
@@ -108,17 +146,37 @@ const AdminDashboard = () => {
   };
 
   // --- RIDER KYC HANDLERS ---
-  const handleApproveRider = (id) => {
+const handleApproveRider = async (id) => {
+  try {
+    // 1. Tell the backend to change the DB status to 'Active'
+    await axios.put(`http://localhost:5000/api/admin/rider-status/${id}`, { status: 'Active' });
+    
+    // 2. Instantly update the UI so the Admin doesn't have to refresh the page
     setRidersData(ridersData.map(r => r.id === id ? { ...r, status: 'Active' } : r));
-    setReviewingRider(null);
-    alert("✅ Rider approved successfully! They can now accept tasks.");
-  };
+    setReviewingRider(null); // Close the modal
+    
+    alert("✅ Rider approved successfully! They can now log in.");
+  } catch (error) {
+    console.error(error);
+    alert("Error approving rider. Check backend logs.");
+  }
+};
 
-  const handleRejectRider = (id) => {
+const handleRejectRider = async (id) => {
+  try {
+    // 1. Tell the backend to change the DB status to 'Suspended'
+    await axios.put(`http://localhost:5000/api/admin/rider-status/${id}`, { status: 'Suspended' });
+    
+    // 2. Update UI
     setRidersData(ridersData.map(r => r.id === id ? { ...r, status: 'Suspended' } : r));
     setReviewingRider(null);
-    alert("❌ Rider application rejected.");
-  };
+    
+    alert("❌ Rider application rejected. They cannot log in.");
+  } catch (error) {
+    console.error(error);
+    alert("Error rejecting rider.");
+  }
+};
 
   const handleRejectShop = async (id) => {
     try {
@@ -1209,47 +1267,40 @@ const AdminDashboard = () => {
               <button className="admin-close-modal-btn" onClick={() => setReviewingRider(null)}>✕</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
-              
-              {/* Left Column: Details */}
-              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ margin: '0 0 15px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Rider Details</h3>
-                <p style={{ margin: '8px 0', color: '#475569' }}><strong>Phone:</strong> {reviewingRider.phone}</p>
-                <p style={{ margin: '8px 0', color: '#475569' }}><strong>Assigned Zone:</strong> {reviewingRider.zone}</p>
-                <hr style={{ border: 'none', borderTop: '1px solid #cbd5e1', margin: '15px 0' }} />
-                <h3 style={{ margin: '0 0 10px 0', color: '#334155', fontSize: '0.95rem', textTransform: 'uppercase' }}>Vehicle Information</h3>
-                <p style={{ margin: '8px 0', color: '#ea580c', fontWeight: 'bold' }}>{reviewingRider.vehicleInfo?.make || 'N/A'}</p>
-                <p style={{ margin: '8px 0', color: '#0f172a', background: '#e2e8f0', display: 'inline-block', padding: '4px 8px', borderRadius: '4px', letterSpacing: '1px' }}>
-                  {reviewingRider.vehicleInfo?.plate || 'N/A'}
-                </p>
-              </div>
-
-              {/* Right Column: Uploaded Documents */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <h3 style={{ margin: '0 0 5px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Uploaded Documents</h3>
-                
-                {reviewingRider.documents ? (
-                  <>
-                    {[
-                      { label: "Driving License (DL)", file: reviewingRider.documents.dl },
-                      { label: "Vehicle RC", file: reviewingRider.documents.rc }, // <-- NEW: Added RC to the review list!
-                      { label: "Vehicle Insurance", file: reviewingRider.documents.insurance },
-                      { label: "Aadhaar Card", file: reviewingRider.documents.aadhaar },
-                      { label: "PAN Card", file: reviewingRider.documents.pan }
-                    ].map((doc, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px 15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                        <span style={{ color: '#0f172a', fontWeight: '500', fontSize: '0.9rem' }}>📄 {doc.label}</span>
-                        <button type="button" onClick={() => alert(`Opening ${doc.file} in new tab...`)} style={{ background: 'none', border: 'none', color: '#ea580c', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}>
-                          View File ↗
-                        </button>
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  <p style={{ color: '#dc2626', fontWeight: 'bold' }}>⚠️ No documents found.</p>
-                )}
-              </div>
-            </div>
+            {/* Inside the reviewingRider modal, update the documents section: */}
+<div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+  <h3 style={{ margin: '0 0 5px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Uploaded Documents</h3>
+  
+  {reviewingRider.documents ? (
+    <>
+      {[
+      { label: "Driving License", file: reviewingRider.documents?.dl },
+      { label: "Vehicle RC", file: reviewingRider.documents?.rc },
+      { label: "Vehicle Insurance", file: reviewingRider.documents?.insurance }, // 👈 Ensure it says .insurance
+      { label: "Aadhaar Card", file: reviewingRider.documents?.aadhaar },
+      { label: "PAN Card", file: reviewingRider.documents?.pan }
+      ].map((doc, idx) => (
+        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px 15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+          <span style={{ color: '#0f172a', fontWeight: '500', fontSize: '0.9rem' }}>📄 {doc.label}</span>
+          
+          {doc.file ? (
+            <button 
+              type="button" 
+              onClick={() => window.open(`http://localhost:5000/uploads/${doc.file}`, '_blank')} 
+              style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              View File ↗
+            </button>
+          ) : (
+            <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Not Uploaded</span>
+          )}
+        </div>
+      ))}
+    </>
+  ) : (
+    <p style={{ color: '#dc2626', fontWeight: 'bold' }}>⚠️ No documents found.</p>
+  )}
+</div>
 
             {/* Admin Actions */}
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
@@ -1348,7 +1399,12 @@ const AdminDashboard = () => {
                 <h3 style={{ margin: '0 0 15px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Owner Details</h3>
                 <p style={{ margin: '8px 0', color: '#475569' }}><strong>Name:</strong> {reviewingShop.owner}</p>
                 <p style={{ margin: '8px 0', color: '#475569' }}><strong>Phone:</strong> {reviewingShop.phone}</p>
-                <p style={{ margin: '8px 0', color: '#475569' }}><strong>Location:</strong> {reviewingShop.location}</p>
+
+                <p style={{ margin: '5px 0', color: '#475569', fontSize: '0.95rem' }}>
+                      <strong>Address:</strong> {reviewingShop.location}
+                </p>
+              
+                {/* ========================================== */}
                 <p style={{ margin: '8px 0', color: '#475569' }}><strong>Shop ID:</strong> {reviewingShop.id}</p>
               </div>
 

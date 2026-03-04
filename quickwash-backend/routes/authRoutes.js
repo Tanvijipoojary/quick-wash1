@@ -103,20 +103,20 @@ router.post('/vendor-signup', upload.fields([
   { name: 'cheque', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    // These names match what you appended in React (e.g., data.append('name', formData.name))
-    const { name, email, phone, hubName, capacity, address } = req.body;
+    // 1. EXTRACT GPS COORDINATES ALONG WITH TEXT DATA
+    const { name, email, phone, hubName, capacity, address} = req.body;
 
     if (!email) {
         return res.status(400).json({ message: "Email is required." });
     }
 
-    // 1. Check if vendor already exists
+    // Check if vendor already exists
     const existingVendor = await Vendor.findOne({ email: email.toLowerCase() });
-    if (existingVendor) {
-      return res.status(400).json({ message: "Registration already exists for this email." });
-    }
+  if (existingVendor) {
+  return res.status(400).json({ message: "Registration already exists for this email." });
+}
 
-    // 2. Extract the automatically generated filenames for the uploaded files safely
+    // Extract the safely generated filenames for the uploaded files
     const docs = {
       gst: req.files && req.files['gst'] ? req.files['gst'][0].filename : null,
       shopAct: req.files && req.files['shopAct'] ? req.files['shopAct'][0].filename : null,
@@ -125,7 +125,7 @@ router.post('/vendor-signup', upload.fields([
       cheque: req.files && req.files['cheque'] ? req.files['cheque'][0].filename : null,
     };
 
-    // 3. Save everything to MongoDB
+    // 2. SAVE THE NEW VARIABLES TO MONGODB
     const newVendor = new Vendor({
       owner_name: name, 
       email: email.toLowerCase(), 
@@ -134,11 +134,11 @@ router.post('/vendor-signup', upload.fields([
       washing_capacity_kg: capacity, 
       hub_address: address, 
       status: 'Pending', 
-      documents: docs // Save the filenames here!
+      documents: docs 
     });
 
     await newVendor.save();
-    console.log(`✅ New Vendor Registered: ${email}`);
+    console.log(`✅ New Vendor Registered: ${email} at GPS: ${latitude}, ${longitude}`);
     res.status(201).json({ message: "Application submitted successfully!", vendor: newVendor });
 
   } catch (error) {

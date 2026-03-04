@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './home.css';
 import logo from '../assets/quickwash-logo.png';
 
@@ -15,12 +16,47 @@ const CustomerHome = () => {
   const [tempLocation, setTempLocation] = useState("");
   const [isDetecting, setIsDetecting] = useState(false);
 
-  const [shops] = useState([
-    { id: 1, name: 'Sparkle Clean Laundry', subtitle: 'Fast Delivery & Premium Care', time: '30 mins', price: '₹40/kg', rating: 4.8 },
-    { id: 2, name: 'Quick Wash Hub', subtitle: 'Budget Friendly', time: '45 mins', price: '₹30/kg', rating: 4.5 },
-    { id: 3, name: 'Elite Dry Cleaners', subtitle: 'Expert Suit Cleaning', time: '24 hrs', price: '₹150/pc', rating: 4.9 },
-    { id: 4, name: 'Ocean Fresh Laundry', subtitle: 'Eco-Friendly Detergents', time: '2 hrs', price: '₹50/kg', rating: 4.6 }
-  ]);
+  // --- REAL BACKEND SHOPS STATE ---
+  const [shops, setShops] = useState([]);
+  const [isLoadingShops, setIsLoadingShops] = useState(true);
+
+  // 1. Fetch all shops instantly without asking for coordinates
+  const fetchActiveShops = async () => {
+    setIsLoadingShops(true);
+    try {
+      const response = await axios.get('http://localhost:5000/api/shops/active');
+      
+      const formattedShops = response.data.map(shop => ({
+        id: shop._id,
+        name: shop.hub_name,
+        subtitle: shop.hub_address, // Switched back to showing the physical address
+        time: '24 hrs',             
+        price: '₹40/kg',            
+        rating: shop.rating > 0 ? shop.rating : 'New!'
+      }));
+      
+      setShops(formattedShops);
+    } catch (error) {
+      console.error("Error fetching shops:", error);
+    } finally {
+      setIsLoadingShops(false);
+    }
+  };
+
+  // 2. Load shops immediately on page load
+  useEffect(() => {
+    fetchActiveShops();
+  }, []);
+
+  // 3. Fake GPS Button (Just sets the text to Mangaluru)
+  const handleAutoDetect = () => {
+    setIsDetecting(true);
+    setTimeout(() => {
+      setUser({ ...user, location: "📍 Mangaluru, Karnataka" });
+      setIsDetecting(false);
+      setIsEditingLocation(false);
+    }, 800);
+  };
 
   // --- FAVORITES LOGIC ---
   const [favorites, setFavorites] = useState(() => {
@@ -52,30 +88,10 @@ const CustomerHome = () => {
     setIsEditingLocation(false);
   };
 
-  const handleAutoDetect = () => {
-    setIsDetecting(true);
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setTimeout(() => {
-            setUser({ ...user, location: "Detected: St. Aloysius Area, Mangaluru" });
-            setIsDetecting(false);
-            setIsEditingLocation(false);
-          }, 1000);
-        },
-        (error) => {
-          alert("Could not detect GPS. Please type it manually.");
-          setIsDetecting(false);
-        }
-      );
-    }
-  };
-
   return (
     <div className="web-container">
       <nav className="top-navbar">
         <div className="nav-brand" onClick={() => navigate('/home')}>
-          {/* Replaced the bubble emoji with your actual image variable */}
           <img src={logo} alt="Quick Wash Logo" className="nav-logo" />
           <h2>QUICK WASH</h2>
         </div>
@@ -123,25 +139,36 @@ const CustomerHome = () => {
           <div className="section-header">
             <h2>Popular Shops Around You 🏪</h2>
           </div>
+          
           <div className="laundry-grid">
-            {shops.map((shop) => (
-              <div key={shop.id} className="web-laundry-card" onClick={() => navigate(`/shop/${shop.id}`)}>
-                <div className="card-img-placeholder">
-                  <span className="heart-icon" onClick={(e) => toggleFavorite(e, shop.id)}>
-                    {favorites.includes(shop.id) ? '❤️' : '🤍'}
-                  </span>
-                </div>
-                <div className="web-card-info">
-                  <h3>{shop.name}</h3>
-                  <p className="web-subtitle">{shop.subtitle}</p>
-                  <div className="web-card-stats">
-                    <span className="stat-pill">⏱ {shop.time}</span>
-                    <span className="stat-pill">🛵 {shop.price}</span>
-                    <span className="stat-pill rating">★ {shop.rating}</span>
+            {isLoadingShops ? (
+              <p style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                Fetching nearby active shops... ⏳
+              </p>
+            ) : shops.length === 0 ? (
+              <p style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                No active shops available right now. Check back later!
+              </p>
+            ) : (
+              shops.map((shop) => (
+                <div key={shop.id} className="web-laundry-card" onClick={() => navigate(`/shop/${shop.id}`)}>
+                  <div className="card-img-placeholder">
+                    <span className="heart-icon" onClick={(e) => toggleFavorite(e, shop.id)}>
+                      {favorites.includes(shop.id) ? '❤️' : '🤍'}
+                    </span>
+                  </div>
+                  <div className="web-card-info">
+                    <h3>{shop.name}</h3>
+                    <p className="web-subtitle">{shop.subtitle}</p>
+                    <div className="web-card-stats">
+                      <span className="stat-pill">⏱ {shop.time}</span>
+                      <span className="stat-pill">🛵 {shop.price}</span>
+                      <span className="stat-pill rating">★ {shop.rating}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       </main>

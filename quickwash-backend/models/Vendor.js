@@ -8,6 +8,7 @@ const vendorSchema = new mongoose.Schema({
   washing_capacity_kg: { type: Number },
   hub_address: { type: String },
   status: { type: String, default: 'Pending' },
+  is_open: { type: Boolean, default: true },
   rating: { type: Number, default: 0 },
   // --- ADD THIS NEW SECTION ---
   documents: {

@@ -5,6 +5,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const shopRoutes = require('./routes/shopRoutes');
+const vendorRoutes = require('./routes/vendorRoutes');
+const riderRoutes = require('./routes/riderRoutes');
 
 const app = express();
 
@@ -22,6 +25,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 
 app.use('/api/admin', adminRoutes);
+
+app.use('/api/shops', shopRoutes);
+
+app.use('/api/vendors', vendorRoutes);
+
+app.use('/api/rider', riderRoutes);
 
 // --- DATABASE CONNECTION ---
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/quickwash_db';

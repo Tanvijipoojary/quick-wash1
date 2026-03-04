@@ -7,8 +7,6 @@ const VendorHome = () => {
   
   // Navigation & Menus
   const [activeTab, setActiveTab] = useState('New Requests');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAvailable, setIsAvailable] = useState(true);
 
   // Modal States
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -90,12 +88,10 @@ const VendorHome = () => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, laundryStage: newStage } : o));
   };
 
-  // NEW: Pings the rider to come pick up the clean clothes
   const handleRequestRider = (orderId) => {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, subStatus: 'return_requested' } : o));
   };
 
-  // UPDATED: Rider has taken the clothes, officially dispatched to customer
   const handleHandoverToRider = (orderId) => {
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -109,11 +105,9 @@ const VendorHome = () => {
   return (
     <div className="vhome-container">
       
-      {/* Header */}
+      {/* Updated Header: No Sidebar Button */}
       <header className="vhome-header">
-        <button className="vhome-menu-btn" onClick={() => setIsSidebarOpen(true)}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-        </button>
+        <div style={{ width: 24 }}></div> 
         <h1 className="vhome-header-title">Laundry Hub</h1>
         <div style={{ width: 24 }}></div> 
       </header>
@@ -135,9 +129,7 @@ const VendorHome = () => {
         <div className="vhome-orders-list">
           {displayedOrders.length > 0 ? (
             displayedOrders.map(order => (
-              
               <div key={order.id} className="vhome-order-card">
-                
                 <div className="vhome-card-header">
                   <div className="vhome-id-block">
                     <span className="vhome-label">Order ID</span>
@@ -171,7 +163,6 @@ const VendorHome = () => {
                   </div>
                 )}
 
-                {/* --- NEW REQUESTS VIEW --- */}
                 {order.status === 'New Requests' && (
                   <div className="vhome-actions">
                     {order.subStatus === 'pending_acceptance' ? (
@@ -185,7 +176,6 @@ const VendorHome = () => {
                   </div>
                 )}
 
-                {/* --- PROCESSING VIEW --- */}
                 {order.status === 'Processing' && (
                   <div className="vhome-processing-area">
                     {order.subStatus === 'needs_pricing' ? (
@@ -223,7 +213,6 @@ const VendorHome = () => {
                           </select>
                         </div>
 
-                        {/* NEW HANDOVER LOGIC */}
                         {order.laundryStage === 'Ready' && order.subStatus !== 'return_requested' && (
                           <button className="vhome-btn-accept" style={{width: '100%', marginTop: '12px'}} onClick={() => handleRequestRider(order.id)}>
                             Request Return Drop-off
@@ -244,13 +233,11 @@ const VendorHome = () => {
                             </button>
                           </div>
                         )}
-
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* --- DISPATCHED VIEW --- */}
                 {order.status === 'Dispatched' && (
                   <div className="vhome-dispatched-info">
                     <div className="vhome-info-row"><span className="vhome-label">Weight Processed</span><strong>{order.weight} kg</strong></div>
@@ -258,7 +245,6 @@ const VendorHome = () => {
                     <div className="vhome-info-row"><span className="vhome-label">Dispatched On</span><strong>{order.dateTime}</strong></div>
                   </div>
                 )}
-
               </div>
             ))
           ) : (
@@ -291,34 +277,6 @@ const VendorHome = () => {
             <button className={`vhome-btn-accept ${weight && price && readyTime ? '' : 'disabled'}`} style={{width: '100%', marginTop: '16px'}} onClick={handleSendBill} disabled={!weight || !price || !readyTime}>
               Send Bill & Start Washing
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div className="vhome-sidebar-overlay" onClick={() => setIsSidebarOpen(false)}>
-          <div className="vhome-sidebar" onClick={(e) => e.stopPropagation()}>
-            <div className="vhome-sidebar-header">
-              <div className="vhome-avatar-small">JS</div>
-              <div className="vhome-sidebar-user-text"><h2>John Smith</h2><p>Vendor ID-7853</p></div>
-            </div>
-            <div className="vhome-sidebar-menu">
-              <div className="vhome-side-item">
-                <div className="vhome-side-left"><span className="vhome-side-icon">⏱️</span><span className="vhome-side-label">Store Open</span></div>
-                <div className="vhome-toggle-wrapper">
-                  <label className="vhome-toggle">
-                    <input type="checkbox" checked={isAvailable} onChange={() => setIsAvailable(!isAvailable)}/>
-                    <span className="vhome-slider"></span>
-                  </label>
-                </div>
-              </div>
-              <button className="vhome-side-item" onClick={() => navigate('/vendor-language')}><div className="vhome-side-left"><span className="vhome-side-icon">🌐</span><span className="vhome-side-label">Language</span></div><span className="vhome-side-arrow">›</span></button>
-              <button className="vhome-side-item" onClick={() => navigate('/vendor-bank')}><div className="vhome-side-left"><span className="vhome-side-icon">💳</span><span className="vhome-side-label">Bank Management</span></div><span className="vhome-side-arrow">›</span></button>
-              <button className="vhome-side-item" onClick={() => navigate('/vendor-schedule')}><div className="vhome-side-left"><span className="vhome-side-icon">📅</span><span className="vhome-side-label">Work schedule</span></div><span className="vhome-side-arrow">›</span></button>
-              <button className="vhome-side-item" onClick={() => navigate('/vendor-profile')}><div className="vhome-side-left"><span className="vhome-side-icon">👤</span><span className="vhome-side-label">Profile</span></div><span className="vhome-side-arrow">›</span></button>
-              <button className="vhome-side-item" onClick={() => navigate('/')}><div className="vhome-side-left"><span className="vhome-side-icon" style={{color: '#d94a4a'}}>🚪</span><span className="vhome-side-label" style={{color: '#d94a4a'}}>Logout</span></div></button>
-            </div>
           </div>
         </div>
       )}

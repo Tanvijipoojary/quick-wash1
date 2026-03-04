@@ -19,7 +19,7 @@ const VendorLogin = () => {
 
   // Form Data & OTP
   const [formData, setFormData] = useState({ 
-    email: '', name: '', phone: '', hubName: '', capacity: '', address: '' 
+    email: '', name: '', phone: '', hubName: '', capacity: '', address: ''
   });
   const [otp, setOtp] = useState(['', '', '', '']);
   const [errorMessage, setErrorMessage] = useState('');
@@ -108,8 +108,10 @@ const VendorLogin = () => {
 
       // If successful, take them to the Vendor Dashboard!
       if (response.status === 200) {
+        localStorage.setItem('vendorEmail', formData.email.toLowerCase()); // <-- ADD THIS LINE!
         navigate('/vendor-home'); 
       }
+
     } catch (error) {
       setErrorMessage(error.response?.data?.message || "Invalid OTP. Please try again.");
     } finally {
@@ -168,41 +170,48 @@ const VendorLogin = () => {
   // THE FINAL SUBMIT (SAVING TO MONGODB WITH FILES)
   // THE FINAL SUBMIT (SAVING TO MONGODB WITH FILES)
   const handleSignupSubmit = async () => {
-    setIsLoading(true);
-    setErrorMessage('');
+    // 1. Check if all text fields are filled
+    if (!formData.email || !formData.name || !formData.phone || !formData.hubName || !formData.capacity || !formData.address) {
+      setErrorMessage("⚠️ Please fill in all text fields in Steps 1 and 2.");
+      return;
+    }
 
-    // --- NEW: STRICT KYC CHECK ---
+    // 2. Check if ALL 5 files are uploaded (Changed 'files' to 'docs')
     if (!docs.gst || !docs.shopAct || !docs.pan || !docs.aadhaar || !docs.cheque) {
       setErrorMessage("⚠️ Please upload all 5 required KYC documents before submitting.");
-      return; 
+      return;
     }
-    // ------------------------------
 
+    // 3. Package the data perfectly
+    const data = new FormData();
+    data.append('email', formData.email);
+    data.append('name', formData.name);
+    data.append('phone', formData.phone);
+    data.append('hubName', formData.hubName);
+    data.append('capacity', formData.capacity);
+    data.append('address', formData.address);
+    
+    // (Changed 'files' to 'docs' here too)
+    data.append('gst', docs.gst);
+    data.append('shopAct', docs.shopAct);
+    data.append('pan', docs.pan);
+    data.append('aadhaar', docs.aadhaar);
+    data.append('cheque', docs.cheque);
+
+    // 4. Send to backend
     try {
-      const data = new FormData();
-      data.append('name', formData.name);
-      data.append('email', formData.email.toLowerCase());
-      data.append('phone', formData.phone);
-      data.append('hubName', formData.hubName);
-      data.append('capacity', formData.capacity);
-      data.append('address', formData.address);
-      
-      // Since we already checked they exist, we can just append them directly
-      data.append('gst', docs.gst);
-      data.append('shopAct', docs.shopAct);
-      data.append('pan', docs.pan);
-      data.append('aadhaar', docs.aadhaar);
-      data.append('cheque', docs.cheque);
-
       const response = await axios.post('http://localhost:5000/api/auth/vendor-signup', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-
-      if (response.status === 201) setSignupStep(4);
+      
+      if (response.status === 201) {
+        setSignupStep(4); // Success screen!
+        setErrorMessage(""); 
+      }
     } catch (error) {
-      setErrorMessage(error.response?.data?.message || "Failed to submit application.");
-    } finally {
-      setIsLoading(false);
+      console.error("Signup failed:", error);
+      // Show the exact error the backend sends back
+      setErrorMessage(error.response?.data?.message || "⚠️ Server error. Is your backend running?");
     }
   };
 
@@ -352,21 +361,33 @@ const VendorLogin = () => {
           <div className="v-form">
             <h2 className="v-form-title dark">Business Profile</h2>
             <p className="v-form-desc gray">Tell us about your laundry hub capabilities.</p>
+            
             <div className="v-input-group">
               <label>LAUNDRY HUB NAME</label>
               <input type="text" name="hubName" placeholder="e.g. Premium Cleaners" value={formData.hubName} onChange={handleInputChange} />
             </div>
+            
             <div className="v-input-group">
               <label>DAILY WASHING CAPACITY (KG)</label>
               <input type="number" name="capacity" placeholder="e.g. 150" value={formData.capacity} onChange={handleInputChange} />
             </div>
+            
             <div className="v-input-group">
               <label>FULL HUB ADDRESS</label>
-              <textarea name="address" placeholder="Enter complete address..." rows="3" value={formData.address} onChange={handleInputChange}></textarea>
+              <textarea name="address" placeholder="Enter complete address in Mangaluru..." rows="3" value={formData.address} onChange={handleInputChange}></textarea>
             </div>
-            <div className="v-btn-row">
+
+            <div className="v-btn-row" style={{ marginTop: '20px' }}>
               <button type="button" className="v-btn-lightgray" onClick={() => setSignupStep(1)}>Back</button>
-              <button type="button" className="v-btn-darkgreen" onClick={() => setSignupStep(3)}>Next: KYC Documents</button>
+              
+              {/* Clean, unlocked Next button! */}
+              <button 
+                type="button" 
+                className="v-btn-darkgreen" 
+                onClick={() => setSignupStep(3)}
+              >
+                Next: KYC Documents
+              </button>
             </div>
           </div>
         )}

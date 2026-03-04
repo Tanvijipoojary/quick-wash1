@@ -1,25 +1,24 @@
 const mongoose = require('mongoose');
 
 const riderSchema = new mongoose.Schema({
-  full_name: { type: String, required: true },
+  name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  phone_number: { type: String, required: true, unique: true },
-  city: { type: String, required: true },
-  vehicle_type: { 
-    type: String, 
-    enum: ['Two Wheeler (Bike/Scooter)', 'Three Wheeler (Auto)', 'Four Wheeler (Van)'],
-    required: true 
-  },
+  phone: { type: String, required: true },
+  vehicle_type: { type: String, default: 'Scooter' }, 
   vehicle_number: { type: String, required: true },
-  status: { 
-    type: String, 
-    enum: ['Pending', 'Active', 'Rejected', 'Offline', 'Available'], 
-    default: 'Pending' 
-  },
-  current_location_lat: { type: Number, default: null },
-  current_location_lng: { type: Number, default: null }
-}, { 
-  timestamps: true 
-});
+  status: { type: String, default: 'Pending' }, // Pending, Active, Suspended
+  // Statistics for the Admin Panel
+  total_tasks: { type: Number, default: 0 },
+  completed_tasks: { type: Number, default: 0 },
+  wallet_balance: { type: Number, default: 0 },
+  total_earnings: { type: Number, default: 0 },
+  documents: {
+    dl: { type: String },
+    rc: { type: String },
+    insurance: { type: String }, // New field
+    aadhaar: { type: String },
+    pan: { type: String }
+  }
+}, { timestamps: true });
 
 module.exports = mongoose.model('Rider', riderSchema);
