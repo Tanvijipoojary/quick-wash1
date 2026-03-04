@@ -10,17 +10,16 @@ const RiderLogin = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   
   // --- STATE MANAGEMENT ---
-  const [loginStep, setLoginStep] = useState(1);
   const [signupStep, setSignupStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   // --- DATA STATES ---
   const [formData, setFormData] = useState({
-    name: '', phone: '', email: '', city: '', 
+    name: '', phone: '', email: '', password: '', city: '', 
     vehicleType: 'Two Wheeler (Bike/Scooter)', vehicleNumber: ''
   });
-  const [otp, setOtp] = useState(['', '', '', '']);
+  
   const [docs, setDocs] = useState({
     dl: null, rc: null, insurance: null, aadhaar: null, pan: null
   });
@@ -36,72 +35,40 @@ const RiderLogin = () => {
     setError('');
   };
 
-  const handleOtpChange = (element, index) => {
-    if (isNaN(element.value)) return;
-    let newOtp = [...otp];
-    newOtp[index] = element.value;
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (element.nextSibling && element.value !== '') {
-      element.nextSibling.focus();
-    }
-  };
-
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
-    setLoginStep(1);
     setSignupStep(1);
-    setOtp(['', '', '', '']);
+    setFormData({ ...formData, password: '' }); 
     setError('');
   };
 
   // ==========================================
-  // 🚀 LOGIN FLOW
+  // 🚀 LOGIN FLOW (PASSWORD BASED)
   // ==========================================
-  const handleLoginSendOTP = async (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.email) return setError("Email is required.");
+    if (!formData.email || !formData.password) return setError("Email and Password are required.");
     setIsLoading(true);
     
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/rider-login-step1', { 
-        email: formData.email.toLowerCase() 
+      const res = await axios.post('http://localhost:5000/api/auth/rider-login', { 
+        email: formData.email.toLowerCase(),
+        password: formData.password
       });
-      if (res.status === 200) {
-        setLoginStep(2);
-        setError('');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Check your email.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLoginVerifyOTP = async (e) => {
-    e.preventDefault();
-    if (otp.join('').length < 4) return setError("Enter complete OTP.");
-    setIsLoading(true);
-    
-    try {
-      const res = await axios.post('http://localhost:5000/api/auth/verify-otp', { 
-        email: formData.email.toLowerCase(), 
-        otp: otp.join('') 
-      });
+      
       if (res.status === 200) {
         localStorage.setItem('riderEmail', formData.email.toLowerCase());
         navigate('/rider-home'); 
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid OTP. Try again.");
+      setError(err.response?.data?.message || "Login failed. Check your credentials.");
     } finally {
       setIsLoading(false);
     }
   };
 
   // ==========================================
-  // 🚀 SIGNUP FLOW
+  // 🚀 SIGNUP FLOW (WITH PASSWORD)
   // ==========================================
   const handleSignupSubmit = async () => {
     if (!docs.dl || !docs.rc || !docs.insurance || !docs.aadhaar || !docs.pan) {
@@ -113,6 +80,8 @@ const RiderLogin = () => {
     data.append('name', formData.name);
     data.append('email', formData.email.toLowerCase());
     data.append('phone', formData.phone);
+    data.append('password', formData.password); 
+    data.append('city', formData.city);
     data.append('vehicleType', formData.vehicleType);
     data.append('vehicleNumber', formData.vehicleNumber);
     
@@ -174,74 +143,46 @@ const RiderLogin = () => {
              LOGIN MODE 
              ========================================= */
           <div className="r-form animate-fade">
-            {loginStep === 1 ? (
-              <form onSubmit={handleLoginSendOTP}>
-                <div className="r-header-section">
-                  <div className="r-icon-box">🛵</div>
-                  <h1 className="r-brand-title">QUICK WASH</h1>
-                  <p className="r-brand-subtitle">Delivery Partner Portal</p>
-                  <div className="r-divider"></div>
-                </div>
+            <form onSubmit={handleLoginSubmit}>
+              <div className="r-header-section">
+                <div className="r-icon-box">🛵</div>
+                <h1 className="r-brand-title">QUICK WASH</h1>
+                <p className="r-brand-subtitle">Delivery Partner Portal</p>
+                <div className="r-divider"></div>
+              </div>
 
-                <h2 className="r-form-title">Rider Log In</h2>
-                <p className="r-form-desc">Enter your registered email.</p>
+              <h2 className="r-form-title">Rider Log In</h2>
+              <p className="r-form-desc">Enter your credentials to continue.</p>
 
-                <div className="r-input-group">
-                  <label>Email Address</label>
-                  <input 
-                    type="email" name="email" value={formData.email} 
-                    onChange={handleInputChange} placeholder="e.g., rider@example.com" required 
-                  />
-                </div>
+              <div className="r-input-group">
+                <label>Email Address</label>
+                <input 
+                  type="email" name="email" value={formData.email} 
+                  onChange={handleInputChange} placeholder="e.g., rider@example.com" required 
+                />
+              </div>
 
-                <button type="submit" className="r-btn-orange" disabled={isLoading || !formData.email}>
-                  {isLoading ? 'Processing...' : 'Continue'}
+              <div className="r-input-group">
+                <label>Password</label>
+                <input 
+                  type="password" name="password" value={formData.password} 
+                  onChange={handleInputChange} placeholder="Enter your password" required 
+                />
+              </div>
+
+              <button type="submit" className="r-btn-orange" disabled={isLoading}>
+                {isLoading ? 'Verifying...' : 'Secure Log In'}
+              </button>
+
+              <div className="r-footer-links">
+                <button type="button" className="r-link-orange-bold" onClick={toggleMode}>
+                  Not registered? Partner with Us
                 </button>
-
-                <div className="r-footer-links">
-                  <button type="button" className="r-link-orange-bold" onClick={toggleMode}>
-                    Not registered? Partner with Us
-                  </button>
-                  <button type="button" className="r-link-dark" onClick={() => navigate('/')}>
-                    ← Back to Main App
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleLoginVerifyOTP}>
-                <div className="r-header-section">
-                  <div className="r-icon-box">🛵</div>
-                  <h1 className="r-brand-title">QUICK WASH</h1>
-                  <p className="r-brand-subtitle">Delivery Partner Portal</p>
-                  <div className="r-divider"></div>
-                </div>
-
-                <h2 className="r-form-title">Enter OTP</h2>
-                <p className="r-form-desc">
-                  We've sent a 4-digit code to <br/><strong className="r-otp-target">{formData.email}</strong>
-                </p>
-
-                <div className="r-otp-row">
-                  {otp.map((data, index) => (
-                    <input
-                      key={index} type="text" maxLength="1" className="r-otp-box"
-                      value={data} onChange={(e) => handleOtpChange(e.target, index)}
-                      onFocus={(e) => e.target.select()}
-                    />
-                  ))}
-                </div>
-
-                <button type="submit" className="r-btn-orange" disabled={isLoading || otp.join('').length < 4}>
-                  {isLoading ? 'Verifying...' : 'Secure Log In'}
+                <button type="button" className="r-link-dark" onClick={() => navigate('/')}>
+                  ← Back to Main App
                 </button>
-
-                <div className="r-centered-link mt-4">
-                  <button type="button" className="r-link-orange-bold" onClick={() => setLoginStep(1)}>
-                    Wrong email? Go back
-                  </button>
-                </div>
-              </form>
-            )}
+              </div>
+            </form>
           </div>
         ) : (
           /* =========================================
@@ -249,16 +190,36 @@ const RiderLogin = () => {
              ========================================= */
           <div className="r-form animate-fade">
             
-            {/* STEP 1: ACCOUNT DETAILS */}
+            {/* STEP 1: ACCOUNT DETAILS (NOW MATCHES CUSTOMER SIGNUP EXACTLY) */}
             {signupStep === 1 && (
               <form onSubmit={(e) => { e.preventDefault(); setSignupStep(2); }}>
                 <h2 className="r-form-title">Become a Delivery Partner</h2>
                 <p className="r-form-desc">Earn money delivering fresh laundry in your city.</p>
                 
-                <div className="r-input-group"><label>Full Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="Enter full name" required /></div>
-                <div className="r-input-group"><label>Phone Number</label><input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="+91 98765 43210" required /></div>
-                <div className="r-input-group"><label>Email Address</label><input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="rider@quickwash.com" required /></div>
-                <div className="r-input-group"><label>City</label><input type="text" name="city" value={formData.city} onChange={handleInputChange} placeholder="e.g. Mangaluru" required /></div>
+                <div className="r-input-group">
+                  <label>Full Name</label>
+                  <input type="text" name="name" value={formData.name} onChange={handleInputChange} placeholder="e.g., Tanvi Poojary" required />
+                </div>
+                
+                <div className="r-input-group">
+                  <label>Phone Number</label>
+                  <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="e.g., +91 98765 43210" required />
+                </div>
+                
+                <div className="r-input-group">
+                  <label>Email Address</label>
+                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="e.g., hello@example.com" required />
+                </div>
+                
+                <div className="r-input-group">
+                  <label>Password</label>
+                  <input type="password" name="password" value={formData.password} onChange={handleInputChange} placeholder="Enter your password" required minLength="6" />
+                </div>
+
+                <div className="r-input-group">
+                  <label>City</label>
+                  <input type="text" name="city" value={formData.city} onChange={handleInputChange} placeholder="e.g. Mangaluru" required />
+                </div>
                 
                 <button type="submit" className="r-btn-orange-pill">Next</button>
                 

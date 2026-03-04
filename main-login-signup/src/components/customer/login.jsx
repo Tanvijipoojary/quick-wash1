@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Ensure this is imported!
 import './login.css';
 import logo from '../assets/quickwash-logo.png'; 
 
@@ -8,21 +9,19 @@ const Login = () => {
 
   // --- STATE MANAGEMENT ---
   const [isLoginMode, setIsLoginMode] = useState(true); 
-  const [step, setStep] = useState(1); 
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false); 
 
   // Notification States
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Simulated Database (In a real app, this would be your backend)
-  const [mockUsers, setMockUsers] = useState(['user@example.com']); 
-
   // Form Data
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
-  const [otp, setOtp] = useState('');
-  const [password, setPassword] = useState(''); 
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    phone: '', 
+    email: '', 
+    password: '' 
+  });
 
   // --- HANDLERS ---
   const handleInputChange = (e) => {
@@ -33,83 +32,75 @@ const Login = () => {
 
   const handleToggleMode = () => {
     setIsLoginMode(!isLoginMode);
-    setStep(1); 
-    setOtp(''); 
-    setPassword('');
-    setIsAdminMode(false);
+    setFormData({ ...formData, name: '', phone: '', password: '' });
     setErrorMessage('');
     setSuccessMessage('');
   };
 
-  const handleContinue = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
 
-    setTimeout(() => {
-      setIsLoading(false);
-      const enteredEmail = formData.email.toLowerCase();
+    const enteredEmail = formData.email.toLowerCase();
+    const enteredPassword = formData.password;
 
-      // ==========================================
-      // ADMIN LOGIN (Untouched & Bypasses Checks)
-      // ==========================================
-      if (enteredEmail === 'admin@quickwash.com') {
-        setIsAdminMode(true);
-        setStep(2);
-        return; 
-      } 
-      
-      setIsAdminMode(false);
-
-      // ==========================================
-      // CUSTOMER LOGIN / SIGN UP LOGIC
-      // ==========================================
-      if (isLoginMode) {
-        // Logging in: Check if user exists
-        if (mockUsers.includes(enteredEmail)) {
-          setStep(2); 
-        } else {
-          setErrorMessage("Account not found. Please sign up first.");
-        }
+    // ==========================================
+    // HARDCODED ADMIN LOGIN
+    // ==========================================
+    if (enteredEmail === 'admin@quickwash.com') {
+      if (enteredPassword === 'admin123') {
+        navigate('/admin');
       } else {
-        // Signing up: Check if user already exists
-        if (mockUsers.includes(enteredEmail)) {
-          setErrorMessage("Email already registered. Please log in.");
-        } else {
-          // Register the user
-          setMockUsers([...mockUsers, enteredEmail]);
+        setErrorMessage("Incorrect Admin Password!");
+      }
+      setIsLoading(false);
+      return; 
+    } 
+
+    // ==========================================
+    // REAL DATABASE CUSTOMER LOGIN / SIGN UP
+    // ==========================================
+    try {
+      if (isLoginMode) {
+        // --- LOGIN API CALL ---
+        const response = await axios.post('http://localhost:5000/api/auth/user-login', {
+          email: enteredEmail,
+          password: enteredPassword
+        });
+
+        if (response.status === 200) {
+          // Save user info so the Home/Cart pages know who is logged in!
+          localStorage.setItem('quickwash_user', JSON.stringify(response.data.user));
+          navigate('/home'); 
+        }
+
+      } else {
+        // --- SIGNUP API CALL ---
+        const response = await axios.post('http://localhost:5000/api/auth/user-register', {
+          name: formData.name,
+          phone: formData.phone,
+          email: enteredEmail,
+          password: enteredPassword
+        });
+
+        if (response.status === 201) {
           setSuccessMessage("Account created successfully! Please log in.");
           setIsLoginMode(true); 
-          setFormData({ ...formData, name: '', phone: '' }); 
+          setFormData({ ...formData, name: '', phone: '', password: '' }); 
         }
       }
-    }, 1000);
-  };
-
-  const handleVerify = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-
-      if (isAdminMode) {
-        // Admin verification remains exactly the same
-        if (password === 'admin123') {
-          navigate('/admin');
-        } else {
-          alert("Incorrect Admin Password!");
-        }
+    } catch (error) {
+      // Safely grab the error message from the backend, or show a default one
+      if (error.response && error.response.data) {
+        setErrorMessage(error.response.data.message);
       } else {
-        // Customer OTP verification
-        if (otp.length === 4) {
-          navigate('/home');
-        } else {
-          alert("Please enter a valid 4-digit OTP.");
-        }
+        setErrorMessage("Server error. Please make sure your backend is running.");
       }
-    }, 1500);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -124,118 +115,70 @@ const Login = () => {
         </div>
 
         {/* ==========================================
-            STEP 1: EMAIL ENTRY
+            LOGIN & SIGNUP FORM
         ========================================== */}
-        {step === 1 && (
-          <form className="login-form animate-fade" onSubmit={handleContinue}>
-            <h2>{isLoginMode ? 'Welcome Back' : 'Create an Account'}</h2>
-            <p className="form-subtitle">
-              {isLoginMode 
-                ? 'Enter your email to continue.' 
-                : 'Fill in your details to get started.'}
-            </p>
+        <form className="login-form animate-fade" onSubmit={handleSubmit}>
+          <h2>{isLoginMode ? 'Welcome Back' : 'Create an Account'}</h2>
+          <p className="form-subtitle">
+            {isLoginMode 
+              ? 'Enter your credentials to continue.' 
+              : 'Fill in your details to get started.'}
+          </p>
 
-            {/* Error/Success Banners */}
-            {errorMessage && <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #fecaca' }}>{errorMessage}</div>}
-            {successMessage && <div style={{ color: '#166534', backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #bbf7d0' }}>{successMessage}</div>}
-            
-            {!isLoginMode && (
-              <>
-                <div className="input-group">
-                  <label>Full Name</label>
-                  <input type="text" name="name" placeholder="e.g., Tanvi Poojary" value={formData.name} onChange={handleInputChange} required />
-                </div>
-                <div className="input-group">
-                  <label>Phone Number</label>
-                  <input type="tel" name="phone" placeholder="e.g., +91 98765 43210" value={formData.phone} onChange={handleInputChange} required />
-                </div>
-              </>
-            )}
-
-            <div className="input-group">
-              <label>Email Address</label>
-              <input type="email" name="email" placeholder="e.g., hello@example.com" value={formData.email} onChange={handleInputChange} required autoFocus />
-            </div>
-            
-            <button type="submit" className="login-btn" disabled={isLoading}>
-              {isLoading ? 'Processing...' : (isLoginMode ? 'Continue' : 'Sign Up')}
-            </button>
-
-            <div className="toggle-mode-text">
-              {isLoginMode ? "Don't have an account? " : "Already have an account? "}
-              <span className="text-link" onClick={handleToggleMode} style={{cursor: 'pointer', color: '#2563eb', fontWeight: 'bold'}}>
-                {isLoginMode ? "Sign Up" : "Log In"}
-              </span>
-            </div>
-
-            <div className="partner-section">
-              <div className="partner-divider"><span>OR</span></div>
-              <p className="partner-title">Partner with Quick Wash</p>
-              <div className="partner-buttons">
-                <button type="button" className="partner-btn vendor-btn" onClick={() => navigate('/vendor')}>
-                  🏪 Shop Owner
-                </button>
-                <button type="button" className="partner-btn rider-btn" onClick={() => navigate('/rider')}>
-                  🛵 Delivery Rider
-                </button>
+          {/* Error/Success Banners */}
+          {errorMessage && <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #fecaca' }}>{errorMessage}</div>}
+          {successMessage && <div style={{ color: '#166534', backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #bbf7d0' }}>{successMessage}</div>}
+          
+          {/* Extra fields for Sign Up Mode */}
+          {!isLoginMode && (
+            <>
+              <div className="input-group">
+                <label>Full Name</label>
+                <input type="text" name="name" placeholder="e.g., Tanvi Poojary" value={formData.name} onChange={handleInputChange} required />
               </div>
-            </div>
-          </form>
-        )}
+              <div className="input-group">
+                <label>Phone Number</label>
+                <input type="tel" name="phone" placeholder="e.g., +91 98765 43210" value={formData.phone} onChange={handleInputChange} required />
+              </div>
+            </>
+          )}
 
-        {/* ==========================================
-            STEP 2: OTP (CUSTOMERS) OR PASSWORD (ADMIN)
-        ========================================== */}
-        {step === 2 && (
-          <form className="login-form animate-slide-left" onSubmit={handleVerify}>
-            <h2>{isAdminMode ? 'Admin Portal' : 'Verify your Email'}</h2>
-            <p className="form-subtitle">
-              {isAdminMode 
-                ? 'Enter your secure administrator password.' 
-                : <span>Enter the 4-digit code sent to <strong>{formData.email}</strong></span>}
-            </p>
-            
-            <div className="input-group">
-              {isAdminMode ? (
-                <input 
-                  type="password" 
-                  placeholder="Enter admin password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required 
-                  autoFocus
-                  style={{ textAlign: 'left', letterSpacing: 'normal', fontSize: '1rem' }}
-                />
-              ) : (
-                <input 
-                  type="text" 
-                  className="otp-input"
-                  placeholder="• • • •" 
-                  maxLength="4"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} 
-                  required 
-                  autoFocus
-                />
-              )}
-            </div>
-            
-            <button type="submit" className="login-btn" disabled={isLoading || (!isAdminMode && otp.length < 4) || (isAdminMode && password.length === 0)}>
-              {isLoading ? 'Verifying...' : (isAdminMode ? 'Access Dashboard' : 'Verify & Enter')}
-            </button>
+          {/* Core Fields for both Login & Sign Up */}
+          <div className="input-group">
+            <label>Email Address</label>
+            <input type="email" name="email" placeholder="e.g., hello@example.com" value={formData.email} onChange={handleInputChange} required />
+          </div>
 
-            <div className="otp-helpers">
-              <button type="button" className="text-link" onClick={() => setStep(1)} style={{cursor: 'pointer', background: 'none', border: 'none', color: '#2563eb'}}>
-                ✎ Back
+          <div className="input-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handleInputChange} required />
+          </div>
+          
+          <button type="submit" className="login-btn" disabled={isLoading}>
+            {isLoading ? 'Processing...' : (isLoginMode ? 'Log In' : 'Sign Up')}
+          </button>
+
+          <div className="toggle-mode-text">
+            {isLoginMode ? "Don't have an account? " : "Already have an account? "}
+            <span className="text-link" onClick={handleToggleMode} style={{cursor: 'pointer', color: '#2563eb', fontWeight: 'bold'}}>
+              {isLoginMode ? "Sign Up" : "Log In"}
+            </span>
+          </div>
+
+          {/* Partner Links */}
+          <div className="partner-section">
+            <div className="partner-divider"><span>OR</span></div>
+            <p className="partner-title">Partner with Quick Wash</p>
+            <div className="partner-buttons">
+              <button type="button" className="partner-btn vendor-btn" onClick={() => navigate('/vendor')}>
+                🏪 Shop Owner
               </button>
-              {!isAdminMode && (
-                <button type="button" className="text-link" onClick={(e) => { e.preventDefault(); alert("New OTP Sent!"); }} style={{cursor: 'pointer', background: 'none', border: 'none', color: '#2563eb'}}>
-                  ↻ Resend Code
-                </button>
-              )}
+              <button type="button" className="partner-btn rider-btn" onClick={() => navigate('/rider')}>
+                🛵 Delivery Rider
+              </button>
             </div>
-          </form>
-        )}
+          </div>
+        </form>
 
       </div>
     </div>

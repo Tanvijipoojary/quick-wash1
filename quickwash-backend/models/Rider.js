@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
 
+// Inside quickwash-backend/models/Rider.js
 const riderSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
+  password: { type: String, required: true }, // 👈 ADD THIS LINE
+
   vehicle_type: { type: String, default: 'Scooter' }, 
   vehicle_number: { type: String, required: true },
   status: { type: String, default: 'Pending' }, // Pending, Active, Suspended
