@@ -72,7 +72,7 @@ const Login = () => {
 
         if (response.status === 200) {
           // Save user info so the Home/Cart pages know who is logged in!
-          localStorage.setItem('quickwash_user', JSON.stringify(response.data.user));
+          localStorage.getItem('quickwash_user')
           navigate('/home'); 
         }
 

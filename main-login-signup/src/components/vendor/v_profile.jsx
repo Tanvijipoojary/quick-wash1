@@ -27,31 +27,34 @@ const VendorProfile = () => {
   const [editForm, setEditForm] = useState({ ...profileData });
 
   // --- 1. FETCH PROFILE ON LOAD ---
+  // --- 1. FETCH PROFILE ON LOAD ---
   useEffect(() => {
     const fetchVendorProfile = async () => {
-      const email = localStorage.getItem('vendorEmail');
-      if (!email) { navigate('/'); return; }
+      // 1. Get the exact email of whoever just logged in
+      const email = localStorage.getItem('vendorEmail'); 
+      if (!email) { navigate('/'); return; } // Kick them out if not logged in
 
       try {
-        const response = await axios.get(`http://localhost:5000/api/vendors/profile?email=${email}`);
+        // 2. Ask the database for THIS specific vendor's data (FIXED URL)
+        const response = await axios.get(`http://localhost:5000/api/vendors/profile/${email}`);
         const vendor = response.data;
         
+        // 3. Map the database data to your React state
         const mappedData = {
-          hubName: vendor.hub_name || '',
-          owner: vendor.owner_name || '',
-          capacity: vendor.washing_capacity_kg || '',
+          hubName: vendor.hubName || vendor.hub_name || '', // Checking both just in case!
+          owner: vendor.name || vendor.owner_name || '',
+          capacity: vendor.capacity || vendor.washing_capacity_kg || '',
           turnaround: vendor.turnaround_time || '24', 
           services: vendor.services || 'Wash & Fold, Ironing', 
-          address: vendor.hub_address || '',
+          address: vendor.address || vendor.hub_address || '',
           adminStatus: vendor.status || 'Pending',
-          // 👇 ADD PRICING HERE (with fallbacks if the vendor is old and doesn't have it yet)
           pricing: vendor.pricing || { washAndFold: 40, washAndIron: 60, dryClean: 80 }
         };
 
         setProfileData(mappedData);
         setEditForm(mappedData);
-        // Set the toggle switch based on what the database remembers
         setIsOpen(vendor.is_open !== undefined ? vendor.is_open : true); 
+
       } catch (error) {
         console.error("Error fetching profile:", error);
       } finally {

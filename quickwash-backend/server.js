@@ -8,6 +8,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 const riderRoutes = require('./routes/riderRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
 
@@ -31,6 +32,9 @@ app.use('/api/shops', shopRoutes);
 app.use('/api/vendors', vendorRoutes);
 
 app.use('/api/rider', riderRoutes);
+
+app.use('/api/orders', orderRoutes);
+
 
 // --- DATABASE CONNECTION ---
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/quickwash_db';

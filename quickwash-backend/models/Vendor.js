@@ -4,17 +4,22 @@ const vendorSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
-  password: { type: String, required: true }, 
+  password: { type: String, required: true },
   hubName: { type: String, required: true },
   capacity: { type: String, required: true },
   address: { type: String, required: true },
-  // Add this under your other fields (like capacity, address, etc.)
-  pricing: {
-    washAndFold: { type: Number, default: 40 }, // Default price per kg
+  status: { type: String, default: 'Pending' },
+  
+  // 👇 NEW: Store Open/Closed Toggle
+  isOpen: { type: Boolean, default: true }, 
+  
+  // 👇 NEW: Pricing Engine
+  pricing: { 
+    washAndFold: { type: Number, default: 40 },
     washAndIron: { type: Number, default: 60 },
     dryClean: { type: Number, default: 80 }
   },
-  status: { type: String, default: 'Pending' },
+
   documents: {
     gst: { type: String },
     shopAct: { type: String },
@@ -24,5 +29,5 @@ const vendorSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// This line prevents the OverwriteModelError
+// Prevents the "OverwriteModelError" crash
 module.exports = mongoose.models.Vendor || mongoose.model('Vendor', vendorSchema);

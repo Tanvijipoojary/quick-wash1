@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './cart.css';
 import logo from '../assets/quickwash-logo.png';
 
 const Cart = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState({ name: "Tanvi" });
+  const [user] = useState({ name: "Tanvi" });
   
   // Real State for Cart Data
   const [cartData, setCartData] = useState(null);
@@ -38,10 +39,53 @@ const Cart = () => {
     }
   };
 
-  const handleCheckout = () => {
-    // Before moving to checkout, we ensure the current cart is locked in
-    localStorage.setItem('quickwash_final_booking', JSON.stringify(cartData));
-    navigate('/checkout'); 
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+  const handleCheckout = async () => {
+    setIsPlacingOrder(true);
+    
+    // 1. Get the stringified object you saved in Login.jsx
+    const savedUserStr = localStorage.getItem('quickwash_user');
+    let email = '';
+
+    // 2. Unlock the object to get the real email
+    if (savedUserStr) {
+      try {
+        const userObj = JSON.parse(savedUserStr);
+        email = userObj.email; // This gets tanviipoojary@gmail.com
+      } catch (e) {
+        console.error("Error parsing login data:", e);
+      }
+    }
+
+    // 3. Security: If no email is found, don't allow the order
+    if (!email) {
+      alert("Please log in to schedule a pickup!");
+      setIsPlacingOrder(false);
+      return;
+    }
+
+    try {
+      // 4. Send the REAL email to the backend
+      const response = await axios.post('http://localhost:5000/api/orders/place-order', {
+        customerEmail: email, // No more guest emails!
+        shopId: cartData.shopId,
+        shopName: cartData.shopName,
+        items: cartData.items,
+        deliveryFee: deliveryFee
+      });
+
+      // 5. Clear cart and navigate to tracking
+      localStorage.removeItem('quickwash_cart');
+      setCartData(null);
+      navigate(`/tracking/${response.data.orderId}`); 
+
+    } catch (error) {
+      console.error("Order Placement failed:", error);
+      alert("❌ Failed to place order. Check if your backend is running.");
+    } finally {
+      setIsPlacingOrder(false);
+    }
   };
 
   if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading your requests... ⏳</div>;
@@ -94,7 +138,7 @@ const Cart = () => {
                       <div className="item-details">
                         <h4>{item.name}</h4>
                         <p className="item-service">Quantity: {item.qty}</p>
-                        <p className="item-rate">Base Rate: ₹{item.price}</p>
+                        <p className="item-rate">Base Rate: ₹{item.price}/kg</p> 
                       </div>
 
                       <div className="item-status-actions">

@@ -68,6 +68,7 @@ function App() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/partner" element={<Partner />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/tracking/:id" element={<OrderDetails />} />
           
           {/* Admin */}
           <Route path="/admin" element={<AdminDashboard />} />
