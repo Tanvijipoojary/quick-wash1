@@ -15,8 +15,11 @@ const VendorProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Dynamic Profile Data State
+  // Dynamic Profile Data State
   const [profileData, setProfileData] = useState({
-    hubName: '', owner: '', capacity: '', turnaround: '', services: '', address: '', adminStatus: 'Pending'
+    hubName: '', owner: '', capacity: '', turnaround: '', services: '', address: '', adminStatus: 'Pending',
+    // 👇 ADD PRICING HERE
+    pricing: { washAndFold: 40, washAndIron: 60, dryClean: 80 } 
   });
   
   // This state controls the Open/Closed switch and talks to the database
@@ -40,7 +43,9 @@ const VendorProfile = () => {
           turnaround: vendor.turnaround_time || '24', 
           services: vendor.services || 'Wash & Fold, Ironing', 
           address: vendor.hub_address || '',
-          adminStatus: vendor.status || 'Pending' // Get Admin approval status!
+          adminStatus: vendor.status || 'Pending',
+          // 👇 ADD PRICING HERE (with fallbacks if the vendor is old and doesn't have it yet)
+          pricing: vendor.pricing || { washAndFold: 40, washAndIron: 60, dryClean: 80 }
         };
 
         setProfileData(mappedData);
@@ -85,7 +90,8 @@ const VendorProfile = () => {
         washing_capacity_kg: editForm.capacity,
         turnaround_time: editForm.turnaround,
         services: editForm.services,
-        hub_address: editForm.address
+        hub_address: editForm.address,
+        pricing: editForm.pricing
       });
       
       setProfileData({ ...editForm });
@@ -194,6 +200,25 @@ const VendorProfile = () => {
           </div>
         </div>
 
+        {/* --- NEW: PRICING SECTION --- */}
+        <div className="vprof-section">
+          <h3 className="vprof-section-title">Current Pricing (per Kg)</h3>
+          <div className="vprof-card">
+            <div className="vprof-info-row" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+              <span className="vprof-label">Wash & Fold</span>
+              <span className="vprof-value" style={{ color: '#16a34a', fontWeight: 'bold' }}>₹{profileData.pricing?.washAndFold}</span>
+            </div>
+            <div className="vprof-info-row" style={{ borderBottom: '1px solid #f1f5f9', padding: '10px 0' }}>
+              <span className="vprof-label">Wash & Iron</span>
+              <span className="vprof-value" style={{ color: '#16a34a', fontWeight: 'bold' }}>₹{profileData.pricing?.washAndIron}</span>
+            </div>
+            <div className="vprof-info-row" style={{ paddingTop: '10px' }}>
+              <span className="vprof-label">Premium Dry Clean</span>
+              <span className="vprof-value" style={{ color: '#16a34a', fontWeight: 'bold' }}>₹{profileData.pricing?.dryClean}</span>
+            </div>
+          </div>
+        </div>
+
         <div className="vprof-section">
           <h3 className="vprof-section-title">Compliance & KYC</h3>
           <div className="vprof-card vprof-docs-card">
@@ -267,6 +292,38 @@ const VendorProfile = () => {
             <div className="vprof-input-group">
               <label>Hub Address</label>
               <textarea rows="3" value={editForm.address} onChange={(e) => setEditForm({...editForm, address: e.target.value})}></textarea>
+            </div>
+
+            <h4 style={{ marginTop: '20px', marginBottom: '10px', color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: '5px' }}>
+              Update Pricing (₹ per Kg)
+            </h4>
+            
+            <div className="vprof-row-inputs">
+              <div className="vprof-input-group" style={{flex: 1}}>
+                <label>Wash & Fold</label>
+                <input 
+                  type="number" 
+                  value={editForm.pricing?.washAndFold} 
+                  onChange={(e) => setEditForm({...editForm, pricing: {...editForm.pricing, washAndFold: e.target.value}})} 
+                />
+              </div>
+              <div className="vprof-input-group" style={{flex: 1}}>
+                <label>Wash & Iron</label>
+                <input 
+                  type="number" 
+                  value={editForm.pricing?.washAndIron} 
+                  onChange={(e) => setEditForm({...editForm, pricing: {...editForm.pricing, washAndIron: e.target.value}})} 
+                />
+              </div>
+            </div>
+            
+            <div className="vprof-input-group">
+              <label>Premium Dry Clean</label>
+              <input 
+                type="number" 
+                value={editForm.pricing?.dryClean} 
+                onChange={(e) => setEditForm({...editForm, pricing: {...editForm.pricing, dryClean: e.target.value}})} 
+              />
             </div>
 
             <button className="vprof-save-btn" onClick={handleSaveProfile}>Save Changes</button>

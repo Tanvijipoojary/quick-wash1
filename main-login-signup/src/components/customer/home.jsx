@@ -7,9 +7,10 @@ import logo from '../assets/quickwash-logo.png';
 const CustomerHome = () => {
   const navigate = useNavigate();
   
-  const [user, setUser] = useState({
-    name: "Tanvi", 
-    location: "Bejai Main Road, Mangaluru"
+  // Dynamically load the logged-in user's data from localStorage!
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('quickwash_user');
+    return savedUser ? JSON.parse(savedUser) : { name: "Guest", location: "Bejai Main Road, Mangaluru" };
   });
 
   const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -20,19 +21,20 @@ const CustomerHome = () => {
   const [shops, setShops] = useState([]);
   const [isLoadingShops, setIsLoadingShops] = useState(true);
 
-  // 1. Fetch all shops instantly without asking for coordinates
+  // 1. Fetch all active vendors from the database
   const fetchActiveShops = async () => {
     setIsLoadingShops(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/shops/active');
+      // 👈 FIXED URL: Now points to the vendor route we created!
+      const response = await axios.get('http://localhost:5000/api/vendors/all-vendors');
       
       const formattedShops = response.data.map(shop => ({
         id: shop._id,
-        name: shop.hub_name,
-        subtitle: shop.hub_address, // Switched back to showing the physical address
+        name: shop.hubName,     // 👈 FIXED: Matches MongoDB Schema
+        subtitle: shop.address, // 👈 FIXED: Matches MongoDB Schema
         time: '24 hrs',             
         price: '₹40/kg',            
-        rating: shop.rating > 0 ? shop.rating : 'New!'
+        rating: shop.rating ? shop.rating : 'New!' // Defaults to 'New!' for fresh vendors
       }));
       
       setShops(formattedShops);
@@ -48,7 +50,7 @@ const CustomerHome = () => {
     fetchActiveShops();
   }, []);
 
-  // 3. Fake GPS Button (Just sets the text to Mangaluru)
+  // 3. Fake GPS Button
   const handleAutoDetect = () => {
     setIsDetecting(true);
     setTimeout(() => {

@@ -8,6 +8,12 @@ const vendorSchema = new mongoose.Schema({
   hubName: { type: String, required: true },
   capacity: { type: String, required: true },
   address: { type: String, required: true },
+  // Add this under your other fields (like capacity, address, etc.)
+  pricing: {
+    washAndFold: { type: Number, default: 40 }, // Default price per kg
+    washAndIron: { type: Number, default: 60 },
+    dryClean: { type: Number, default: 80 }
+  },
   status: { type: String, default: 'Pending' },
   documents: {
     gst: { type: String },

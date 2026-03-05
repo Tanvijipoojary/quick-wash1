@@ -68,15 +68,15 @@ const AdminDashboard = () => {
         
         const formattedVendors = response.data.map(v => ({
           id: v._id, 
-          name: v.hub_name || "Unknown Shop",
-          owner: v.owner_name || "Unknown Owner",
-          phone: v.phone_number || "N/A",
-          location: v.hub_address || "No Address Provided",
-          rating: v.rating || "N/A",
+          // 👇 UPDATED: Matches your MongoDB Schema exactly!
+          name: v.hubName || "Unnamed Hub",      
+          owner: v.name || "Unknown Owner",      
+          phone: v.phone || "N/A",               
+          location: v.address || "No Address",   
+          rating: v.rating || "New!",
           status: v.status || "Pending",
           documents: v.documents || {},
           
-          // 👇 ADD THIS SECTION TO PREVENT THE UI CRASH 👇
           stats: {
             totalOrders: v.total_orders || 0,
             accepted: v.accepted_orders || 0,
@@ -85,8 +85,7 @@ const AdminDashboard = () => {
             walletBal: v.wallet_balance || 0,
             totalEarned: v.total_earnings || 0
           },
-          recentOrders: v.recent_orders || [] // Prevents crash in Viewing Modal
-          // --------------------------------------------------
+          recentOrders: v.recentOrders || [] 
         }));
         
         setShopsData(formattedVendors);
@@ -94,6 +93,8 @@ const AdminDashboard = () => {
         console.error("Error fetching vendors:", error);
       }
     };
+    
+    // ... (keep the fetchRiders code right here)
 
     const fetchRiders = async () => {
     try {
