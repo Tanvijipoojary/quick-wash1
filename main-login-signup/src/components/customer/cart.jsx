@@ -41,51 +41,27 @@ const Cart = () => {
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
-  const handleCheckout = async () => {
-    setIsPlacingOrder(true);
-    
-    // 1. Get the stringified object you saved in Login.jsx
-    const savedUserStr = localStorage.getItem('quickwash_user');
-    let email = '';
-
-    // 2. Unlock the object to get the real email
-    if (savedUserStr) {
-      try {
-        const userObj = JSON.parse(savedUserStr);
-        email = userObj.email; // This gets tanviipoojary@gmail.com
-      } catch (e) {
-        console.error("Error parsing login data:", e);
-      }
-    }
-
-    // 3. Security: If no email is found, don't allow the order
-    if (!email) {
-      alert("Please log in to schedule a pickup!");
-      setIsPlacingOrder(false);
+  const handleCheckout = () => {
+    // 1. Make sure cart isn't empty
+    if (!cartData || Object.keys(cartData.items).length === 0) {
+      alert("Your cart is empty!");
       return;
     }
 
-    try {
-      // 4. Send the REAL email to the backend
-      const response = await axios.post('http://localhost:5000/api/orders/place-order', {
-        customerEmail: email, // No more guest emails!
-        shopId: cartData.shopId,
-        shopName: cartData.shopName,
-        items: cartData.items,
-        deliveryFee: deliveryFee
-      });
-
-      // 5. Clear cart and navigate to tracking
-      localStorage.removeItem('quickwash_cart');
-      setCartData(null);
-      navigate(`/tracking/${response.data.orderId}`); 
-
-    } catch (error) {
-      console.error("Order Placement failed:", error);
-      alert("❌ Failed to place order. Check if your backend is running.");
-    } finally {
-      setIsPlacingOrder(false);
+    // 2. Security Check
+    const savedUserStr = localStorage.getItem('quickwash_user');
+    if (!savedUserStr) {
+      alert("Please log in to schedule a pickup!");
+      return;
     }
+
+    // 3. Send them to your Checkout page with the cart data!
+    navigate('/checkout', { 
+      state: { 
+        cartData: cartData, 
+        deliveryFee: deliveryFee 
+      } 
+    });
   };
 
   if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading your requests... ⏳</div>;

@@ -2,52 +2,105 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 
-// --- 1. PLACE A NEW ORDER ---
+// --- 1. CREATE A NEW ORDER (CHECKOUT) ---
 router.post('/place-order', async (req, res) => {
   try {
-    // 1. Destructure the data from the body
-    const { customerEmail, shopId, shopName, items, deliveryFee } = req.body;
+    const orderData = req.body;
 
-    // DEBUG: This ensures we see the email right before saving
-    console.log("Saving order for email:", customerEmail);
+    // FIX: Convert cart dictionary/object into an Array so MongoDB accepts it!
+    if (orderData.items && !Array.isArray(orderData.items)) {
+      orderData.items = Object.values(orderData.items);
+    }
 
-    // 2. Convert the items object into an array for MongoDB
-    const itemsArray = Object.values(items);
-
-    // 3. CREATE THE NEW ORDER
-    const newOrder = new Order({
-      customerEmail: customerEmail, // 👈 ENSURE THIS IS MAPPED CORRECTLY
-      shopId: shopId,
-      shopName: shopName,
-      items: itemsArray,
-      deliveryFee: deliveryFee,
-      totalAmount: 0,
-      status: 'Pending Pickup',
-      paymentStatus: 'Unpaid'
-    });
-
-    // 4. SAVE TO DATABASE
+    const newOrder = new Order(orderData);
     const savedOrder = await newOrder.save();
-    
-    console.log("✅ Order saved to DB successfully!");
-    res.status(201).json({ message: "Order placed successfully!", orderId: savedOrder._id });
+
+    res.status(201).json({ 
+      message: "Order placed successfully", 
+      orderId: savedOrder._id 
+    });
 
   } catch (error) {
     console.error("Error placing order:", error);
-    res.status(500).json({ message: "Server error while placing order" });
+    res.status(500).json({ message: "Failed to place order in database" });
   }
 });
 
-// --- 2. GET SINGLE ORDER BY ID ---
+// --- 2. GET ALL ORDERS FOR A SPECIFIC USER ---
+router.get('/user/:email', async (req, res) => {
+  try {
+    const orders = await Order.find({ customerEmail: req.params.email }).sort({ createdAt: -1 });
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: "Server error fetching orders" });
+  }
+});
+
+// --- 3. GET ALL ORDERS FOR A SPECIFIC VENDOR (SHOP) ---
+router.get('/vendor/:shopId', async (req, res) => {
+  try {
+    const orders = await Order.find({ shopId: req.params.shopId }).sort({ createdAt: -1 });
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: "Server error fetching vendor orders" });
+  }
+});
+
+// --- 4. BROADCAST: GET ALL AVAILABLE ORDERS FOR RIDERS ---
+router.get('/available-for-rider', async (req, res) => {
+  try {
+    const availableOrders = await Order.find({
+      $or: [
+        { status: 'Picked Up' }, 
+        { subStatus: 'return_requested' } 
+      ],
+      riderEmail: null 
+    }).sort({ updatedAt: -1 });
+
+    res.status(200).json(availableOrders);
+  } catch (error) {
+    res.status(500).json({ message: "Server error fetching rider orders" });
+  }
+});
+
+// --- 5. VENDOR/RIDER UPDATES ORDER STATUS ---
+router.put('/update-status/:orderId', async (req, res) => {
+  try {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.orderId, 
+      { $set: req.body }, 
+      { new: true }
+    );
+    if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
+    res.status(200).json(updatedOrder);
+  } catch (error) {
+    res.status(500).json({ message: "Server error updating status" });
+  }
+});
+
+// --- 6. CLAIM: RIDER ACCEPTS THE ORDER ---
+router.put('/claim/:orderId', async (req, res) => {
+  try {
+    const claimedOrder = await Order.findOneAndUpdate(
+      { _id: req.params.orderId, riderEmail: null }, 
+      { $set: { riderEmail: req.body.riderEmail } },
+      { new: true }
+    );
+    if (!claimedOrder) return res.status(400).json({ message: "Too slow! Another rider just claimed this order." });
+    res.status(200).json(claimedOrder);
+  } catch (error) {
+    res.status(500).json({ message: "Server error claiming order" });
+  }
+});
+
+// --- 7. GET SINGLE ORDER BY ID (MUST BE AT THE VERY BOTTOM!) ---
+// If this is at the top, it intercepts /vendor/:id and /user/:email
 router.get('/:id', async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
+    if (!order) return res.status(404).json({ message: "Order not found" });
     res.status(200).json(order);
   } catch (error) {
-    console.error("Error fetching order:", error);
     res.status(500).json({ message: "Server error fetching order" });
   }
 });

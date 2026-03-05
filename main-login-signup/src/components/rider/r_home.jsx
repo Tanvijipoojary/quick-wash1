@@ -1,97 +1,142 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './r_home.css';
 
 const RiderHome = () => {
   const navigate = useNavigate();
   
+  // Get Logged in Rider (Assume you saved this during rider login)
+  const [rider, setRider] = useState(() => {
+    const saved = localStorage.getItem('quickwash_rider');
+    return saved ? JSON.parse(saved) : { name: 'Awesome Rider', email: 'rider@quickwash.com' };
+  });
+
   // App States
   const [isOnline, setIsOnline] = useState(true);
   const [activeTask, setActiveTask] = useState(null); 
   const [tripStatus, setTripStatus] = useState(''); 
   const [showSuccess, setShowSuccess] = useState(false);
-  
-  // Swipe to Online State
   const [swipeValue, setSwipeValue] = useState(0);
 
-  // Mock List of Available Orders
-  const [availableOrders, setAvailableOrders] = useState([
-    {
-      id: 'TSK-8821XB',
-      taskType: 'Collection Run', 
-      pickup: { label: 'Pickup from Customer', name: 'Sarah Smith', address: 'Flat 402, Crystal Heights, Koramangala' },
-      dropoff: { label: 'Drop at Vendor Hub', name: 'Quick Wash Premium', address: 'Crystal Arcade, Koramangala' },
-      distance: '3.2 km', time: '15 mins', details: '2 Bags Expected', amount: 'Rs. 80'
-    },
-    {
-      id: 'TSK-9942YC',
-      taskType: 'Delivery Run', 
-      pickup: { label: 'Pickup from Vendor Hub', name: 'Sparkle Cleaners', address: '1st Main, HSR Layout' },
-      dropoff: { label: 'Drop to Customer', name: 'Rahul Verma', address: 'Villa 14, Palm Meadows, HSR' },
-      distance: '4.5 km', time: '20 mins', details: '1 Bag (Ironed & Folded)', amount: 'Rs. 110'
-    },
-    {
-      id: 'TSK-7710ZA',
-      taskType: 'Collection Run', 
-      pickup: { label: 'Pickup from Customer', name: 'Priya Patel', address: 'Apt 2B, Sunshine Residency, BTM' },
-      dropoff: { label: 'Drop at Vendor Hub', name: 'Wash & Go Hub', address: 'Outer Ring Road, BTM Layout' },
-      distance: '2.1 km', time: '10 mins', details: '1 Bag Expected (Dry Clean)', amount: 'Rs. 50'
+  // --- 1. REAL MONGODB AVAILABLE ORDERS ---
+  const [availableOrders, setAvailableOrders] = useState([]);
+
+  const fetchAvailableOrders = async () => {
+    if (!isOnline || activeTask) return; // Don't fetch if offline or busy
+    try {
+      const res = await axios.get('http://localhost:5000/api/orders/available-for-rider');
+      
+      // Map DB data to your UI Card design
+      const formattedOrders = res.data.map(o => {
+        const isCollection = o.status === 'Picked Up'; // Going to Customer first
+        return {
+          id: o._id,
+          taskType: isCollection ? 'Collection Run' : 'Delivery Run', 
+          pickup: isCollection 
+            ? { label: 'Pickup from Customer', name: o.customerEmail.split('@')[0], address: o.pickupAddress || 'Customer Address' }
+            : { label: 'Pickup from Vendor Hub', name: o.shopName, address: 'Vendor Hub Address' }, // Note: Add shop address to DB if needed
+          dropoff: isCollection 
+            ? { label: 'Drop at Vendor Hub', name: o.shopName, address: 'Vendor Hub Address' }
+            : { label: 'Drop to Customer', name: o.customerEmail.split('@')[0], address: o.pickupAddress || 'Customer Address' },
+          distance: 'Est. 4 km', // Real distance requires Google Maps Matrix API
+          time: '15 mins', 
+          details: o.items.map(i => `${i.name} (x${i.qty})`).join(', '), 
+          amount: `Rs. ${o.deliveryFee || 40}`
+        };
+      });
+      setAvailableOrders(formattedOrders);
+    } catch (error) {
+      console.error("Error fetching live orders:", error);
     }
-  ]);
+  };
+
+  // Poll for new orders every 5 seconds! (The Broadcast System)
+  useEffect(() => {
+    fetchAvailableOrders();
+    const interval = setInterval(fetchAvailableOrders, 5000);
+    return () => clearInterval(interval);
+  }, [isOnline, activeTask]);
 
   // --- Handlers ---
-  const handleAcceptOrder = (order) => {
-    setActiveTask(order);
-    setTripStatus('accepted');
+  const handleAcceptOrder = async (order) => {
+    try {
+      // THE CLAIM SYSTEM: Tell MongoDB we want it!
+      await axios.put(`http://localhost:5000/api/orders/claim/${order.id}`, {
+        riderEmail: rider.email
+      });
+
+      // If success, lock it in!
+      setActiveTask(order);
+      setTripStatus('accepted');
+      setAvailableOrders([]); // Clear background feed
+    } catch (error) {
+      // If error, someone else took it!
+      alert(error.response?.data?.message || "Failed to claim order.");
+      fetchAvailableOrders(); // Refresh to remove the stolen order
+    }
   };
 
   const handleConfirmPickup = () => setTripStatus('picked_up');
   
-  const handleCompleteTrip = () => {
-    setShowSuccess(true);
-    setAvailableOrders(prev => prev.filter(o => o.id !== activeTask.id));
-    
-    setTimeout(() => {
-      setShowSuccess(false);
-      setActiveTask(null); 
-      setTripStatus('');
-    }, 2500);
+  const handleCompleteTrip = async () => {
+    try {
+      // If it's a collection, mark as 'Dropped at Hub'. If delivery, 'Completed'.
+      const newStatus = activeTask.taskType === 'Collection Run' ? 'Dropped at Hub' : 'Completed';
+      
+      // Update Database and release the rider back into the wild
+      await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
+        status: newStatus,
+        riderEmail: null // 👈 Frees up the rider so they can take a new order!
+      });
+
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setActiveTask(null); 
+        setTripStatus('');
+        fetchAvailableOrders(); // Look for next trip!
+      }, 2500);
+
+    } catch (error) {
+      alert("Failed to complete trip in database!");
+    }
   };
 
-  const handleCancelTrip = () => {
+  const handleCancelTrip = async () => {
+    // If they cancel, we must UN-CLAIM it so others can see it!
+    if (activeTask) {
+      try {
+        await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
+          riderEmail: null // Release back to the pool
+        });
+      } catch (err) { console.error("Failed to release order"); }
+    }
     setActiveTask(null);
     setTripStatus('');
   };
 
-  // --- Real Swipe Logic ---
   const handleSwipe = (e) => {
     const val = parseInt(e.target.value, 10);
     setSwipeValue(val);
-    
-    // If swiped past 85%, trigger the online status!
     if (val > 85) {
       setIsOnline(true);
       setTripStatus('searching');
-      setSwipeValue(0); // Reset for next time
+      setSwipeValue(0); 
     }
   };
 
-  const handleSwipeEnd = () => {
-    // Snap back to 0 if they didn't swipe far enough
-    if (swipeValue <= 85) {
-      setSwipeValue(0);
-    }
-  };
+  const handleSwipeEnd = () => { if (swipeValue <= 85) setSwipeValue(0); };
 
-  // --- Navigation Handlers ---
+  // --- FIXED NAVIGATION LINKS ---
   const openMapsForPickup = () => {
     const destination = encodeURIComponent(activeTask.pickup.address);
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=$${destination}`, '_blank');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${destination}`, '_blank');
   };
 
   const openMapsForDropoff = () => {
     const destination = encodeURIComponent(activeTask.dropoff.address);
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=$${destination}`, '_blank');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${destination}`, '_blank');
   };
 
   return (
@@ -120,7 +165,7 @@ const RiderHome = () => {
       <header className="rhome-header">
         <div className="rhome-header-top">
           <div className="rhome-profile-badge" onClick={() => navigate('/rider-profile')}>
-            <div className="rhome-avatar">AS</div>
+            <div className="rhome-avatar">{rider.name.charAt(0)}</div>
           </div>
 
           <div className="rhome-status-toggle">
@@ -164,30 +209,22 @@ const RiderHome = () => {
         <div className="rhome-drag-handle"></div>
 
         {!isOnline ? (
-          // 1. OFFLINE STATE
           <div className="rhome-offline-state">
             <div className="rhome-sleep-icon">💤</div>
             <h2>You are offline</h2>
             <p>Go online to start receiving laundry requests.</p>
             
-            {/* Interactive Swipe Button */}
             <div className="rhome-swipe-container">
               <div className="rhome-swipe-track" style={{ width: `${swipeValue}%` }}></div>
               <span className="rhome-swipe-text">{swipeValue > 20 ? 'Keep Swiping...' : 'Swipe to Go Online'}</span>
               <input 
-                type="range" 
-                min="0" max="100" 
-                value={swipeValue} 
-                onChange={handleSwipe}
-                onMouseUp={handleSwipeEnd}
-                onTouchEnd={handleSwipeEnd}
+                type="range" min="0" max="100" value={swipeValue} 
+                onChange={handleSwipe} onMouseUp={handleSwipeEnd} onTouchEnd={handleSwipeEnd}
                 className="rhome-swipe-input"
               />
             </div>
-            
           </div>
         ) : !activeTask ? (
-          // 2. LIST OF AVAILABLE ORDERS STATE
           <div className="rhome-orders-feed">
             <div className="rhome-feed-header">
               <h2>Available Trips</h2>
@@ -195,7 +232,7 @@ const RiderHome = () => {
             </div>
             
             {availableOrders.length === 0 ? (
-              <p style={{textAlign: 'center', color: '#666', marginTop: '10px'}}>No more trips right now. We'll notify you!</p>
+              <p style={{textAlign: 'center', color: '#666', marginTop: '10px'}}>No trips right now. Searching for nearby orders...</p>
             ) : (
               <div className="rhome-orders-scroll-list">
                 {availableOrders.map(order => (
@@ -222,7 +259,6 @@ const RiderHome = () => {
             )}
           </div>
         ) : (
-          // 3. ACTIVE ORDER FLOW
           <div className="rhome-active-task">
             
             <div className="rhome-task-header">

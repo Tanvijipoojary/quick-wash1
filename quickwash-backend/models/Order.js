@@ -1,36 +1,37 @@
+// quickwash-backend/models/Order.js
 const mongoose = require('mongoose');
 
+const orderItemSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  qty: { type: Number, default: 1 },
+  price: { type: Number } 
+});
+
 const orderSchema = new mongoose.Schema({
-  // Link to the Customer
   customerEmail: { type: String, required: true },
-  
-  // Link to the Vendor (Shop)
-  shopId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor', required: true },
+  shopId: { type: String, required: true },
   shopName: { type: String, required: true },
+  pickupAddress: { type: String, required: true },
   
-  // The items requested
-  items: [{
-    name: String,
-    price: Number,
-    qty: Number
-  }],
-  
-  // Financials
+  // Added Date and Slot so the vendor knows when to go!
+  pickupDate: { type: String }, 
+  pickupSlot: { type: String },
+
+  items: [orderItemSchema], 
   deliveryFee: { type: Number, default: 40 },
-  totalAmount: { type: Number, default: 0 }, // Will be updated by vendor after weighing
   
-  // Tracking the Order Lifecycle
-  status: { 
-    type: String, 
-    enum: ['Pending Pickup', 'Picked Up', 'At Shop', 'Ready', 'Out for Delivery', 'Completed', 'Cancelled'],
-    default: 'Pending Pickup' 
-  },
+  // --- TRACKING & STATUS ---
+  status: { type: String, default: 'Pending Pickup' },
+  subStatus: { type: String, default: 'pending_acceptance' },
+  laundryStage: { type: String, default: 'Pending' },
+  riderEmail: { type: String, default: null }, 
   
-  paymentStatus: {
-    type: String,
-    enum: ['Unpaid', 'Paid'],
-    default: 'Unpaid'
-  }
+  // --- BILLING INFO ---
+  weight: { type: String, default: '0' },
+  totalAmount: { type: Number, default: 0 },
+  estimatedReady: { type: String, default: '' },
+  
+  instructions: { type: String, default: '' }
 }, { timestamps: true });
 
-module.exports = mongoose.models.Order || mongoose.model('Order', orderSchema);
+module.exports = mongoose.model('Order', orderSchema);

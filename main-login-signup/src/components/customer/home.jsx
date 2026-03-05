@@ -8,9 +8,22 @@ const CustomerHome = () => {
   const navigate = useNavigate();
   
   // Dynamically load the logged-in user's data from localStorage!
+  // Dynamically load the logged-in user's data from localStorage!
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('quickwash_user');
-    return savedUser ? JSON.parse(savedUser) : { name: "Guest", location: "Bejai Main Road, Mangaluru" };
+    const savedUserStr = localStorage.getItem('quickwash_user');
+    
+    if (savedUserStr) {
+      const parsedUser = JSON.parse(savedUserStr);
+      return {
+        // If they don't have a name saved, it will use their email prefix instead of "Guest"
+        name: parsedUser.name || parsedUser.email.split('@')[0], 
+        email: parsedUser.email,
+        location: parsedUser.address || "Bejai Main Road, Mangaluru"
+      };
+    }
+    
+    // If absolutely nothing is found, THEN default to Guest
+    return { name: "Guest", email: null, location: "Bejai Main Road, Mangaluru" };
   });
 
   const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -25,16 +38,15 @@ const CustomerHome = () => {
   const fetchActiveShops = async () => {
     setIsLoadingShops(true);
     try {
-      // 👈 FIXED URL: Now points to the vendor route we created!
       const response = await axios.get('http://localhost:5000/api/vendors/all-vendors');
       
       const formattedShops = response.data.map(shop => ({
         id: shop._id,
-        name: shop.hubName,     // 👈 FIXED: Matches MongoDB Schema
-        subtitle: shop.address, // 👈 FIXED: Matches MongoDB Schema
+        name: shop.hubName,     
+        subtitle: shop.address, 
         time: '24 hrs',             
         price: '₹40/kg',            
-        rating: shop.rating ? shop.rating : 'New!' // Defaults to 'New!' for fresh vendors
+        rating: shop.rating ? shop.rating : 'New!' 
       }));
       
       setShops(formattedShops);
@@ -45,7 +57,6 @@ const CustomerHome = () => {
     }
   };
 
-  // 2. Load shops immediately on page load
   useEffect(() => {
     fetchActiveShops();
   }, []);
@@ -60,23 +71,67 @@ const CustomerHome = () => {
     }, 800);
   };
 
-  // --- FAVORITES LOGIC ---
-  const [favorites, setFavorites] = useState(() => {
-    const savedFavs = localStorage.getItem('quickwash_favs');
-    return savedFavs ? JSON.parse(savedFavs) : [];
-  });
+  // ==========================================
+  // --- REAL MONGODB FAVORITES LOGIC ---
+  // ==========================================
+  const [favorites, setFavorites] = useState([]);
 
-  const toggleFavorite = (e, shopId) => {
-    e.stopPropagation(); 
-    let updatedFavs;
-    if (favorites.includes(shopId)) {
-      updatedFavs = favorites.filter(id => id !== shopId);
-    } else {
-      updatedFavs = [...favorites, shopId];
+  // Fetch real favorites on load
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      if (user.email) {
+        try {
+          const res = await axios.get(`http://localhost:5000/api/favorites/${user.email}`);
+          // Map the database response to just an array of IDs for the UI to read easily
+          const favIds = res.data.map(fav => fav.shopId);
+          setFavorites(favIds);
+        } catch (error) {
+          console.error("Error fetching favorites:", error);
+        }
+      }
+    };
+    fetchFavorites();
+  }, [user.email]);
+
+  // Toggle favorite in database
+  const toggleFavorite = async (e, shop) => {
+    e.stopPropagation(); // Stop the card from clicking through to the shop page
+    
+    // Security check
+    if (!user.email) {
+      alert("Please log in to save favourite shops!");
+      return;
     }
-    setFavorites(updatedFavs);
-    localStorage.setItem('quickwash_favs', JSON.stringify(updatedFavs));
+
+    // 1. Optimistic UI update (change color instantly for speed)
+    const isAlreadyFav = favorites.includes(shop.id);
+    if (isAlreadyFav) {
+      setFavorites(favorites.filter(id => id !== shop.id));
+    } else {
+      setFavorites([...favorites, shop.id]);
+    }
+
+    // 2. Tell the backend to toggle it
+    try {
+      await axios.post('http://localhost:5000/api/favorites/toggle', {
+        customerEmail: user.email,
+        shopId: shop.id,
+        shopName: shop.name,
+        // Convert "New!" to a default number for the database
+        shopRating: shop.rating === 'New!' ? 4.5 : parseFloat(shop.rating)
+      });
+    } catch (error) {
+      console.error("Error toggling favorite in DB:", error);
+      // Revert the UI if the database failed
+      if (isAlreadyFav) {
+        setFavorites([...favorites, shop.id]);
+      } else {
+        setFavorites(favorites.filter(id => id !== shop.id));
+      }
+      alert("Failed to update favorites. Please check your connection.");
+    }
   };
+  // ==========================================
 
   const handleEditClick = () => {
     setTempLocation(user.location);
@@ -155,7 +210,8 @@ const CustomerHome = () => {
               shops.map((shop) => (
                 <div key={shop.id} className="web-laundry-card" onClick={() => navigate(`/shop/${shop.id}`)}>
                   <div className="card-img-placeholder">
-                    <span className="heart-icon" onClick={(e) => toggleFavorite(e, shop.id)}>
+                    {/* 👇 Pass the whole 'shop' object so we can send its name to the DB 👇 */}
+                    <span className="heart-icon" onClick={(e) => toggleFavorite(e, shop)}>
                       {favorites.includes(shop.id) ? '❤️' : '🤍'}
                     </span>
                   </div>

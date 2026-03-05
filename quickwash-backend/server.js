@@ -9,6 +9,8 @@ const shopRoutes = require('./routes/shopRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 const riderRoutes = require('./routes/riderRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const favoriteRoutes = require('./routes/favoriteRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 
 const app = express();
 
@@ -34,6 +36,9 @@ app.use('/api/vendors', vendorRoutes);
 app.use('/api/rider', riderRoutes);
 
 app.use('/api/orders', orderRoutes);
+
+app.use('/api/favorites', favoriteRoutes);
+app.use('/api/addresses', addressRoutes);
 
 
 // --- DATABASE CONNECTION ---

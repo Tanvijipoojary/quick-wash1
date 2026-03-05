@@ -24,6 +24,36 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// quickwash-backend/routes/authRoutes.js (or userRoutes.js)
+
+// --- UPDATE USER PROFILE ---
+router.put('/update-profile', async (req, res) => {
+  try {
+    const { email, name, phone } = req.body;
+
+    // Assuming your user model is required at the top as `User`
+    // This finds the user by email and updates their name and phone
+    const updatedUser = await User.findOneAndUpdate(
+      { email: email }, 
+      { name: name, phone: phone },
+      { new: true } // This tells MongoDB to return the newly updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found in database" });
+    }
+
+    res.status(200).json({ 
+      message: "Profile updated successfully", 
+      user: updatedUser 
+    });
+
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Server error while updating profile" });
+  }
+});
+
 
 // ==========================================
 // 🧑‍💼 1. CUSTOMER (USER) ROUTES
