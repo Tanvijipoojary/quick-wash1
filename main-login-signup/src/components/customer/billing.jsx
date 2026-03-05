@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './billing.css';
 import logo from '../assets/quickwash-logo.png';
 
@@ -7,25 +8,54 @@ const Billing = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // Dummy data: This represents the finalized bill from the vendor
-  const orderId = id || "ORD-9999";
+  const [order, setOrder] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('UPI');
 
-  const finalItems = [
-    { id: 1, name: "Daily Mixed Wear", service: "Wash & Fold", rate: "₹40/kg", qty: "2.5 kg", total: 100 },
-    { id: 2, name: "Bedsheets & Curtains", service: "Wash & Iron", rate: "₹60/kg", qty: "1.5 kg", total: 90 },
-    { id: 3, name: "Suits & Heavy Jackets", service: "Premium Dry Clean", rate: "₹150/pc", qty: "2 pcs", total: 300 }
-  ];
+  // --- 1. FETCH REAL ORDER FROM BACKEND ---
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/orders/${id}`);
+        setOrder(response.data);
+      } catch (error) {
+        console.error("Error fetching order:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (id) fetchOrderDetails();
+  }, [id]);
 
-  const subtotal = finalItems.reduce((acc, item) => acc + item.total, 0);
-  const deliveryFee = 40;
+  // --- 2. HANDLE REAL PAYMENT ---
+  const handlePayment = async () => {
+    setIsProcessing(true);
+    try {
+      // Tell the database this order is now Paid!
+      await axios.put(`http://localhost:5000/api/orders/update-status/${id}`, {
+        paymentStatus: 'Paid'
+      });
+      
+      alert(`✅ Payment of ₹${finalTotal.toFixed(2)} successful via ${paymentMethod}!\n\nYour clothes will be delivered soon.`);
+      navigate(`/order/${id}`); // Send them right back to live tracking
+    } catch (error) {
+      alert("Payment failed! Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (isLoading) return <div style={{ padding: '50px', textAlign: 'center', fontSize: '1.2rem' }}>Loading Invoice... ⏳</div>;
+  if (!order) return <div style={{ padding: '50px', textAlign: 'center', color: 'red' }}>Invoice not found! ❌</div>;
+
+  // --- 3. DYNAMIC MATH FOR REAL BILL ---
+  // We take the totalAmount the vendor entered as the washing subtotal
+  const subtotal = order.totalAmount || 0; 
+  const deliveryFee = order.deliveryFee || 40;
   const tax = subtotal * 0.05; // 5% GST
   const finalTotal = subtotal + deliveryFee + tax;
-
-  const handlePayment = () => {
-    alert(`✅ Payment of ₹${finalTotal.toFixed(2)} successful via ${paymentMethod}!\n\nYour clothes will be delivered soon.`);
-    navigate(`/order/${orderId}`); // Send them back to tracking page
-  };
 
   return (
     <div className="web-container">
@@ -37,7 +67,7 @@ const Billing = () => {
         </div>
         <div className="nav-links">
           <div className="nav-item" onClick={() => navigate('/home')}>🏠 Home</div>
-          <div className="nav-item profile-btn" onClick={() => navigate('/profile')}>👤 Tanvi</div>
+          <div className="nav-item profile-btn" onClick={() => navigate('/profile')}>👤 Profile</div>
         </div>
       </nav>
 
@@ -52,33 +82,35 @@ const Billing = () => {
               <div className="invoice-header">
                 <div>
                   <h3>Final Bill</h3>
-                  <p>Order #{orderId}</p>
+                  <p>Order #{order._id.substring(order._id.length - 6).toUpperCase()}</p>
                 </div>
-                <span className="status-badge orange">Payment Pending</span>
+                <span className={`status-badge ${order.paymentStatus === 'Paid' ? 'green' : 'orange'}`}>
+                  {order.paymentStatus === 'Paid' ? 'Payment Complete' : 'Payment Pending'}
+                </span>
               </div>
 
               <div className="invoice-table">
                 <div className="table-header">
                   <span>Item / Service</span>
-                  <span>Qty / Weight</span>
-                  <span>Amount</span>
+                  <span>Qty</span>
+                  <span>Rate</span>
                 </div>
                 
-                {finalItems.map(item => (
-                  <div key={item.id} className="table-row">
+                {/* Dynamically list the REAL items the customer ordered */}
+                {order.items.map((item, index) => (
+                  <div key={index} className="table-row">
                     <div className="item-name-block">
                       <strong>{item.name}</strong>
-                      <small>{item.service} ({item.rate})</small>
                     </div>
                     <span>{item.qty}</span>
-                    <strong>₹{item.total.toFixed(2)}</strong>
+                    <strong>₹{item.price}</strong>
                   </div>
                 ))}
               </div>
 
               <div className="invoice-summary">
                 <div className="summary-line">
-                  <span>Subtotal</span>
+                  <span>Washing Subtotal (Set by Shop)</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="summary-line">
@@ -102,47 +134,51 @@ const Billing = () => {
             <div className="payment-card">
               <h2>Select Payment Method</h2>
               
-              <div className="payment-options">
-                <div 
-                  className={`pay-option ${paymentMethod === 'UPI' ? 'selected' : ''}`}
-                  onClick={() => setPaymentMethod('UPI')}
-                >
-                  <span className="pay-icon">📱</span>
-                  <div className="pay-text">
-                    <strong>UPI (GPay, PhonePe)</strong>
-                    <p>Instant digital payment</p>
-                  </div>
-                  <div className="radio-circle"></div>
-                </div>
+              {/* If already paid, hide the payment options and show a success message */}
+              {order.paymentStatus === 'Paid' ? (
+                 <div style={{ textAlign: 'center', padding: '30px', background: '#ecfdf5', borderRadius: '12px', color: '#059669' }}>
+                   <h3 style={{ margin: 0 }}>🎉 Bill Already Paid!</h3>
+                   <p>Your payment was successful.</p>
+                   <button className="pay-now-btn" style={{ background: '#10b981', marginTop: '15px' }} onClick={() => navigate(`/order/${id}`)}>
+                     Back to Tracking
+                   </button>
+                 </div>
+              ) : (
+                <>
+                  <div className="payment-options">
+                    <div className={`pay-option ${paymentMethod === 'UPI' ? 'selected' : ''}`} onClick={() => setPaymentMethod('UPI')}>
+                      <span className="pay-icon">📱</span>
+                      <div className="pay-text">
+                        <strong>UPI (GPay, PhonePe)</strong>
+                        <p>Instant digital payment</p>
+                      </div>
+                      <div className="radio-circle"></div>
+                    </div>
 
-                <div 
-                  className={`pay-option ${paymentMethod === 'Card' ? 'selected' : ''}`}
-                  onClick={() => setPaymentMethod('Card')}
-                >
-                  <span className="pay-icon">💳</span>
-                  <div className="pay-text">
-                    <strong>Credit / Debit Card</strong>
-                    <p>Visa, MasterCard, RuPay</p>
-                  </div>
-                  <div className="radio-circle"></div>
-                </div>
+                    <div className={`pay-option ${paymentMethod === 'Card' ? 'selected' : ''}`} onClick={() => setPaymentMethod('Card')}>
+                      <span className="pay-icon">💳</span>
+                      <div className="pay-text">
+                        <strong>Credit / Debit Card</strong>
+                        <p>Visa, MasterCard, RuPay</p>
+                      </div>
+                      <div className="radio-circle"></div>
+                    </div>
 
-                <div 
-                  className={`pay-option ${paymentMethod === 'Cash' ? 'selected' : ''}`}
-                  onClick={() => setPaymentMethod('Cash')}
-                >
-                  <span className="pay-icon">💵</span>
-                  <div className="pay-text">
-                    <strong>Cash on Delivery</strong>
-                    <p>Pay rider when clothes arrive</p>
+                    <div className={`pay-option ${paymentMethod === 'Cash' ? 'selected' : ''}`} onClick={() => setPaymentMethod('Cash')}>
+                      <span className="pay-icon">💵</span>
+                      <div className="pay-text">
+                        <strong>Cash on Delivery</strong>
+                        <p>Pay rider when clothes arrive</p>
+                      </div>
+                      <div className="radio-circle"></div>
+                    </div>
                   </div>
-                  <div className="radio-circle"></div>
-                </div>
-              </div>
 
-              <button className="pay-now-btn" onClick={handlePayment}>
-                Pay ₹{finalTotal.toFixed(2)} Securely
-              </button>
+                  <button className="pay-now-btn" onClick={handlePayment} disabled={isProcessing}>
+                    {isProcessing ? 'Processing...' : `Pay ₹${finalTotal.toFixed(2)} Securely`}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

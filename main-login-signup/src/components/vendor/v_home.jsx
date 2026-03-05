@@ -47,7 +47,8 @@ const VendorHome = () => {
         rawItems: o.items, // 👈 Saving raw items for our new dynamic billing calculator
         // Inside fetchVendorOrders, update the mapping:
         status: ['Pending Pickup', 'Picked Up', 'Dropped at Hub'].includes(o.status) ? 'New Requests' : 
-                ['At Shop', 'Ready'].includes(o.status) ? 'Processing' : 'Dispatched',
+                ['At Shop', 'Ready'].includes(o.status) ? 'Processing' : 
+                ['Out for Delivery', 'Completed'].includes(o.status) ? 'Dispatched' : 'Dispatched',
         subStatus: o.status === 'Pending Pickup' ? 'pending_acceptance' :
                    o.status === 'Picked Up' ? 'awaiting_rider' :
                    o.status === 'Dropped at Hub' ? 'ready_to_receive' : // 👈 The new handoff state!
@@ -170,10 +171,12 @@ const VendorHome = () => {
     updateOrderStatus(orderId, updateData);
   };
 
-  const handleRequestRider = (orderId) => updateOrderStatus(orderId, { subStatus: 'return_requested' });
-  const handleHandoverToRider = (orderId) => {
-    updateOrderStatus(orderId, { status: 'Completed' });
-    setActiveTab('Dispatched');
+  const handleRequestRider = (orderId) => {
+    // This updates the database to broadcast the order to riders
+    updateOrderStatus(orderId, { 
+      status: 'Ready', 
+      subStatus: 'return_requested' 
+    });
   };
 
   return (
@@ -283,16 +286,18 @@ const VendorHome = () => {
                         </div>
 
                         {order.laundryStage === 'Ready' && order.subStatus !== 'return_requested' && (
-                          <button className="vhome-btn-accept" style={{width: '100%', marginTop: '12px'}} onClick={() => handleRequestRider(order.id)}>
-                            Request Return Drop-off
+                          <button 
+                            className="vhome-btn-accept" 
+                            style={{width: '100%', marginTop: '16px', background: '#2563eb', color: 'white'}} 
+                            onClick={() => handleRequestRider(order.id)}
+                          >
+                            📦 Request Rider for Pickup
                           </button>
                         )}
 
                         {order.laundryStage === 'Ready' && order.subStatus === 'return_requested' && (
-                          <div className="vhome-rider-arriving-box">
-                            <button className="vhome-btn-full" style={{marginTop: '16px'}} onClick={() => handleHandoverToRider(order.id)}>
-                              Handover to Rider
-                            </button>
+                          <div style={{marginTop: '16px', padding: '12px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', textAlign: 'center', color: '#ea580c', fontWeight: 'bold'}}>
+                            🛵 Waiting for Rider to collect clean clothes...
                           </div>
                         )}
                       </div>

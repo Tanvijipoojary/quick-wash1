@@ -47,12 +47,13 @@ router.get('/vendor/:shopId', async (req, res) => {
 });
 
 // --- 4. BROADCAST: GET ALL AVAILABLE ORDERS FOR RIDERS ---
+// --- 4. BROADCAST: GET ALL AVAILABLE ORDERS FOR RIDERS ---
 router.get('/available-for-rider', async (req, res) => {
   try {
     const availableOrders = await Order.find({
       $or: [
         { status: 'Picked Up' }, 
-        { subStatus: 'return_requested' } 
+        { status: 'Ready' } // 👈 CHANGED THIS LINE! Matches your DB exactly!
       ],
       riderEmail: null 
     }).sort({ updatedAt: -1 });

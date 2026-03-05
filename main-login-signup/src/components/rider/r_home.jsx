@@ -77,17 +77,31 @@ const RiderHome = () => {
     }
   };
 
-  const handleConfirmPickup = () => setTripStatus('picked_up');
+  // 1. RIDER PICKS UP CLOTHES
+  const handleConfirmPickup = async () => {
+    try {
+      // If the rider is picking up from the Vendor to give to the Customer, update DB!
+      if (activeTask.taskType === 'Delivery Run') {
+        await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
+          status: 'Out for Delivery' // 👈 Customer Tracker instantly sees this!
+        });
+      }
+      setTripStatus('picked_up'); // Moves the rider's UI to the next step
+    } catch (error) {
+      alert("Failed to update database. Is backend running?");
+    }
+  };
   
+  // 2. RIDER DROPS OFF CLOTHES
   const handleCompleteTrip = async () => {
     try {
-      // If it's a collection, mark as 'Dropped at Hub'. If delivery, 'Completed'.
+      // If taking to vendor -> 'Dropped at Hub'. If taking to customer -> 'Completed'
       const newStatus = activeTask.taskType === 'Collection Run' ? 'Dropped at Hub' : 'Completed';
       
-      // Update Database and release the rider back into the wild
+      // Update Database and free up the rider for the next job!
       await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
         status: newStatus,
-        riderEmail: null // 👈 Frees up the rider so they can take a new order!
+        riderEmail: null 
       });
 
       setShowSuccess(true);
@@ -95,7 +109,7 @@ const RiderHome = () => {
         setShowSuccess(false);
         setActiveTask(null); 
         setTripStatus('');
-        fetchAvailableOrders(); // Look for next trip!
+        fetchAvailableOrders(); // Look for next trip
       }, 2500);
 
     } catch (error) {

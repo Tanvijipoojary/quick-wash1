@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './r_profile.css';
 import axios from 'axios';
-
 
 const RiderProfile = () => {
   const navigate = useNavigate();
@@ -17,43 +16,61 @@ const RiderProfile = () => {
   // App Settings State
   const [notificationsOn, setNotificationsOn] = useState(true);
 
-  // Rider Data State (Now contains ALL registration data)
+  // --- 1. REAL DYNAMIC RIDER DATA ---
   const [profile, setProfile] = useState({
-    name: 'Anurag S',
-    phone: '+91 98765 43210',
-    email: 'anurag.s@quickwash.com',
-    city: 'Mysuru',
-    vehicleType: 'Two Wheeler (Scooter)',
-    regNo: 'KA 09 AB 1234',
-    rating: '4.8',
+    name: 'Loading...',
+    phone: '',
+    email: '',
+    city: '',
+    vehicleType: '',
+    regNo: '',
+    rating: '5.0', // Default rating for now
     kycStatus: 'Verified & Active',
     docs: {
-      dl: 'Verified',
-      rc: 'Verified',
-      insurance: 'Verified',
-      aadhar: 'Verified',
-      pan: 'Verified'
+      dl: 'Verified', rc: 'Verified', insurance: 'Verified', aadhar: 'Verified', pan: 'Verified'
     }
   });
 
   // Edit Forms State
-  const [personalForm, setPersonalForm] = useState({ name: profile.name, phone: profile.phone, email: profile.email, city: profile.city });
-  const [vehicleForm, setVehicleForm] = useState({ type: profile.vehicleType, regNo: profile.regNo });
+  const [personalForm, setPersonalForm] = useState({ name: '', phone: '', email: '', city: '' });
+  const [vehicleForm, setVehicleForm] = useState({ type: '', regNo: '' });
+
+  // --- 2. FETCH DATA ON LOAD ---
+  useEffect(() => {
+    const savedRider = localStorage.getItem('quickwash_rider');
+    if (savedRider) {
+      const parsedData = JSON.parse(savedRider);
+      setProfile(prev => ({
+        ...prev,
+        name: parsedData.name || 'Awesome Rider',
+        phone: parsedData.phone || 'N/A',
+        email: parsedData.email || 'N/A',
+        city: parsedData.city || 'N/A',
+        vehicleType: parsedData.vehicleType || 'Two Wheeler',
+        regNo: parsedData.vehicleNumber || 'N/A' // Pulling the vehicleNumber from signup!
+      }));
+    } else {
+      navigate('/'); // Go to login if no data is found
+    }
+  }, [navigate]);
+
+  // Keep edit forms synced with the profile data
+  useEffect(() => {
+    setPersonalForm({ name: profile.name, phone: profile.phone, email: profile.email, city: profile.city });
+    setVehicleForm({ type: profile.vehicleType, regNo: profile.regNo });
+  }, [profile]);
 
   // Handlers
   const handleSavePersonal = (e) => {
     e.preventDefault();
     setProfile({ ...profile, ...personalForm });
     setIsEditPersonalOpen(false);
+    // Note: In a real app, you would make an axios.put() request here to update MongoDB too!
   };
 
   const handleSaveVehicle = (e) => {
     e.preventDefault();
-    setProfile({ 
-      ...profile, 
-      vehicleType: vehicleForm.type, 
-      regNo: vehicleForm.regNo
-    });
+    setProfile({ ...profile, vehicleType: vehicleForm.type, regNo: vehicleForm.regNo });
     setIsEditVehicleOpen(false);
   };
 
@@ -62,13 +79,15 @@ const RiderProfile = () => {
     setProfile({ 
       ...profile, 
       kycStatus: 'Pending Verification',
-      docs: { ...profile.docs, dl: 'Under Review' } // Example: Assume they uploaded a new DL
+      docs: { ...profile.docs, dl: 'Under Review' }
     });
     setIsEditKYCOpen(false);
   };
 
+  // --- 3. CLEAR DATA ON LOGOUT ---
   const handleLogout = () => {
-    navigate('/rider'); // Send back to login screen
+    localStorage.removeItem('quickwash_rider'); // Wipe the memory
+    navigate('/'); // Send back to login screen
   };
 
   return (
@@ -85,7 +104,8 @@ const RiderProfile = () => {
         <div className="rprof-hero-card">
           <div className="rprof-avatar-ring">
             <div className="rprof-avatar-img">
-              {profile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+              {/* Dynamically gets the first letter of their name */}
+              {profile.name.charAt(0).toUpperCase()}
             </div>
           </div>
           <h2 className="rprof-name">{profile.name}</h2>
@@ -174,7 +194,6 @@ const RiderProfile = () => {
               </div>
             </div>
             
-            {/* List of specific docs from onboarding */}
             <div className="rprof-doc-list">
               <div className="rprof-doc-item">
                 <span>Driving License</span>
@@ -263,7 +282,7 @@ const RiderProfile = () => {
               </div>
               <div className="rprof-input-group">
                 <label>Email Address</label>
-                <input type="email" value={personalForm.email} onChange={(e) => setPersonalForm({...personalForm, email: e.target.value})} required />
+                <input type="email" value={personalForm.email} onChange={(e) => setPersonalForm({...personalForm, email: e.target.value})} disabled style={{background: '#f1f5f9'}} />
               </div>
               <div className="rprof-input-group">
                 <label>City</label>
@@ -287,8 +306,8 @@ const RiderProfile = () => {
               <div className="rprof-input-group">
                 <label>Vehicle Type</label>
                 <select className="rprof-modal-select" value={vehicleForm.type} onChange={(e) => setVehicleForm({...vehicleForm, type: e.target.value})}>
-                  <option value="Two Wheeler (Bike)">Two Wheeler (Bike)</option>
-                  <option value="Two Wheeler (Scooter)">Two Wheeler (Scooter)</option>
+                  <option value="Two Wheeler (Bike/Scooter)">Two Wheeler (Bike/Scooter)</option>
+                  <option value="Bicycle">Bicycle</option>
                   <option value="Three Wheeler (Auto)">Three Wheeler (Auto)</option>
                 </select>
               </div>

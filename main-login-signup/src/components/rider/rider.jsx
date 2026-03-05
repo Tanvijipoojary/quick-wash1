@@ -57,7 +57,13 @@ const RiderLogin = () => {
       });
       
       if (res.status === 200) {
-        localStorage.setItem('riderEmail', formData.email.toLowerCase());
+        // 👇 THIS IS THE FIX 👇
+        // Grab the full rider data sent from your backend (name, email, phone, etc.)
+        const riderData = res.data.rider || res.data; 
+        
+        // Save it using JSON.stringify so the Home and Profile pages can read it!
+        localStorage.setItem('quickwash_rider', JSON.stringify(riderData));
+        
         navigate('/rider-home'); 
       }
     } catch (err) {

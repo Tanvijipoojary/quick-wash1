@@ -6,46 +6,59 @@ import logo from '../assets/quickwash-logo.png';
 
 const OrderDetails = () => {
   const navigate = useNavigate();
-  const { id } = useParams(); // Gets the real Order ID from the URL
+  const { id } = useParams(); 
   
-  // Real State for database data
   const [order, setOrder] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- 1. FETCH REAL ORDER FROM BACKEND ---
+  // --- 1. FETCH REAL ORDER WITH AUTO-REFRESH ---
+  const fetchOrderDetails = async () => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/orders/${id}`);
+      setOrder(response.data);
+    } catch (error) {
+      console.error("Error fetching order:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchOrderDetails = async () => {
-      try {
-        const response = await axios.get(`http://localhost:5000/api/orders/${id}`);
-        setOrder(response.data);
-      } catch (error) {
-        console.error("Error fetching order:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     if (id) {
-      fetchOrderDetails();
+      fetchOrderDetails(); // Fetch immediately on load
+      
+      // LIVE TRACKING: Poll the database every 5 seconds for updates!
+      const interval = setInterval(fetchOrderDetails, 5000);
+      return () => clearInterval(interval);
     }
   }, [id]);
 
   if (isLoading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading Tracking Details... ⏳</div>;
   if (!order) return <div style={{ padding: '50px', textAlign: 'center' }}>Order not found! ❌</div>;
 
-  // Format the real order date
   const orderDate = new Date(order.createdAt).toLocaleDateString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric'
   });
 
-  // Helper function to figure out which step we are on
-  const getStepStatus = (stepName) => {
-    const statuses = ['Pending Pickup', 'Picked Up', 'At Shop', 'Ready', 'Out for Delivery', 'Completed'];
-    const currentIndex = statuses.indexOf(order.status);
-    const stepIndex = statuses.indexOf(stepName);
+  // --- 2. SMART STEPPER LOGIC ---
+  // Maps our 7 backend statuses to the 5 visual UI steps
+  const getActiveStepNumber = (status) => {
+    switch (status) {
+      case 'Pending Pickup': return 1; 
+      case 'Picked Up': 
+      case 'Dropped at Hub': return 2; 
+      case 'At Shop': return 3; 
+      case 'Ready': 
+      case 'Out for Delivery': return 4; 
+      case 'Completed': return 5; 
+      default: return 1;
+    }
+  };
 
-    if (currentIndex > stepIndex) return "completed";
-    if (currentIndex === stepIndex) return "active";
+  const getStepClass = (stepNum) => {
+    const currentStep = getActiveStepNumber(order.status);
+    if (currentStep > stepNum) return "completed";
+    if (currentStep === stepNum) return "active";
     return "pending";
   };
 
@@ -65,7 +78,7 @@ const OrderDetails = () => {
 
       <main className="tracking-main animate-fade">
         <div className="tracking-header">
-          <h1>Order {order._id.substring(order._id.length - 6).toUpperCase()}</h1>
+          <h1>Order #{order._id.substring(order._id.length - 6).toUpperCase()}</h1>
           <span className="status-pill active-status">{order.status}</span>
         </div>
 
@@ -78,7 +91,7 @@ const OrderDetails = () => {
               
               <div className="vertical-stepper">
                 {/* Step 1: Booking Confirmed */}
-                <div className={`step ${getStepStatus('Pending Pickup')}`}>
+                <div className={`step ${getStepClass(1)}`}>
                   <div className="step-icon">✅</div>
                   <div className="step-content">
                     <h4>Booking Confirmed</h4>
@@ -87,16 +100,16 @@ const OrderDetails = () => {
                 </div>
 
                 {/* Step 2: Rider Assigned */}
-                <div className={`step ${getStepStatus('Picked Up')}`}>
+                <div className={`step ${getStepClass(2)}`}>
                   <div className="step-icon">🛵</div>
                   <div className="step-content">
-                    <h4>Rider Picked Up</h4>
-                    <p>Rider has collected your clothes.</p>
+                    <h4>{order.status === 'Dropped at Hub' ? 'Arrived at Shop' : 'Rider Picked Up'}</h4>
+                    <p>{order.status === 'Dropped at Hub' ? 'Clothes dropped at vendor hub.' : 'Rider has collected your clothes.'}</p>
                   </div>
                 </div>
 
                 {/* Step 3: Weighing & Billing */}
-                <div className={`step ${getStepStatus('At Shop')}`}>
+                <div className={`step ${getStepClass(3)}`}>
                   <div className="step-icon">⚖️</div>
                   <div className="step-content">
                     <h4>Weighing & Washing</h4>
@@ -105,16 +118,17 @@ const OrderDetails = () => {
                 </div>
 
                 {/* Step 4: Ready for Delivery */}
-                <div className={`step ${getStepStatus('Ready')}`}>
+                <div className={`step ${getStepClass(4)}`}>
                   <div className="step-icon">🫧</div>
                   <div className="step-content">
-                    <h4>Ready for Pickup</h4>
-                    <p>Washing is complete!</p>
+                    {/* Dynamically changes text when rider accepts the return trip! */}
+                    <h4>{order.status === 'Out for Delivery' ? 'Out for Delivery' : 'Ready for Pickup'}</h4>
+                    <p>{order.status === 'Out for Delivery' ? 'Rider is bringing your clean clothes!' : 'Washing is complete!'}</p>
                   </div>
                 </div>
 
                 {/* Step 5: Delivered */}
-                <div className={`step ${getStepStatus('Completed')}`}>
+                <div className={`step ${getStepClass(5)}`}>
                   <div className="step-icon">📦</div>
                   <div className="step-content">
                     <h4>Delivered</h4>
@@ -133,12 +147,11 @@ const OrderDetails = () => {
               <h3>Pickup Details</h3>
               <p><strong>Date:</strong> {orderDate}</p>
               <p><strong>Shop:</strong> {order.shopName}</p>
-              <p><strong>Time:</strong> ASAP</p>
+              <p><strong>Time:</strong> {order.pickupSlot || 'ASAP'}</p>
             </div>
 
             <div className="info-card">
               <h3>Requested Services</h3>
-              {/* Loop through the REAL items the customer added to the cart */}
               {order.items.map((item, i) => (
                 <div key={i} className="service-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div>
@@ -153,7 +166,6 @@ const OrderDetails = () => {
             <div className="info-card billing-card">
               <h3>Final Bill</h3>
               
-              {/* Dynamic Bill Logic: If the total is 0, it means the shop hasn't weighed it yet! */}
               {order.totalAmount === 0 ? (
                 <div className="pending-bill-box" style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
                   <p style={{ margin: 0, color: '#64748b' }}>⏳ Waiting for shop to weigh items and finalize bill.</p>

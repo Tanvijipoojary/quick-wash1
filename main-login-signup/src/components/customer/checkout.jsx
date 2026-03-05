@@ -159,7 +159,7 @@ const Checkout = () => {
                     onClick={() => setIsChangingAddress(!isChangingAddress)}
                     style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}
                   >
-                    {isChangingAddress ? "Close" : "Change"}
+                    {isChangingAddress ? "Close" : "Select"}
                   </button>
                 </div>
 
