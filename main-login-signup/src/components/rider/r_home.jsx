@@ -6,40 +6,43 @@ import './r_home.css';
 const RiderHome = () => {
   const navigate = useNavigate();
   
-  // Get Logged in Rider (Assume you saved this during rider login)
   const [rider, setRider] = useState(() => {
     const saved = localStorage.getItem('quickwash_rider');
     return saved ? JSON.parse(saved) : { name: 'Awesome Rider', email: 'rider@quickwash.com' };
   });
 
-  // App States
   const [isOnline, setIsOnline] = useState(true);
   const [activeTask, setActiveTask] = useState(null); 
   const [tripStatus, setTripStatus] = useState(''); 
   const [showSuccess, setShowSuccess] = useState(false);
   const [swipeValue, setSwipeValue] = useState(0);
 
-  // --- 1. REAL MONGODB AVAILABLE ORDERS ---
   const [availableOrders, setAvailableOrders] = useState([]);
 
+  // --- 1. FETCH LIVE BROADCASTS ---
   const fetchAvailableOrders = async () => {
-    if (!isOnline || activeTask) return; // Don't fetch if offline or busy
+    if (!isOnline || activeTask) return; 
     try {
       const res = await axios.get('http://localhost:5000/api/orders/available-for-rider');
       
-      // Map DB data to your UI Card design
       const formattedOrders = res.data.map(o => {
-        const isCollection = o.status === 'Picked Up'; // Going to Customer first
+        // MAGIC LOGIC: If the status is 'Picked Up', it's fresh from the customer. 
+        // Otherwise, it's clean clothes coming from the Vendor!
+        const isCollection = o.status === 'Picked Up'; 
+        
         return {
           id: o._id,
           taskType: isCollection ? 'Collection Run' : 'Delivery Run', 
+          
           pickup: isCollection 
             ? { label: 'Pickup from Customer', name: o.customerEmail.split('@')[0], address: o.pickupAddress || 'Customer Address' }
-            : { label: 'Pickup from Vendor Hub', name: o.shopName, address: 'Vendor Hub Address' }, // Note: Add shop address to DB if needed
+            : { label: 'Pickup from Vendor Hub', name: o.shopName, address: 'Vendor Hub (See Map)' }, 
+            
           dropoff: isCollection 
-            ? { label: 'Drop at Vendor Hub', name: o.shopName, address: 'Vendor Hub Address' }
+            ? { label: 'Drop at Vendor Hub', name: o.shopName, address: 'Vendor Hub (See Map)' }
             : { label: 'Drop to Customer', name: o.customerEmail.split('@')[0], address: o.pickupAddress || 'Customer Address' },
-          distance: 'Est. 4 km', // Real distance requires Google Maps Matrix API
+            
+          distance: 'Est. 4 km', 
           time: '15 mins', 
           details: o.items.map(i => `${i.name} (x${i.qty})`).join(', '), 
           amount: `Rs. ${o.deliveryFee || 40}`
@@ -51,57 +54,49 @@ const RiderHome = () => {
     }
   };
 
-  // Poll for new orders every 5 seconds! (The Broadcast System)
   useEffect(() => {
     fetchAvailableOrders();
     const interval = setInterval(fetchAvailableOrders, 5000);
     return () => clearInterval(interval);
   }, [isOnline, activeTask]);
 
-  // --- Handlers ---
+  // --- 2. CLAIM THE ORDER ---
   const handleAcceptOrder = async (order) => {
     try {
-      // THE CLAIM SYSTEM: Tell MongoDB we want it!
-      await axios.put(`http://localhost:5000/api/orders/claim/${order.id}`, {
-        riderEmail: rider.email
-      });
-
-      // If success, lock it in!
+      await axios.put(`http://localhost:5000/api/orders/claim/${order.id}`, { riderEmail: rider.email });
       setActiveTask(order);
       setTripStatus('accepted');
-      setAvailableOrders([]); // Clear background feed
+      setAvailableOrders([]); 
     } catch (error) {
-      // If error, someone else took it!
-      alert(error.response?.data?.message || "Failed to claim order.");
-      fetchAvailableOrders(); // Refresh to remove the stolen order
+      alert(error.response?.data?.message || "Too slow! Another rider claimed this order.");
+      fetchAvailableOrders(); 
     }
   };
 
-  // 1. RIDER PICKS UP CLOTHES
+  // --- 3. CONFIRM PICKUP (Updates Customer Tracker!) ---
   const handleConfirmPickup = async () => {
     try {
-      // If the rider is picking up from the Vendor to give to the Customer, update DB!
+      // If we are delivering clean clothes, tell the database we are Out for Delivery!
       if (activeTask.taskType === 'Delivery Run') {
         await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
-          status: 'Out for Delivery' // 👈 Customer Tracker instantly sees this!
+          status: 'Out for Delivery'
         });
       }
-      setTripStatus('picked_up'); // Moves the rider's UI to the next step
+      setTripStatus('picked_up');
     } catch (error) {
-      alert("Failed to update database. Is backend running?");
+      alert("Failed to update database. Is your backend running?");
     }
   };
   
-  // 2. RIDER DROPS OFF CLOTHES
+  // --- 4. COMPLETE DROPOFF (Updates Tracker & Keeps Rider Credit) ---
   const handleCompleteTrip = async () => {
     try {
-      // If taking to vendor -> 'Dropped at Hub'. If taking to customer -> 'Completed'
+      // If Collection: We drop at Hub. If Delivery: We drop at Customer (Completed!).
       const newStatus = activeTask.taskType === 'Collection Run' ? 'Dropped at Hub' : 'Completed';
       
-      // Update Database and free up the rider for the next job!
       await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
-        status: newStatus,
-        riderEmail: null 
+        status: newStatus
+        // ❌ REMOVED: riderEmail: null (We want to keep their name on the receipt!)
       });
 
       setShowSuccess(true);
@@ -109,7 +104,7 @@ const RiderHome = () => {
         setShowSuccess(false);
         setActiveTask(null); 
         setTripStatus('');
-        fetchAvailableOrders(); // Look for next trip
+        fetchAvailableOrders(); // Look for next trip!
       }, 2500);
 
     } catch (error) {
@@ -118,12 +113,9 @@ const RiderHome = () => {
   };
 
   const handleCancelTrip = async () => {
-    // If they cancel, we must UN-CLAIM it so others can see it!
     if (activeTask) {
       try {
-        await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
-          riderEmail: null // Release back to the pool
-        });
+        await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, { riderEmail: null });
       } catch (err) { console.error("Failed to release order"); }
     }
     setActiveTask(null);
@@ -142,21 +134,19 @@ const RiderHome = () => {
 
   const handleSwipeEnd = () => { if (swipeValue <= 85) setSwipeValue(0); };
 
-  // --- FIXED NAVIGATION LINKS ---
   const openMapsForPickup = () => {
     const destination = encodeURIComponent(activeTask.pickup.address);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${destination}`, '_blank');
+    window.open(`http://googleusercontent.com/maps.google.com/?q=${destination}`, '_blank');
   };
 
   const openMapsForDropoff = () => {
     const destination = encodeURIComponent(activeTask.dropoff.address);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${destination}`, '_blank');
+    window.open(`http://googleusercontent.com/maps.google.com/?q=${destination}`, '_blank');
   };
 
   return (
     <div className="rhome-container">
       
-      {/* --- MAP BACKGROUND --- */}
       <div className="rhome-map-area">
         <div className="rhome-road rhome-road-1"></div>
         <div className="rhome-road rhome-road-2"></div>
@@ -175,7 +165,6 @@ const RiderHome = () => {
         )}
       </div>
 
-      {/* --- HEADER --- */}
       <header className="rhome-header">
         <div className="rhome-header-top">
           <div className="rhome-profile-badge" onClick={() => navigate('/rider-profile')}>
@@ -207,7 +196,6 @@ const RiderHome = () => {
         </div>
       </header>
 
-      {/* --- SUCCESS MODAL --- */}
       {showSuccess && (
         <div className="rhome-success-overlay">
           <div className="rhome-success-card">
@@ -218,7 +206,6 @@ const RiderHome = () => {
         </div>
       )}
 
-      {/* --- BOTTOM SHEET --- */}
       <div className={`rhome-bottom-sheet ${!isOnline ? 'offline-sheet' : ''}`}>
         <div className="rhome-drag-handle"></div>
 
@@ -335,7 +322,6 @@ const RiderHome = () => {
         )}
       </div>
 
-      {/* --- BOTTOM NAVIGATION --- */}
       <footer className="rhome-bottom-nav">
         <button className="rhome-nav-item active" onClick={() => navigate('/rider-home')}>
           <span className="rhome-nav-icon">🛵</span><small>Ride</small>

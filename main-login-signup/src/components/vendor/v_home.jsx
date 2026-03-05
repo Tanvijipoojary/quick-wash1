@@ -176,10 +176,11 @@ const VendorHome = () => {
   };
 
   const handleRequestRider = (orderId) => {
-    // This updates the database to broadcast the order to riders
+    // This broadcasts the clean clothes to riders AND clears the old rider's email
     updateOrderStatus(orderId, { 
       status: 'Ready', 
-      subStatus: 'return_requested' 
+      subStatus: 'return_requested',
+      riderEmail: null // 👈 ADD THIS: Frees it up for the next available rider!
     });
   };
 

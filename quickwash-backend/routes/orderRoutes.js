@@ -114,4 +114,15 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// --- 8. GET ALL ORDERS CLAIMED BY A SPECIFIC RIDER ---
+router.get('/rider/:email', async (req, res) => {
+  try {
+    const orders = await Order.find({ riderEmail: req.params.email }).sort({ updatedAt: -1 });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching rider orders:", error);
+    res.status(500).json({ message: "Server error fetching rider orders" });
+  }
+});
+
 module.exports = router;

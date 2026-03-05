@@ -8,6 +8,7 @@ const VendorProfile = () => {
   
   // Sidebar & Status State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [vendor, setVendor] = useState(null);
 
   // Modals State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -27,41 +28,17 @@ const VendorProfile = () => {
   const [editForm, setEditForm] = useState({ ...profileData });
 
   // --- 1. FETCH PROFILE ON LOAD ---
-  // --- 1. FETCH PROFILE ON LOAD ---
   useEffect(() => {
-    const fetchVendorProfile = async () => {
-      // 1. Get the exact email of whoever just logged in
-      const email = localStorage.getItem('vendorEmail'); 
-      if (!email) { navigate('/'); return; } // Kick them out if not logged in
-
-      try {
-        // 2. Ask the database for THIS specific vendor's data (FIXED URL)
-        const response = await axios.get(`http://localhost:5000/api/vendors/profile/${email}`);
-        const vendor = response.data;
-        
-        // 3. Map the database data to your React state
-        const mappedData = {
-          hubName: vendor.hubName || vendor.hub_name || '', // Checking both just in case!
-          owner: vendor.name || vendor.owner_name || '',
-          capacity: vendor.capacity || vendor.washing_capacity_kg || '',
-          turnaround: vendor.turnaround_time || '24', 
-          services: vendor.services || 'Wash & Fold, Ironing', 
-          address: vendor.address || vendor.hub_address || '',
-          adminStatus: vendor.status || 'Pending',
-          pricing: vendor.pricing || { washAndFold: 40, washAndIron: 60, dryClean: 80 }
-        };
-
-        setProfileData(mappedData);
-        setEditForm(mappedData);
-        setIsOpen(vendor.is_open !== undefined ? vendor.is_open : true); 
-
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchVendorProfile();
+    // Look for the NEW database session we created
+    const savedVendorStr = localStorage.getItem('quickwash_vendor');
+    
+    if (savedVendorStr) {
+      setVendor(JSON.parse(savedVendorStr));
+    } else {
+      // If it fails, THIS is what kicks you out. 
+      // Make sure it's not failing because it's looking for the wrong localStorage key!
+      navigate('/vendor-login'); 
+    }
   }, [navigate]);
 
   // --- NEW: HANDLE TOGGLE SWITCH ---
