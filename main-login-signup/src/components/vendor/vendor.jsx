@@ -61,7 +61,20 @@ const VendorLogin = () => {
       });
 
       if (response.status === 200) {
-        localStorage.setItem('vendorEmail', formData.email.toLowerCase()); 
+        // 1. Get the full vendor data returned from your backend
+        const vendorDataFromDB = response.data.vendor || response.data;
+        
+        // 2. Create an object with the real MongoDB details
+        const vendorSession = {
+          shopId: vendorDataFromDB._id, // This is the real dynamic ID from the DB
+          name: vendorDataFromDB.hubName || vendorDataFromDB.name,
+          email: vendorDataFromDB.email
+        };
+
+        // 3. Save the WHOLE object to local storage
+        localStorage.setItem('quickwash_vendor', JSON.stringify(vendorSession));
+        
+        // 4. Navigate to home
         navigate('/vendor-home'); 
       }
     } catch (error) {

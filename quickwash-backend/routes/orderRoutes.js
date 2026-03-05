@@ -37,14 +37,22 @@ router.get('/user/:email', async (req, res) => {
 });
 
 // --- 3. GET ALL ORDERS FOR A SPECIFIC VENDOR (SHOP) ---
+// --- 3. GET ALL ORDERS FOR A SPECIFIC VENDOR (SHOP) ---
 router.get('/vendor/:shopId', async (req, res) => {
   try {
-    const orders = await Order.find({ shopId: req.params.shopId }).sort({ createdAt: -1 });
+    const { shopId } = req.params;
+    
+    // This finds orders regardless of whether shopId is a String or ObjectId
+    const orders = await Order.find({ shopId: shopId }).sort({ createdAt: -1 });
+    
+    console.log(`Found ${orders.length} orders for Shop: ${shopId}`); // Diagnostic Log
     res.status(200).json(orders);
   } catch (error) {
+    console.error("Error fetching vendor orders:", error);
     res.status(500).json({ message: "Server error fetching vendor orders" });
   }
 });
+
 
 // --- 4. BROADCAST: GET ALL AVAILABLE ORDERS FOR RIDERS ---
 // --- 4. BROADCAST: GET ALL AVAILABLE ORDERS FOR RIDERS ---

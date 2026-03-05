@@ -23,12 +23,13 @@ const VendorHome = () => {
 
   useEffect(() => {
     const savedVendorStr = localStorage.getItem('quickwash_vendor');
-    // Using fallback if none found, matching previous fixes
+    
     if (savedVendorStr) {
+      // ✅ Purely dynamic: Takes whatever is in the database session
       setVendor(JSON.parse(savedVendorStr));
     } else {
-      const savedVendorEmail = localStorage.getItem('vendorEmail'); 
-      setVendor({ shopId: '69a8f49b1850c7244b743702', email: savedVendorEmail, name: 'Laundry Hub' }); 
+      // 🛡️ Redirect: If no database data is found, go back to login
+      navigate('/vendor-login'); 
     }
   }, [navigate]);
 
@@ -68,10 +69,13 @@ const VendorHome = () => {
   };
 
   useEffect(() => {
-    fetchVendorOrders();
-    const interval = setInterval(fetchVendorOrders, 10000);
-    return () => clearInterval(interval);
-  }, [vendor]);
+    // Check if vendor exists before calling the fetch function
+    if (vendor && vendor.shopId) {
+      fetchVendorOrders();
+      const interval = setInterval(fetchVendorOrders, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [vendor]); // 👈 Use 'vendor' as the dependency, not 'currentShopId'
 
   const displayedOrders = orders.filter(o => o.status === activeTab);
 
