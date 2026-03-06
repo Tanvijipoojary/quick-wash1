@@ -103,7 +103,11 @@ const Checkout = () => {
         pickupDate: schedule.date,
         pickupSlot: schedule.timeSlot,
         instructions: schedule.instructions,
-        pickupAddress: selectedAddressText // 👈 Sending the chosen address!
+        pickupAddress: selectedAddressText, 
+        
+        // 👇 ADD THESE TWO LINES TO FIX THE COLLECTION RUN
+        status: 'Pending', 
+        riderEmail: null
       };
 
       console.log("Sending order to backend:", orderPayload);

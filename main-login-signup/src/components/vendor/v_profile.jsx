@@ -28,15 +28,28 @@ const VendorProfile = () => {
   const [editForm, setEditForm] = useState({ ...profileData });
 
   // --- 1. FETCH PROFILE ON LOAD ---
+  // --- 1. FETCH PROFILE ON LOAD ---
   useEffect(() => {
     // Look for the NEW database session we created
     const savedVendorStr = localStorage.getItem('quickwash_vendor');
     
     if (savedVendorStr) {
-      setVendor(JSON.parse(savedVendorStr));
+      const parsedVendor = JSON.parse(savedVendorStr);
+      setVendor(parsedVendor);
+      
+      // 👇 THIS IS THE MISSING LINE! It tells the page to stop loading.
+      setIsLoading(false); 
+
+      // Bonus: If you want the profile fields to auto-fill with the database info:
+      setProfileData(prev => ({
+        ...prev,
+        hubName: parsedVendor.name || '',
+        owner: parsedVendor.owner || '',
+        address: parsedVendor.address || ''
+      }));
+
     } else {
       // If it fails, THIS is what kicks you out. 
-      // Make sure it's not failing because it's looking for the wrong localStorage key!
       navigate('/vendor-login'); 
     }
   }, [navigate]);

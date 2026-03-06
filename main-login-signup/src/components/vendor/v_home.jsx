@@ -176,11 +176,11 @@ const VendorHome = () => {
   };
 
   const handleRequestRider = (orderId) => {
-    // This broadcasts the clean clothes to riders AND clears the old rider's email
+    // This MUST have riderEmail: null to broadcast to the Rider App!
     updateOrderStatus(orderId, { 
       status: 'Ready', 
       subStatus: 'return_requested',
-      riderEmail: null // 👈 ADD THIS: Frees it up for the next available rider!
+      riderEmail: null // 👈 Double check that this line is saved in your file!
     });
   };
 
@@ -369,7 +369,12 @@ const VendorHome = () => {
         <button className="vhome-nav-item active"><span>🏠</span><small>Home</small></button>
         <button className="vhome-nav-item" onClick={() => navigate('/vendor-wallet')}><span>💳</span><small>Wallet</small></button>
         <button className="vhome-nav-item" onClick={() => navigate('/vendor-earnings')}><span>💲</span><small>Earnings</small></button>
-        <button className="vhome-nav-item" onClick={() => navigate('/vendor-profile')}><span>👤</span><small>Profile</small></button>
+        <button 
+  className="vendor-nav-item" 
+  onClick={() => navigate('/vendor-profile')}
+>
+  👤 Profile
+</button>
       </footer>
     </div>
   );

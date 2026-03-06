@@ -28,7 +28,7 @@ const RiderHome = () => {
       const formattedOrders = res.data.map(o => {
         // MAGIC LOGIC: If the status is 'Picked Up', it's fresh from the customer. 
         // Otherwise, it's clean clothes coming from the Vendor!
-        const isCollection = o.status === 'Picked Up'; 
+        const isCollection = o.status === 'Pending' || o.status === 'Pending Pickup';
         
         return {
           id: o._id,

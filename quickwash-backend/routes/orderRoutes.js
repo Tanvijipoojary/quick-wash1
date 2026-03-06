@@ -55,31 +55,38 @@ router.get('/vendor/:shopId', async (req, res) => {
 
 
 // --- 4. BROADCAST: GET ALL AVAILABLE ORDERS FOR RIDERS ---
-// --- 4. BROADCAST: GET ALL AVAILABLE ORDERS FOR RIDERS ---
 router.get('/available-for-rider', async (req, res) => {
   try {
+    // We use $in: [null, ""] to be ultra-safe in case the DB saved an empty string
     const availableOrders = await Order.find({
-      $or: [
-        { status: 'Picked Up' }, 
-        { status: 'Ready' } // 👈 CHANGED THIS LINE! Matches your DB exactly!
-      ],
-      riderEmail: null 
-    }).sort({ updatedAt: -1 });
-
+      riderEmail: { $in: [null, ""] }, 
+      status: { $in: ['Pending', 'Pending Pickup', 'Ready'] } 
+    }).sort({ createdAt: -1 });
+    
     res.status(200).json(availableOrders);
   } catch (error) {
-    res.status(500).json({ message: "Server error fetching rider orders" });
+    console.error("Error fetching live orders:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // --- 5. VENDOR/RIDER UPDATES ORDER STATUS ---
 router.put('/update-status/:orderId', async (req, res) => {
   try {
+    let updateData = { ...req.body };
+    
+    // 🔥 THE MAGIC FIX: If a Vendor marks an order as 'Ready', 
+    // the backend automatically strips the old rider's email so it broadcasts instantly!
+    if (updateData.status === 'Ready') {
+      updateData.riderEmail = null; 
+    }
+
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.orderId, 
-      { $set: req.body }, 
+      { $set: updateData }, 
       { new: true }
     );
+    
     if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
     res.status(200).json(updatedOrder);
   } catch (error) {
@@ -90,11 +97,13 @@ router.put('/update-status/:orderId', async (req, res) => {
 // --- 6. CLAIM: RIDER ACCEPTS THE ORDER ---
 router.put('/claim/:orderId', async (req, res) => {
   try {
+    // Allow claiming if riderEmail is null OR an empty string
     const claimedOrder = await Order.findOneAndUpdate(
-      { _id: req.params.orderId, riderEmail: null }, 
+      { _id: req.params.orderId, riderEmail: { $in: [null, ""] } }, 
       { $set: { riderEmail: req.body.riderEmail } },
       { new: true }
     );
+    
     if (!claimedOrder) return res.status(400).json({ message: "Too slow! Another rider just claimed this order." });
     res.status(200).json(claimedOrder);
   } catch (error) {
