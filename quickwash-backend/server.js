@@ -47,7 +47,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/quickw
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('------------------------------------------');
-    console.log('✅ Connected to MongoDB Compass');
+    console.log('✅ Connected to MongoDB Atlas');
     console.log(`📂 Database: quickwash_db`);
     console.log('------------------------------------------');
   })
