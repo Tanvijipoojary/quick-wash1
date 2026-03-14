@@ -20,15 +20,17 @@ const RiderHome = () => {
   const [availableOrders, setAvailableOrders] = useState([]);
 
   // --- 1. FETCH LIVE BROADCASTS ---
+  // --- 1. FETCH LIVE BROADCASTS ---
   const fetchAvailableOrders = async () => {
     if (!isOnline || activeTask) return; 
     try {
       const res = await axios.get('http://localhost:5000/api/orders/available-for-rider');
       
       const formattedOrders = res.data.map(o => {
-        // MAGIC LOGIC: If the status is 'Picked Up', it's fresh from the customer. 
-        // Otherwise, it's clean clothes coming from the Vendor!
-        const isCollection = o.status === 'Pending' || o.status === 'Pending Pickup';
+        // 🛠️ THE FIX: 
+        // Collection Run = 'Picked Up' (Vendor Accepted it)
+        // Delivery Run = 'Ready' (Vendor washed it and requested rider)
+        const isCollection = o.status === 'Picked Up'; 
         
         return {
           id: o._id,

@@ -365,16 +365,13 @@ const VendorHome = () => {
       )}
 
       {/* Bottom Navigation */}
+      {/* Bottom Navigation */}
       <footer className="vhome-bottom-nav">
         <button className="vhome-nav-item active"><span>🏠</span><small>Home</small></button>
         <button className="vhome-nav-item" onClick={() => navigate('/vendor-wallet')}><span>💳</span><small>Wallet</small></button>
         <button className="vhome-nav-item" onClick={() => navigate('/vendor-earnings')}><span>💲</span><small>Earnings</small></button>
-        <button 
-  className="vendor-nav-item" 
-  onClick={() => navigate('/vendor-profile')}
->
-  👤 Profile
-</button>
+        <button className="vhome-nav-item" onClick={() => navigate('/vendor-profile')}><span>👤</span><small>Profile</small>
+        </button>
       </footer>
     </div>
   );

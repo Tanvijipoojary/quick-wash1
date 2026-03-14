@@ -60,7 +60,8 @@ router.get('/available-for-rider', async (req, res) => {
     // We use $in: [null, ""] to be ultra-safe in case the DB saved an empty string
     const availableOrders = await Order.find({
       riderEmail: { $in: [null, ""] }, 
-      status: { $in: ['Pending', 'Pending Pickup', 'Ready'] } 
+      // 🔥 THE FIX: Riders only see orders Vendor accepted ('Picked Up') OR washed ('Ready')
+      status: { $in: ['Picked Up', 'Ready'] } 
     }).sort({ createdAt: -1 });
     
     res.status(200).json(availableOrders);
