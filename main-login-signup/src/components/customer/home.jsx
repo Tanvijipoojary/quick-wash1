@@ -45,7 +45,8 @@ const CustomerHome = () => {
         name: shop.hubName,     
         subtitle: shop.address, 
         time: '24 hrs',             
-        price: '₹40/kg',            
+        // 👇 Dynamically pulls the core service price!
+        price: `₹${shop.pricing?.washAndIron || 60}/kg`,            
         rating: shop.rating ? shop.rating : 'New!' 
       }));
       

@@ -10,29 +10,25 @@ const Checkout = () => {
   // --- 1. REAL DATA LOADING ---
   const [cartData, setCartData] = useState(null);
   
-  // Load real user from login!
   const savedUserStr = localStorage.getItem('quickwash_user');
   const loggedInUser = savedUserStr ? JSON.parse(savedUserStr) : {};
 
-  const [user, setUser] = useState({
-    name: loggedInUser.name || "Tanvi Poojary",
-    phone: loggedInUser.phone || "+91 7353863409",
-    email: loggedInUser.email || "tanviipoojary@gmail.com"
+  const [user] = useState({
+    name: loggedInUser.name || "Customer",
+    phone: loggedInUser.phone || "",
+    email: loggedInUser.email || ""
   });
 
-  // --- NEW: SAVED ADDRESSES STATE ---
-  // In a real app, this array would come from your backend (loggedInUser.addresses). 
-  // For now, we seed it with their primary profile address + a mock second one to show the feature.
-  // --- REAL SAVED ADDRESSES ---
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressText, setSelectedAddressText] = useState("");
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [isChangingAddress, setIsChangingAddress] = useState(false);
 
   useEffect(() => {
     const fetchAddresses = async () => {
       if (user.email) {
         try {
           const res = await axios.get(`http://localhost:5000/api/addresses/${user.email}`);
-          // Map MongoDB data to match your UI format
           const formattedAddresses = res.data.map(a => ({
             id: a._id,
             label: a.type,
@@ -41,56 +37,41 @@ const Checkout = () => {
           
           setAddresses(formattedAddresses);
           
-          // Auto-select the first address if they have one
           if (formattedAddresses.length > 0) {
             setSelectedAddressText(formattedAddresses[0].text);
+            setSelectedAddressId(formattedAddresses[0].id);
           } else {
-            // Fallback if they have NO saved addresses in DB
             setSelectedAddressText(user.address || "Please add an address in your profile.");
           }
         } catch (error) { console.error("Error fetching addresses", error); }
       }
     };
     fetchAddresses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.email]);
   
-  const [selectedAddressId, setSelectedAddressId] = useState(1);
-  const [isChangingAddress, setIsChangingAddress] = useState(false);
-
   useEffect(() => {
     const savedCart = localStorage.getItem('quickwash_cart');
     if (savedCart) {
       setCartData(JSON.parse(savedCart));
     } else {
-      navigate('/home'); // Send home if empty
+      navigate('/home'); 
     }
   }, [navigate]);
 
-  const [schedule, setSchedule] = useState({
-    date: '',
-    timeSlot: '',
-    instructions: ''
-  });
-
+  const [instructions, setInstructions] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const deliveryFee = 40;
-  const timeSlots = [
-    "09:00 AM - 11:00 AM",
-    "12:00 PM - 02:00 PM",
-    "03:00 PM - 05:00 PM",
-    "06:00 PM - 08:00 PM"
-  ];
 
-  // --- 2. ORDER CONFIRMATION ---
+  // --- 2. ORDER CONFIRMATION (INSTANT DISPATCH LOGIC) ---
   const handleConfirmOrder = async (e) => {
     e.preventDefault();
-    if (!schedule.date || !schedule.timeSlot) {
-      alert("Please select a pickup date and time.");
+    
+    // We removed the Date/Time check here!
+    if (!selectedAddressId && !selectedAddressText) {
+      alert("Please select a valid pickup address.");
       return;
     }
-
-    // Get the actual text of the address the user just clicked
-    const finalSelectedAddress = addresses.find(a => a.id === selectedAddressId)?.text;
 
     setIsSaving(true);
     try {
@@ -100,28 +81,25 @@ const Checkout = () => {
         shopName: cartData.shopName,
         items: cartData.items,
         deliveryFee: deliveryFee,
-        pickupDate: schedule.date,
-        pickupSlot: schedule.timeSlot,
-        instructions: schedule.instructions,
-        pickupAddress: selectedAddressText, 
         
-        // 👇 ADD THESE TWO LINES TO FIX THE COLLECTION RUN
+        // Hardcoded ASAP so the database still gets what it needs
+        pickupDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        pickupSlot: 'ASAP', 
+        
+        instructions: instructions,
+        pickupAddress: selectedAddressText, 
         status: 'Pending', 
         riderEmail: null
       };
 
-      console.log("Sending order to backend:", orderPayload);
-
-      // Send to your MongoDB
       const res = await axios.post('http://localhost:5000/api/orders/place-order', orderPayload);
 
-      // Clear cart and go to tracker
       localStorage.removeItem('quickwash_cart');
       navigate(`/tracking/${res.data.orderId}`); 
       
     } catch (error) {
       console.error("Order failed:", error);
-      alert("Something went wrong saving the order. Is your backend running?");
+      alert("Something went wrong saving the order.");
     } finally {
       setIsSaving(false);
     }
@@ -129,8 +107,7 @@ const Checkout = () => {
 
   if (!cartData) return <div style={{padding: '50px', textAlign: 'center'}}>Preparing checkout...</div>;
 
-  // Find the active address object to display
-  const activeAddress = addresses.find(a => a.id === selectedAddressId);
+
 
   return (
     <div className="web-container">
@@ -154,7 +131,7 @@ const Checkout = () => {
           <div className="checkout-form-section">
             <form onSubmit={handleConfirmOrder}>
               
-              {/* --- NEW ADDRESS SELECTOR BLOCK --- */}
+              {/* --- ADDRESS SELECTOR BLOCK --- */}
               <div className="form-card">
                 <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                   <h3 style={{ margin: 0 }}>📍 Pickup Location</h3>
@@ -168,14 +145,14 @@ const Checkout = () => {
                 </div>
 
                 {isChangingAddress ? (
-                  // The List of Addresses
                   <div className="address-selection-list animate-fade">
                     {addresses.map(addr => (
                       <div 
                         key={addr.id} 
                         onClick={() => {
                           setSelectedAddressId(addr.id);
-                          setIsChangingAddress(false); // Auto-close when selected
+                          setSelectedAddressText(addr.text);
+                          setIsChangingAddress(false); 
                         }}
                         style={{
                           padding: '15px', 
@@ -184,77 +161,46 @@ const Checkout = () => {
                           marginBottom: '10px',
                           cursor: 'pointer',
                           background: selectedAddressId === addr.id ? '#eff6ff' : '#fff',
-                          transition: 'all 0.2s ease'
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                           <strong style={{ color: '#0f172a' }}>{addr.label}</strong>
                           {selectedAddressId === addr.id && <span style={{ color: '#2563eb', fontWeight: 'bold' }}>✓ Selected</span>}
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', lineHeight: '1.4' }}>{addr.text}</p>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b' }}>{addr.text}</p>
                       </div>
                     ))}
-                    <button 
-                      type="button" 
-                      onClick={() => alert("Redirecting to profile to add new address...")}
-                      style={{ width: '100%', padding: '12px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', cursor: 'pointer', color: '#64748b', fontWeight: 'bold', marginTop: '5px' }}
-                    >
-                      + Add New Address
-                    </button>
                   </div>
                 ) : (
-                  // The Default View
                   <div className="address-display" style={{ padding: '5px 0' }}>
                     <strong style={{ display: 'block', marginBottom: '8px', fontSize: '1.05rem', color: '#0f172a' }}>
                       {user.name} ({user.phone})
-                      <span style={{ marginLeft: '12px', padding: '4px 10px', background: '#e2e8f0', color: '#475569', borderRadius: '12px', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        {activeAddress?.label}
-                      </span>
                     </strong>
-                    <p style={{ margin: 0, color: '#475569', lineHeight: '1.5' }}>
-                      {activeAddress?.text}
+                    <p style={{ margin: 0, color: '#475569', lineHeight: '1.5', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      {selectedAddressText || "No address selected"}
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* DATE & TIME CARD */}
-              <div className="form-card">
-                <h3>📅 Select Date & Time</h3>
-                <div className="input-group">
-                  <label>Pickup Date</label>
-                  <input 
-                    type="date" 
-                    required
-                    min={new Date().toISOString().split('T')[0]} 
-                    value={schedule.date}
-                    onChange={(e) => setSchedule({...schedule, date: e.target.value})} 
-                  />
-                </div>
-
-                <div className="input-group">
-                  <label>Preferred Time Slot</label>
-                  <div className="time-slots-grid">
-                    {timeSlots.map(slot => (
-                      <div 
-                        key={slot}
-                        className={`time-slot-pill ${schedule.timeSlot === slot ? 'selected' : ''}`}
-                        onClick={() => setSchedule({...schedule, timeSlot: slot})}
-                      >
-                        {slot}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {/* --- INSTANT DISPATCH BANNER (Replaces Date/Time Picker) --- */}
+              <div className="form-card" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                <h3 style={{ margin: '0 0 5px 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ⚡ Instant Dispatch
+                </h3>
+                <p style={{ margin: 0, color: '#15803d', fontSize: '0.95rem' }}>
+                  A rider will be assigned immediately after you confirm this booking to pick up your clothes ASAP.
+                </p>
               </div>
 
-              {/* INSTRUCTIONS CARD */}
+              {/* --- INSTRUCTIONS CARD --- */}
               <div className="form-card">
                 <h3>📝 Rider Instructions (Optional)</h3>
                 <textarea 
                   placeholder="e.g., Call before arriving."
-                  value={schedule.instructions}
-                  onChange={(e) => setSchedule({...schedule, instructions: e.target.value})}
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', minHeight: '80px', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 ></textarea>
               </div>
             </form>
@@ -265,11 +211,11 @@ const Checkout = () => {
             <div className="summary-card">
               <h2>Booking Summary</h2>
               
-              <div className="pickup-vendors">
+              <div className="pickup-vendors" style={{ marginBottom: '20px' }}>
                 <p><strong>Laundry Hub:</strong></p>
-                <ul>
-                  <li>{cartData.shopName}</li>
-                </ul>
+                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', marginTop: '8px' }}>
+                  • {cartData.shopName}
+                </div>
               </div>
 
               <div className="summary-row">
@@ -283,16 +229,18 @@ const Checkout = () => {
               
               <div className="summary-divider"></div>
 
-              <div className="total-info-box">
-                <p><strong>Total Due Now: ₹0.00</strong></p>
-                <small>Payment is collected after the vendor weighs and bills your clothes.</small>
+              <div className="total-info-box" style={{ background: '#eff6ff', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                <p style={{ color: '#1e3a8a', fontSize: '1.1rem', margin: '0 0 5px 0' }}><strong>Total Due Now: ₹0.00</strong></p>
+                <small style={{ color: '#3b82f6', display: 'block', lineHeight: '1.4' }}>Payment is collected after the vendor weighs and bills your clothes.</small>
               </div>
 
               <button 
-                type="submit" 
+                type="button" 
                 className="confirm-btn" 
                 onClick={handleConfirmOrder}
-                disabled={!schedule.date || !schedule.timeSlot || isChangingAddress || isSaving}
+                // Button is now ONLY disabled if it's currently saving
+                disabled={isSaving}
+                style={{ width: '100%', background: '#cbd5e1', color: 'white', padding: '16px', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', transition: 'background 0.3s', backgroundColor: isSaving ? '#94a3b8' : '#2563eb' }}
               >
                 {isSaving ? "Booking..." : "Confirm Booking ➔"}
               </button>

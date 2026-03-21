@@ -1,73 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import './cart.css';
 import logo from '../assets/quickwash-logo.png';
 
 const Cart = () => {
   const navigate = useNavigate();
-  const [user] = useState({ name: "Tanvi" });
   
-  // Real State for Cart Data
-  const [cartData, setCartData] = useState(null);
+  const savedUserStr = localStorage.getItem('quickwash_user');
+  const loggedInUser = savedUserStr ? JSON.parse(savedUserStr) : {};
+  const [user] = useState({ name: loggedInUser.name || "Customer" });
+  
+  // State for multiple shops in the cart
+  const [multiCart, setMultiCart] = useState({});
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- 1. LOAD DATA FROM LOCAL STORAGE ON MOUNT ---
+  // --- 1. LOAD ALL CARTS ON MOUNT ---
   useEffect(() => {
-    const savedCart = localStorage.getItem('quickwash_cart');
-    if (savedCart) {
-      setCartData(JSON.parse(savedCart));
+    let loadedMultiCart = {};
+    
+    // Check for the new multi-cart storage
+    const savedMulti = localStorage.getItem('quickwash_multi_cart');
+    
+    if (savedMulti) {
+      loadedMultiCart = JSON.parse(savedMulti);
+    } else {
+      // MIGRATION: If they have an old single cart, upgrade it automatically!
+      const savedSingle = localStorage.getItem('quickwash_cart');
+      if (savedSingle) {
+        const parsedSingle = JSON.parse(savedSingle);
+        loadedMultiCart[parsedSingle.shopId] = parsedSingle;
+        localStorage.setItem('quickwash_multi_cart', JSON.stringify(loadedMultiCart));
+      }
     }
+    
+    setMultiCart(loadedMultiCart);
     setIsLoading(false);
   }, []);
 
-  const deliveryFee = 40; // Flat fee for the rider
-
   // --- 2. PRACTICAL HANDLERS ---
-  const removeItem = (itemId) => {
-    const updatedItems = { ...cartData.items };
-    delete updatedItems[itemId];
-
-    // If no items left, clear the whole cart from storage
-    if (Object.keys(updatedItems).length === 0) {
-      localStorage.removeItem('quickwash_cart');
-      setCartData(null);
-    } else {
-      const newCart = { ...cartData, items: updatedItems };
-      setCartData(newCart);
-      localStorage.setItem('quickwash_cart', JSON.stringify(newCart));
-    }
+  const handleRemoveShop = (shopId) => {
+    const updatedCart = { ...multiCart };
+    delete updatedCart[shopId];
+    
+    setMultiCart(updatedCart);
+    localStorage.setItem('quickwash_multi_cart', JSON.stringify(updatedCart));
   };
 
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-
-  const handleCheckout = () => {
-    // 1. Make sure cart isn't empty
-    if (!cartData || Object.keys(cartData.items).length === 0) {
-      alert("Your cart is empty!");
-      return;
-    }
-
-    // 2. Security Check
-    const savedUserStr = localStorage.getItem('quickwash_user');
-    if (!savedUserStr) {
-      alert("Please log in to schedule a pickup!");
-      return;
-    }
-
-    // 3. Send them to your Checkout page with the cart data!
-    navigate('/checkout', { 
-      state: { 
-        cartData: cartData, 
-        deliveryFee: deliveryFee 
-      } 
-    });
+  const handleCheckout = (shopId) => {
+    const selectedCartData = multiCart[shopId];
+    
+    // Save ONLY the selected shop back to the 'quickwash_cart' key.
+    // This is a magic trick that makes your Checkout.jsx work perfectly without changing any code there!
+    localStorage.setItem('quickwash_cart', JSON.stringify(selectedCartData));
+    
+    navigate('/checkout');
   };
 
   if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading your requests... ⏳</div>;
 
-  // Transform cart object into an array for easier mapping
-  const itemsArray = cartData ? Object.entries(cartData.items) : [];
+  const cartShopsArray = Object.values(multiCart);
 
   return (
     <div className="web-container">
@@ -84,93 +75,70 @@ const Cart = () => {
         </div>
       </nav>
 
-      <main className="cart-main">
-        <h1 className="cart-title">Your Pickup Requests</h1>
+      <main className="cart-main animate-fade" style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <h1 className="cart-title" style={{ textAlign: 'center', marginBottom: '30px' }}>Your Pickup Requests</h1>
 
-        {!cartData || itemsArray.length === 0 ? (
-          <div className="empty-cart animate-fade">
-            <div className="empty-icon">🛵</div>
-            <h2>No pickups scheduled!</h2>
-            <p>Select a laundry service from a shop to schedule a rider.</p>
-            <button className="book-btn" onClick={() => navigate('/home')}>Browse Shops</button>
+        {cartShopsArray.length === 0 ? (
+          <div className="empty-cart animate-fade" style={{ textAlign: 'center', padding: '50px', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+            <div className="empty-icon" style={{ fontSize: '4rem', marginBottom: '20px' }}>🛵</div>
+            <h2 style={{ color: '#0f172a' }}>No pickups scheduled!</h2>
+            <p style={{ color: '#64748b', marginBottom: '30px' }}>Select a laundry service from a shop to schedule a rider.</p>
+            <button 
+              onClick={() => navigate('/home')}
+              style={{ background: '#2563eb', color: 'white', padding: '14px 28px', borderRadius: '8px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem' }}
+            >
+              Browse Shops
+            </button>
           </div>
         ) : (
-          <div className="cart-layout animate-fade">
-            
-            {/* --- LEFT COLUMN: REAL SERVICES REQUESTED --- */}
-            <div className="cart-items-section">
-              <div className="vendor-group">
-                
-                <div className="vendor-header">
-                  <h3>🏪 {cartData.shopName}</h3>
-                  <span className="vendor-badge">Verified Partner</span>
-                </div>
+          <div className="multi-cart-list">
+            {cartShopsArray.map((shopCart) => {
+              // Extract the wash and iron price from the items array
+              const servicePrice = Object.values(shopCart.items)[0]?.price || 60;
 
-                <div className="vendor-items-list">
-                  {itemsArray.map(([id, item]) => (
-                    <div key={id} className="cart-item-card">
-                      <div className="item-icon-box">🧺</div>
-                      
-                      <div className="item-details">
-                        <h4>{item.name}</h4>
-                        <p className="item-service">Quantity: {item.qty}</p>
-                        <p className="item-rate">Base Rate: ₹{item.price}/kg</p> 
-                      </div>
+              return (
+                <div key={shopCart.shopId} style={{ background: 'white', padding: '25px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '20px' }}>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f1f5f9', paddingBottom: '15px', marginBottom: '15px' }}>
+                    <div>
+                      <h2 style={{ margin: '0 0 5px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        🏪 {shopCart.shopName}
+                      </h2>
+                      <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>📍 {shopCart.shopAddress}</p>
+                    </div>
+                    <button 
+                      onClick={() => handleRemoveShop(shopCart.shopId)}
+                      style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      🗑️ Remove
+                    </button>
+                  </div>
 
-                      <div className="item-status-actions">
-                        <div className="pending-badge">
-                          ⏳ Weighing at Shop
-                        </div>
-                        <button className="remove-btn" onClick={() => removeItem(id)}>🗑️ Cancel</button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '1px dashed #cbd5e1', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                      <span style={{ fontSize: '2rem' }}>👔</span>
+                      <div>
+                        <strong style={{ display: 'block', color: '#1e293b', fontSize: '1.1rem' }}>Wash & Iron</strong>
+                        <span style={{ color: '#64748b', fontSize: '0.9rem' }}>Instant Dispatch Available</span>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <strong style={{ display: 'block', color: '#2563eb', fontSize: '1.2rem' }}>₹{servicePrice}<span style={{ fontSize: '0.9rem', color: '#64748b' }}>/kg</span></strong>
+                    </div>
+                  </div>
 
-              </div>
-            </div>
+                  <button 
+                    onClick={() => handleCheckout(shopCart.shopId)}
+                    style={{ width: '100%', background: '#10b981', color: 'white', border: 'none', padding: '16px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)', transition: 'background 0.2s' }}
+                    onMouseOver={(e) => e.target.style.background = '#059669'}
+                    onMouseOut={(e) => e.target.style.background = '#10b981'}
+                  >
+                    Proceed to Checkout ➔
+                  </button>
 
-            {/* --- RIGHT COLUMN: PRACTICAL SUMMARY --- */}
-            <div className="cart-summary-section">
-              <div className="summary-card">
-                <h2>Booking Summary</h2>
-                
-                <div className="info-box blue-box">
-                  <strong>Practical Workflow:</strong>
-                  <ol>
-                    <li>Rider picks up your clothes.</li>
-                    <li>Vendor weighs them at <strong>{cartData.shopName}</strong>.</li>
-                    <li>The final bill is generated based on real weight.</li>
-                  </ol>
                 </div>
-                
-                <div className="summary-row">
-                  <span>Items Requested</span>
-                  <span>{itemsArray.length} Services</span>
-                </div>
-                <div className="summary-row">
-                  <span>Wash Subtotal</span>
-                  <span className="pending-text">Pending Weight</span>
-                </div>
-                <div className="summary-row">
-                  <span>Delivery Fee</span>
-                  <span>₹{deliveryFee.toFixed(2)}</span>
-                </div>
-                
-                <div className="summary-divider"></div>
-                
-                <div className="summary-row total-row">
-                  <span>Amount to Pay Now</span>
-                  <span>₹0.00</span>
-                </div>
-                <p className="pay-later-text">You will pay the total amount after the hub processes your clothes.</p>
-
-                <button className="checkout-btn" onClick={handleCheckout}>
-                  Schedule Pickup ➔
-                </button>
-              </div>
-            </div>
-
+              );
+            })}
           </div>
         )}
       </main>

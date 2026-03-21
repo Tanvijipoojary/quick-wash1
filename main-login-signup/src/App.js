@@ -16,6 +16,7 @@ import AboutUs from './components/customer/AboutUs';
 import Careers from './components/customer/Careers';
 import Partner from './components/customer/Partner';
 import Terms from './components/customer/Terms';
+import Privacy from './components/customer/Privacy'; // Make sure the folder path is correct!
 
 
 import AdminDashboard from './components/Admin/AdminDashboard';
@@ -68,6 +69,7 @@ function App() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/partner" element={<Partner />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/tracking/:id" element={<OrderDetails />} />
           
           {/* Admin */}

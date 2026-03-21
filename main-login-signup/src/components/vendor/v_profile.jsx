@@ -8,7 +8,7 @@ const VendorProfile = () => {
   
   // Sidebar & Status State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [vendor, setVendor] = useState(null);
+  
 
   // Modals State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -16,49 +16,48 @@ const VendorProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Dynamic Profile Data State
-  // Dynamic Profile Data State
   const [profileData, setProfileData] = useState({
-    hubName: '', owner: '', capacity: '', turnaround: '', services: '', address: '', adminStatus: 'Pending',
-    // 👇 ADD PRICING HERE
-    pricing: { washAndFold: 40, washAndIron: 60, dryClean: 80 } 
+    hubName: '', owner: '', capacity: '', turnaround: '', address: '', adminStatus: 'Pending',
+    // 👇 Streamlined to only the core service
+    pricing: { washAndIron: 60 } 
   });
   
-  // This state controls the Open/Closed switch and talks to the database
   const [isOpen, setIsOpen] = useState(true); 
   const [editForm, setEditForm] = useState({ ...profileData });
 
   // --- 1. FETCH PROFILE ON LOAD ---
-  // --- 1. FETCH PROFILE ON LOAD ---
   useEffect(() => {
-    // Look for the NEW database session we created
     const savedVendorStr = localStorage.getItem('quickwash_vendor');
     
     if (savedVendorStr) {
       const parsedVendor = JSON.parse(savedVendorStr);
-      setVendor(parsedVendor);
       
-      // 👇 THIS IS THE MISSING LINE! It tells the page to stop loading.
+      
       setIsLoading(false); 
 
-      // Bonus: If you want the profile fields to auto-fill with the database info:
       setProfileData(prev => ({
         ...prev,
         hubName: parsedVendor.name || '',
         owner: parsedVendor.owner || '',
-        address: parsedVendor.address || ''
+        address: parsedVendor.address || '',
+        pricing: parsedVendor.pricing || { washAndIron: 60 }
       }));
 
     } else {
-      // If it fails, THIS is what kicks you out. 
       navigate('/vendor-login'); 
     }
   }, [navigate]);
 
   // --- NEW: HANDLE TOGGLE SWITCH ---
+  // --- NEW: HANDLE TOGGLE SWITCH ---
   const handleToggleStatus = async () => {
-    const email = localStorage.getItem('vendorEmail');
+    // FIX: Pull the email from the correct secure session object!
+    const savedVendorStr = localStorage.getItem('quickwash_vendor');
+    if (!savedVendorStr) return;
+    const email = JSON.parse(savedVendorStr).email;
+
     const newStatus = !isOpen;
-    setIsOpen(newStatus); // Instantly flip UI switch for a fast user experience
+    setIsOpen(newStatus); 
 
     try {
       await axios.put('http://localhost:5000/api/vendors/toggle-status', {
@@ -67,14 +66,22 @@ const VendorProfile = () => {
       });
     } catch (error) {
       console.error("Failed to update status", error);
-      setIsOpen(!newStatus); // Flip it back if the database fails
+      setIsOpen(!newStatus); 
       alert("Failed to update status on server.");
     }
   };
 
   // --- 2. SAVE PROFILE EDITS TO BACKEND ---
   const handleSaveProfile = async () => {
-    const email = localStorage.getItem('vendorEmail');
+    // FIX 1: Pull the email from the correct secure session object!
+    const savedVendorStr = localStorage.getItem('quickwash_vendor');
+    if (!savedVendorStr) {
+      alert("Session error. Please log in again.");
+      return;
+    }
+    const parsedVendor = JSON.parse(savedVendorStr);
+    const email = parsedVendor.email;
+
     try {
       await axios.put('http://localhost:5000/api/vendors/profile', {
         email: email,
@@ -82,13 +89,25 @@ const VendorProfile = () => {
         owner_name: editForm.owner,
         washing_capacity_kg: editForm.capacity,
         turnaround_time: editForm.turnaround,
-        services: editForm.services,
+        services: "Wash & Iron", 
         hub_address: editForm.address,
         pricing: editForm.pricing
       });
       
+      // Update the screen instantly
       setProfileData({ ...editForm });
       setIsEditModalOpen(false);
+
+      // FIX 2: Update LocalStorage so it doesn't temporarily revert if you hit refresh!
+      const updatedLocalStorageData = {
+        ...parsedVendor,
+        name: editForm.hubName,
+        owner: editForm.owner,
+        address: editForm.address,
+        pricing: editForm.pricing
+      };
+      localStorage.setItem('quickwash_vendor', JSON.stringify(updatedLocalStorageData));
+
       alert("✅ Profile updated successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -102,8 +121,8 @@ const VendorProfile = () => {
 
   // --- 3. SECURE LOGOUT ---
   const handleLogout = () => {
-    localStorage.removeItem('vendorEmail'); // Delete the saved login
-    navigate('/'); // Send back to main screen
+    localStorage.removeItem('vendorEmail'); 
+    navigate('/'); 
   };
 
   if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading Profile... ⏳</div>;
@@ -173,11 +192,10 @@ const VendorProfile = () => {
             <div className="vprof-divider"></div>
 
             <div className="vprof-info-block">
-              <span className="vprof-label">Services Offered</span>
+              <span className="vprof-label">Core Service</span>
               <div className="vprof-tags-wrapper">
-                {profileData.services.split(',').map((service, index) => (
-                  <span key={index} className="vprof-tag">{service.trim()}</span>
-                ))}
+                {/* Simplified to just show the core service */}
+                <span className="vprof-tag">Wash & Iron</span>
               </div>
             </div>
 
@@ -193,21 +211,15 @@ const VendorProfile = () => {
           </div>
         </div>
 
-        {/* --- NEW: PRICING SECTION --- */}
+        {/* --- PRICING SECTION: Streamlined to Wash & Iron --- */}
         <div className="vprof-section">
           <h3 className="vprof-section-title">Current Pricing (per Kg)</h3>
           <div className="vprof-card">
-            <div className="vprof-info-row" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              <span className="vprof-label">Wash & Fold</span>
-              <span className="vprof-value" style={{ color: '#16a34a', fontWeight: 'bold' }}>₹{profileData.pricing?.washAndFold}</span>
-            </div>
-            <div className="vprof-info-row" style={{ borderBottom: '1px solid #f1f5f9', padding: '10px 0' }}>
-              <span className="vprof-label">Wash & Iron</span>
-              <span className="vprof-value" style={{ color: '#16a34a', fontWeight: 'bold' }}>₹{profileData.pricing?.washAndIron}</span>
-            </div>
-            <div className="vprof-info-row" style={{ paddingTop: '10px' }}>
-              <span className="vprof-label">Premium Dry Clean</span>
-              <span className="vprof-value" style={{ color: '#16a34a', fontWeight: 'bold' }}>₹{profileData.pricing?.dryClean}</span>
+            <div className="vprof-info-row" style={{ padding: '5px 0' }}>
+              <span className="vprof-label">Standard Wash & Iron</span>
+              <span className="vprof-value" style={{ color: '#16a34a', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                ₹{profileData.pricing?.washAndIron || 60}
+              </span>
             </div>
           </div>
         </div>
@@ -216,7 +228,6 @@ const VendorProfile = () => {
           <h3 className="vprof-section-title">Compliance & KYC</h3>
           <div className="vprof-card vprof-docs-card">
             
-            {/* Dynamic Status Logic */}
             {(() => {
               const isVerified = profileData.adminStatus === 'Active';
               const statusText = isVerified ? 'Verified' : 'Pending Review';
@@ -247,7 +258,11 @@ const VendorProfile = () => {
           </div>
         </div>
         
-        <button className="vprof-edit-btn" onClick={() => setIsEditModalOpen(true)}>Edit Profile Details</button>
+        <button className="vprof-edit-btn" onClick={() => {
+          // Pre-fill edit form using current profile data before opening
+          setEditForm({ ...profileData }); 
+          setIsEditModalOpen(true);
+        }}>Edit Profile Details</button>
 
       </main>
 
@@ -276,11 +291,6 @@ const VendorProfile = () => {
                 <input type="number" value={editForm.turnaround} onChange={(e) => setEditForm({...editForm, turnaround: e.target.value})} />
               </div>
             </div>
-            
-            <div className="vprof-input-group">
-              <label>Services (Comma Separated)</label>
-              <textarea rows="2" value={editForm.services} onChange={(e) => setEditForm({...editForm, services: e.target.value})}></textarea>
-            </div>
 
             <div className="vprof-input-group">
               <label>Hub Address</label>
@@ -291,35 +301,17 @@ const VendorProfile = () => {
               Update Pricing (₹ per Kg)
             </h4>
             
-            <div className="vprof-row-inputs">
-              <div className="vprof-input-group" style={{flex: 1}}>
-                <label>Wash & Fold</label>
-                <input 
-                  type="number" 
-                  value={editForm.pricing?.washAndFold} 
-                  onChange={(e) => setEditForm({...editForm, pricing: {...editForm.pricing, washAndFold: e.target.value}})} 
-                />
-              </div>
-              <div className="vprof-input-group" style={{flex: 1}}>
-                <label>Wash & Iron</label>
-                <input 
-                  type="number" 
-                  value={editForm.pricing?.washAndIron} 
-                  onChange={(e) => setEditForm({...editForm, pricing: {...editForm.pricing, washAndIron: e.target.value}})} 
-                />
-              </div>
-            </div>
-            
+            {/* Streamlined Pricing Input */}
             <div className="vprof-input-group">
-              <label>Premium Dry Clean</label>
+              <label>Wash & Iron</label>
               <input 
                 type="number" 
-                value={editForm.pricing?.dryClean} 
-                onChange={(e) => setEditForm({...editForm, pricing: {...editForm.pricing, dryClean: e.target.value}})} 
+                value={editForm.pricing?.washAndIron || 60} 
+                onChange={(e) => setEditForm({...editForm, pricing: { washAndIron: e.target.value }})} 
               />
             </div>
 
-            <button className="vprof-save-btn" onClick={handleSaveProfile}>Save Changes</button>
+            <button className="vprof-save-btn" onClick={handleSaveProfile} style={{ marginTop: '10px' }}>Save Changes</button>
           </div>
         </div>
       )}
@@ -352,7 +344,6 @@ const VendorProfile = () => {
             </div>
             <div className="vprof-sidebar-menu">
               
-              {/* THE UPDATED OPEN/CLOSED SWITCH */}
               <div className="vprof-side-item">
                 <div className="vprof-side-left">
                   <span className="vprof-side-icon">⏱️</span>

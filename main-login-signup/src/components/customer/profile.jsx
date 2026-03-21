@@ -6,10 +6,13 @@ import logo from '../assets/quickwash-logo.png';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('addresses'); // Set to addresses so you can test it immediately!
+  const [activeTab, setActiveTab] = useState('orders'); 
 
   // --- 1. REAL USER DATA FROM LOGIN ---
   const [user, setUser] = useState({ name: "", phone: "", email: "" });
+  // --- SETTINGS STATES ---
+  const [emailNotif, setEmailNotif] = useState(true);
+  const [smsNotif, setSmsNotif] = useState(true);
 
   useEffect(() => {
     const savedUserStr = localStorage.getItem('quickwash_user');
@@ -138,7 +141,7 @@ const Profile = () => {
     try {
       // 1. Send the new data to your MongoDB backend
       // Make sure the URL matches where you put the route in Step 1!
-      const response = await axios.put('http://localhost:5000/api/auth/update-profile', {
+      await axios.put('http://localhost:5000/api/auth/update-profile', {
         email: editForm.email, // Used to find the user in DB
         name: editForm.name,   // The new name
         phone: editForm.phone  // The new phone
@@ -151,7 +154,7 @@ const Profile = () => {
       const existingStorage = JSON.parse(localStorage.getItem('quickwash_user'));
       const updatedStorage = { ...existingStorage, name: editForm.name, phone: editForm.phone };
       // Change whatever key you had to 'quickwash_user'
-      localStorage.setItem('quickwash_user', JSON.stringify(response.data));
+      localStorage.setItem('quickwash_user', JSON.stringify(updatedStorage));
 
       setIsEditModalOpen(false); 
       alert("✅ Profile updated successfully!");
@@ -390,16 +393,79 @@ const Profile = () => {
           {/* SETTINGS TAB */}
           {activeTab === 'settings' && (
             <div className="animate-fade">
-              <h2 className="tab-main-title">Settings</h2>
-              <div className="settings-card-modern">
-                <div className="settings-row">
-                  <div>
-                    <h3>Log Out</h3>
-                    <p>Sign out of your Quick Wash account securely.</p>
+              <h2 className="tab-main-title">Account Settings</h2>
+
+              {/* Group 1: Notifications */}
+              <div className="settings-group" style={{ marginBottom: '30px' }}>
+                <h3 className="settings-group-title">Notifications</h3>
+                <div className="settings-card-modern">
+                  <div className="settings-row">
+                    <div>
+                      <h4>Email Notifications</h4>
+                      <p>Receive order invoices and updates via email.</p>
+                    </div>
+                    <label className="settings-toggle">
+                      <input type="checkbox" checked={emailNotif} onChange={() => setEmailNotif(!emailNotif)} />
+                      <span className="toggle-slider"></span>
+                    </label>
                   </div>
-                  <button className="logout-action-btn" onClick={handleLogout}>LOG OUT</button>
+                  
+                  <div className="settings-divider"></div>
+                  
+                  <div className="settings-row">
+                    <div>
+                      <h4>SMS Updates</h4>
+                      <p>Get real-time tracking alerts on your phone.</p>
+                    </div>
+                    <label className="settings-toggle">
+                      <input type="checkbox" checked={smsNotif} onChange={() => setSmsNotif(!smsNotif)} />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
                 </div>
               </div>
+
+              {/* Group 2: About & Support */}
+              <div className="settings-group" style={{ marginBottom: '30px' }}>
+                <h3 className="settings-group-title">About & Legal</h3>
+                <div className="settings-card-modern">
+                  {/* Just make sure '/privacy' and '/terms' match the actual paths you set in your App.jsx routes! */}
+                  <div className="settings-row clickable" onClick={() => navigate('/privacy')}>
+                    <div>
+                      <h4>Privacy Policy</h4>
+                      <p>Read about how we protect your data.</p>
+                    </div>
+                    <span className="settings-chevron">›</span>
+                  </div>
+
+                  <div className="settings-divider"></div>
+
+                  <div className="settings-row clickable" onClick={() => navigate('/terms')}>
+                    <div>
+                      <h4>Terms of Service</h4>
+                      <p>Our rules and user guidelines.</p>
+                    </div>
+                    <span className="settings-chevron">›</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group 3: Danger Zone */}
+              <div className="settings-group">
+                <h3 className="settings-group-title" style={{ color: '#ef4444' }}>Account Security</h3>
+                <div className="settings-card-modern" style={{ border: '1px solid #fca5a5' }}>
+                  <div className="settings-row">
+                    <div>
+                      <h4>Log Out</h4>
+                      <p>Sign out of your Quick Wash account securely.</p>
+                    </div>
+                    <button className="logout-action-btn" onClick={handleLogout} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                      LOG OUT
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
         </section>
@@ -451,7 +517,12 @@ const Profile = () => {
             <form onSubmit={handleSubmitHelp} className="edit-profile-form">
               <div className="form-group-modern">
                 <label>How can we help you?</label>
-                <select className="help-dropdown" required>
+                <select 
+                  className="help-dropdown" 
+                  required
+                  value={helpMessage}
+                  onChange={(e) => setHelpMessage(e.target.value)}
+                >
                   <option value="">Select an issue...</option>
                   <option value="late">Order is delayed</option>
                   <option value="other">Other</option>

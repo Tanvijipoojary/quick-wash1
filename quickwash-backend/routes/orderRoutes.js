@@ -37,15 +37,10 @@ router.get('/user/:email', async (req, res) => {
 });
 
 // --- 3. GET ALL ORDERS FOR A SPECIFIC VENDOR (SHOP) ---
-// --- 3. GET ALL ORDERS FOR A SPECIFIC VENDOR (SHOP) ---
 router.get('/vendor/:shopId', async (req, res) => {
   try {
     const { shopId } = req.params;
-    
-    // This finds orders regardless of whether shopId is a String or ObjectId
     const orders = await Order.find({ shopId: shopId }).sort({ createdAt: -1 });
-    
-    console.log(`Found ${orders.length} orders for Shop: ${shopId}`); // Diagnostic Log
     res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching vendor orders:", error);
@@ -53,15 +48,13 @@ router.get('/vendor/:shopId', async (req, res) => {
   }
 });
 
-
 // --- 4. BROADCAST: GET ALL AVAILABLE ORDERS FOR RIDERS ---
 router.get('/available-for-rider', async (req, res) => {
   try {
-    // We use $in: [null, ""] to be ultra-safe in case the DB saved an empty string
     const availableOrders = await Order.find({
       riderEmail: { $in: [null, ""] }, 
-      // 🔥 THE FIX: Riders only see orders Vendor accepted ('Picked Up') OR washed ('Ready')
-      status: { $in: ['Picked Up', 'Ready'] } 
+      // 🔥 THE FIX: Broadcast 'Pending' (Instant Dispatch) and 'Ready' (Delivery)
+      status: { $in: ['Pending', 'Ready'] } 
     }).sort({ createdAt: -1 });
     
     res.status(200).json(availableOrders);
@@ -76,8 +69,6 @@ router.put('/update-status/:orderId', async (req, res) => {
   try {
     let updateData = { ...req.body };
     
-    // 🔥 THE MAGIC FIX: If a Vendor marks an order as 'Ready', 
-    // the backend automatically strips the old rider's email so it broadcasts instantly!
     if (updateData.status === 'Ready') {
       updateData.riderEmail = null; 
     }
@@ -98,33 +89,28 @@ router.put('/update-status/:orderId', async (req, res) => {
 // --- 6. CLAIM: RIDER ACCEPTS THE ORDER ---
 router.put('/claim/:orderId', async (req, res) => {
   try {
-    // Allow claiming if riderEmail is null OR an empty string
-    const claimedOrder = await Order.findOneAndUpdate(
-      { _id: req.params.orderId, riderEmail: { $in: [null, ""] } }, 
-      { $set: { riderEmail: req.body.riderEmail } },
+    // 1. Find the order to see what type it is
+    const orderToClaim = await Order.findById(req.params.orderId);
+    if (!orderToClaim || (orderToClaim.riderEmail && orderToClaim.riderEmail.trim() !== "")) {
+      return res.status(400).json({ message: "Too slow! Another rider just claimed this order." });
+    }
+
+    // 2. If it's a brand new order, advance it to 'Pending Pickup' so the Vendor & Customer trackers update!
+    const newStatus = orderToClaim.status === 'Pending' ? 'Pending Pickup' : orderToClaim.status;
+
+    const claimedOrder = await Order.findByIdAndUpdate(
+      req.params.orderId, 
+      { $set: { riderEmail: req.body.riderEmail, status: newStatus } },
       { new: true }
     );
     
-    if (!claimedOrder) return res.status(400).json({ message: "Too slow! Another rider just claimed this order." });
     res.status(200).json(claimedOrder);
   } catch (error) {
     res.status(500).json({ message: "Server error claiming order" });
   }
 });
 
-// --- 7. GET SINGLE ORDER BY ID (MUST BE AT THE VERY BOTTOM!) ---
-// If this is at the top, it intercepts /vendor/:id and /user/:email
-router.get('/:id', async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ message: "Order not found" });
-    res.status(200).json(order);
-  } catch (error) {
-    res.status(500).json({ message: "Server error fetching order" });
-  }
-});
-
-// --- 8. GET ALL ORDERS CLAIMED BY A SPECIFIC RIDER ---
+// --- 7. GET ALL ORDERS CLAIMED BY A SPECIFIC RIDER ---
 router.get('/rider/:email', async (req, res) => {
   try {
     const orders = await Order.find({ riderEmail: req.params.email }).sort({ updatedAt: -1 });
@@ -135,4 +121,44 @@ router.get('/rider/:email', async (req, res) => {
   }
 });
 
-module.exports = router;
+// --- 8. SMART BILLING & WASH INITIATION ---
+router.put('/generate-bill/:orderId', async (req, res) => {
+  try {
+    // We now accept the tracking details along with the math!
+    const { weightInKg, pricePerKg, estimatedReady, laundryStage } = req.body;
+    
+    // Server does the secure math
+    const calculatedTotal = Number(weightInKg) * Number(pricePerKg);
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      req.params.orderId,
+      { 
+        weightInKg: weightInKg,
+        totalAmount: calculatedTotal,
+        estimatedReady: estimatedReady,
+        laundryStage: laundryStage || 'Washing',
+        status: 'At Shop' 
+      },
+      { new: true }
+    );
+
+    if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
+    res.status(200).json(updatedOrder);
+  } catch (error) {
+    console.error("Error generating bill:", error);
+    res.status(500).json({ message: "Server error generating bill" });
+  }
+});
+
+// --- 9. GET SINGLE ORDER BY ID (MUST BE AT THE VERY BOTTOM!) ---
+router.get('/:id', async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    res.status(200).json(order);
+  } catch (error) {
+    res.status(500).json({ message: "Server error fetching order" });
+  }
+});
+
+module.exports = router; 

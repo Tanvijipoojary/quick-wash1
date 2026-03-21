@@ -6,7 +6,7 @@ import './r_home.css';
 const RiderHome = () => {
   const navigate = useNavigate();
   
-  const [rider, setRider] = useState(() => {
+  const [rider] = useState(() => {
     const saved = localStorage.getItem('quickwash_rider');
     return saved ? JSON.parse(saved) : { name: 'Awesome Rider', email: 'rider@quickwash.com' };
   });
@@ -20,17 +20,14 @@ const RiderHome = () => {
   const [availableOrders, setAvailableOrders] = useState([]);
 
   // --- 1. FETCH LIVE BROADCASTS ---
-  // --- 1. FETCH LIVE BROADCASTS ---
   const fetchAvailableOrders = async () => {
     if (!isOnline || activeTask) return; 
     try {
       const res = await axios.get('http://localhost:5000/api/orders/available-for-rider');
       
       const formattedOrders = res.data.map(o => {
-        // 🛠️ THE FIX: 
-        // Collection Run = 'Picked Up' (Vendor Accepted it)
-        // Delivery Run = 'Ready' (Vendor washed it and requested rider)
-        const isCollection = o.status === 'Picked Up'; 
+        // 🔥 THE FIX: 'Pending' means it's a new Instant Dispatch collection!
+        const isCollection = o.status === 'Pending' || o.status === 'Pending Pickup'; 
         
         return {
           id: o._id,
@@ -60,7 +57,8 @@ const RiderHome = () => {
     fetchAvailableOrders();
     const interval = setInterval(fetchAvailableOrders, 5000);
     return () => clearInterval(interval);
-  }, [isOnline, activeTask]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
 
   // --- 2. CLAIM THE ORDER ---
   const handleAcceptOrder = async (order) => {
@@ -78,12 +76,13 @@ const RiderHome = () => {
   // --- 3. CONFIRM PICKUP (Updates Customer Tracker!) ---
   const handleConfirmPickup = async () => {
     try {
-      // If we are delivering clean clothes, tell the database we are Out for Delivery!
-      if (activeTask.taskType === 'Delivery Run') {
-        await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
-          status: 'Out for Delivery'
-        });
-      }
+      // 🔥 THE FIX: Advance the tracker depending on what we just picked up!
+      const newStatus = activeTask.taskType === 'Collection Run' ? 'Picked Up' : 'Out for Delivery';
+      
+      await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
+        status: newStatus
+      });
+      
       setTripStatus('picked_up');
     } catch (error) {
       alert("Failed to update database. Is your backend running?");

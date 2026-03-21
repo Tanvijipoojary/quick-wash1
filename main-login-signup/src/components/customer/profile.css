@@ -460,3 +460,107 @@
 .logout-action-btn:hover {
   background: #fef2f2;
 }
+
+/* --- MODERN SETTINGS TAB CSS --- */
+.settings-group-title {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.settings-card-modern {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.settings-row h4 {
+  margin: 0 0 6px 0;
+  color: #0f172a;
+  font-size: 1.05rem;
+}
+
+.settings-row p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.settings-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0 -20px; /* Stretches divider to edges */
+}
+
+.settings-row.clickable {
+  cursor: pointer;
+  transition: background 0.2s;
+  margin: 0 -20px;
+  padding: 20px;
+}
+
+.settings-row.clickable:hover {
+  background: #f8fafc;
+}
+
+.settings-chevron {
+  font-size: 1.8rem;
+  color: #cbd5e1;
+  font-weight: 300;
+}
+
+/* iOS Style Toggle Switch */
+.settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+}
+
+.settings-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 28px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .toggle-slider {
+  background-color: #10b981; /* Green when active */
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+}

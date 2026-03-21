@@ -14,8 +14,8 @@ const VendorHome = () => {
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [readyTime, setReadyTime] = useState('');
   
-  // --- NEW: DYNAMIC BILLING STATE ---
-  const [billingDetails, setBillingDetails] = useState([]);
+  // --- STREAMLINED BILLING STATE ---
+  const [bagWeight, setBagWeight] = useState('');
   const [totalBill, setTotalBill] = useState(0);
 
   // --- 1. REAL VENDOR AUTH ---
@@ -23,12 +23,9 @@ const VendorHome = () => {
 
   useEffect(() => {
     const savedVendorStr = localStorage.getItem('quickwash_vendor');
-    
     if (savedVendorStr) {
-      // ✅ Purely dynamic: Takes whatever is in the database session
       setVendor(JSON.parse(savedVendorStr));
     } else {
-      // 🛡️ Redirect: If no database data is found, go back to login
       navigate('/vendor-login'); 
     }
   }, [navigate]);
@@ -44,20 +41,22 @@ const VendorHome = () => {
       const formattedOrders = res.data.map(o => ({
         id: o._id,
         customer: o.customerEmail.split('@')[0], 
-        service: o.items.map(i => i.name).join(', '),
-        rawItems: o.items, // 👈 Saving raw items for our new dynamic billing calculator
-        // Inside fetchVendorOrders, update the mapping:
-        status: ['Pending Pickup', 'Picked Up', 'Dropped at Hub'].includes(o.status) ? 'New Requests' : 
-                ['At Shop', 'Ready'].includes(o.status) ? 'Processing' : 
-                ['Out for Delivery', 'Completed'].includes(o.status) ? 'Dispatched' : 'Dispatched',
-        subStatus: o.status === 'Pending Pickup' ? 'pending_acceptance' :
+        service: "Wash & Iron", // Hardcoded to match new model
+        
+        status: ['Pending', 'Pending Pickup', 'Picked Up', 'Dropped at Hub'].includes(o.status) ? 'New Requests' : 
+                ['At Shop', 'Ready'].includes(o.status) ? 'Processing' : 'Dispatched',
+                
+        // 👇 Here is the fully complete chain! 👇
+        subStatus: o.status === 'Pending' ? 'pending_acceptance' :
+                   o.status === 'Pending Pickup' ? 'rider_notified' :
                    o.status === 'Picked Up' ? 'awaiting_rider' :
-                   o.status === 'Dropped at Hub' ? 'ready_to_receive' : // 👈 The new handoff state!
+                   o.status === 'Dropped at Hub' ? 'ready_to_receive' : 
                    o.status === 'At Shop' && o.totalAmount === 0 ? 'needs_pricing' :
                    o.status === 'At Shop' && o.totalAmount > 0 ? 'washing' :
                    o.status === 'Ready' ? 'return_requested' : 'dispatched',
+                   
         laundryStage: o.laundryStage || 'Washing',
-        weight: o.weight || '0',
+        weight: o.weightInKg || '0', 
         total: o.totalAmount || '0',
         estimatedReady: o.estimatedReady || '',
         dateTime: o.updatedAt
@@ -69,13 +68,13 @@ const VendorHome = () => {
   };
 
   useEffect(() => {
-    // Check if vendor exists before calling the fetch function
     if (vendor && vendor.shopId) {
       fetchVendorOrders();
       const interval = setInterval(fetchVendorOrders, 10000);
       return () => clearInterval(interval);
     }
-  }, [vendor]); // 👈 Use 'vendor' as the dependency, not 'currentShopId'
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vendor]);
 
   const displayedOrders = orders.filter(o => o.status === activeTab);
 
@@ -87,7 +86,6 @@ const VendorHome = () => {
   };
 
   // --- Workflow Actions ---
-
   const updateOrderStatus = async (orderId, updateData) => {
     try {
       await axios.put(`http://localhost:5000/api/orders/update-status/${orderId}`, updateData);
@@ -97,75 +95,53 @@ const VendorHome = () => {
     }
   };
 
-  const handleAcceptOrder = (orderId) => updateOrderStatus(orderId, { status: 'Picked Up' }); 
+
+  
   const handleReceiveAtHub = (orderId) => {
     updateOrderStatus(orderId, { status: 'At Shop' });
     setActiveTab('Processing');
   };
 
   // ==========================================
-  // --- NEW SMART BILLING LOGIC ---
+  // --- NEW: STREAMLINED SMART BILLING ---
   // ==========================================
   const handleOpenPricing = (orderId) => {
     setActiveOrderId(orderId);
-    const order = orders.find(o => o.id === orderId);
-    
-    // Create an itemized bill based on what the customer requested
-    const initialBilling = order.rawItems.map(item => {
-      // Logic to decide if it's billed by Kg or by Piece
-      const isWeightBased = item.name.toLowerCase().includes('wash') && !item.name.toLowerCase().includes('iron');
-      const standardRate = isWeightBased ? 40 : (item.name.toLowerCase().includes('dry') ? 100 : 15);
-      
-      const category = isWeightBased ? 'Kg' : 'Pcs';
-      const defaultInput = isWeightBased ? '' : (item.qty || 1);
-      
-      return {
-        name: item.name,
-        category: category,
-        rate: item.price || standardRate, // Use DB price if exists, else fallback
-        inputValue: defaultInput,
-        cost: defaultInput ? Number(defaultInput) * (item.price || standardRate) : 0
-      };
-    });
-
-    setBillingDetails(initialBilling);
-    calculateTotal(initialBilling);
+    setBagWeight(''); // Reset previous inputs
+    setTotalBill(0);
     setReadyTime('');
     setShowPricingModal(true);
   };
 
-  const handleBillingChange = (index, newValue) => {
-    const updated = [...billingDetails];
-    updated[index].inputValue = newValue;
-    updated[index].cost = Number(newValue || 0) * updated[index].rate;
-    setBillingDetails(updated);
-    calculateTotal(updated);
+  const handleWeightChange = (e) => {
+    const weight = e.target.value;
+    setBagWeight(weight);
+    
+    // Dynamically calculate: Weight * Vendor's specific Wash&Iron Rate (default 60)
+    const rate = vendor.pricing?.washAndIron || 60;
+    setTotalBill(Number(weight || 0) * rate);
   };
 
-  const calculateTotal = (details) => {
-    const sum = details.reduce((acc, curr) => acc + curr.cost, 0);
-    setTotalBill(sum);
-  };
-
-  const handleSendBill = () => {
-    if (!readyTime || totalBill === 0) {
-      alert("Please enter weights/quantities and a ready time.");
+  const handleSendBill = async () => {
+    if (!readyTime || totalBill <= 0 || !bagWeight) {
+      alert("Please enter a valid weight and a ready time.");
       return;
     }
 
-    // Auto-calculate the total weight (Sum of all Kg items)
-    const totalWeight = billingDetails
-      .filter(item => item.category === 'Kg')
-      .reduce((acc, curr) => acc + Number(curr.inputValue || 0), 0);
-
-    updateOrderStatus(activeOrderId, { 
-      status: 'At Shop', 
-      totalAmount: totalBill, 
-      weight: totalWeight > 0 ? totalWeight.toFixed(1) : 'N/A', // Save total Kg
-      estimatedReady: readyTime,
-      laundryStage: 'Washing'
-    });
-    setShowPricingModal(false);
+    try {
+      // Send the weight, rate, AND tracking details in ONE single call
+      await axios.put(`http://localhost:5000/api/orders/generate-bill/${activeOrderId}`, {
+        weightInKg: Number(bagWeight),
+        pricePerKg: vendor.pricing?.washAndIron || 60,
+        estimatedReady: readyTime,
+        laundryStage: 'Washing'
+      });
+      
+      setShowPricingModal(false);
+      fetchVendorOrders(); // Instantly refresh UI
+    } catch (error) {
+      alert("Failed to generate bill securely.");
+    }
   };
   // ==========================================
 
@@ -176,11 +152,10 @@ const VendorHome = () => {
   };
 
   const handleRequestRider = (orderId) => {
-    // This MUST have riderEmail: null to broadcast to the Rider App!
     updateOrderStatus(orderId, { 
       status: 'Ready', 
       subStatus: 'return_requested',
-      riderEmail: null // 👈 Double check that this line is saved in your file!
+      riderEmail: null 
     });
   };
 
@@ -217,7 +192,7 @@ const VendorHome = () => {
                   ) : order.subStatus === 'awaiting_rider' ? (
                     <span className="vhome-pill vhome-pill-warning">Rider En Route</span>
                   ) : order.subStatus === 'needs_pricing' ? (
-                    <span className="vhome-pill vhome-pill-alert">Needs Pricing</span>
+                    <span className="vhome-pill vhome-pill-alert">Needs Weighing</span>
                   ) : (
                     <span className="vhome-pill vhome-pill-active">Action Required</span>
                   )}
@@ -231,20 +206,32 @@ const VendorHome = () => {
                   </div>
                 </div>
 
+                {/* --- NEW AUTOMATED RADAR ACTIONS --- */}
                 {order.status === 'New Requests' && (
                   <div className="vhome-actions">
-                    {order.subStatus === 'pending_acceptance' && (
-                      <button className="vhome-btn-accept" style={{width: '100%'}} onClick={() => handleAcceptOrder(order.id)}>
-                        Accept & Notify Rider
-                      </button>
-                    )}
                     
-                    {order.subStatus === 'awaiting_rider' && (
-                      <div style={{ textAlign: 'center', padding: '10px', background: '#fff7ed', borderRadius: '8px', border: '1px solid #fed7aa', color: '#ea580c', fontWeight: 'bold' }}>
-                        🛵 Rider is collecting clothes from customer...
+                    {/* 1. Customer just ordered, waiting for Rider to accept */}
+                    {order.subStatus === 'pending_acceptance' && (
+                      <div style={{ textAlign: 'center', padding: '12px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', color: '#1d4ed8', fontWeight: 'bold' }}>
+                        📡 Broadcasting to nearby riders...
                       </div>
                     )}
 
+                    {/* 2. Rider accepted and is heading to the Customer */}
+                    {order.subStatus === 'rider_notified' && (
+                      <div style={{ textAlign: 'center', padding: '12px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0', color: '#059669', fontWeight: 'bold' }}>
+                        ✅ Rider assigned! Heading to customer...
+                      </div>
+                    )}
+                    
+                    {/* 3. Rider picked up the clothes and is driving to the Vendor */}
+                    {order.subStatus === 'awaiting_rider' && (
+                      <div style={{ textAlign: 'center', padding: '10px', background: '#fff7ed', borderRadius: '8px', border: '1px solid #fed7aa', color: '#ea580c', fontWeight: 'bold' }}>
+                        🛵 Rider has the clothes and is driving to your hub!
+                      </div>
+                    )}
+
+                    {/* 4. Rider arrived at the Vendor. Time to hand over the clothes! */}
                     {order.subStatus === 'ready_to_receive' && (
                       <button className="vhome-btn-full" onClick={() => handleReceiveAtHub(order.id)} style={{ background: '#10b981', color: 'white' }}>
                         📦 Mark as Received from Rider
@@ -253,18 +240,19 @@ const VendorHome = () => {
                   </div>
                 )}
 
+                {/* --- PROCESSING & WEIGHING AREA --- */}
                 {order.status === 'Processing' && (
                   <div className="vhome-processing-area">
                     {order.subStatus === 'needs_pricing' ? (
                       <div className="vhome-pricing-alert">
-                        <p>Clothes received! Weigh them and set the final price.</p>
+                        <p>Clothes received! Weigh the bag to generate the bill.</p>
                         <button className="vhome-btn-full" onClick={() => handleOpenPricing(order.id)}>Weigh & Generate Bill</button>
                       </div>
                     ) : (
                       <div className="vhome-laundry-tracker">
                         <div className="vhome-weight-row">
                           <span className="vhome-label">Weight: <strong>{order.weight} kg</strong></span>
-                          <span className="vhome-label">Bill: <strong>Rs. {order.total}</strong></span>
+                          <span className="vhome-label">Bill: <strong style={{color: '#16a34a'}}>₹{order.total}</strong></span>
                         </div>
                         
                         <div className="vhome-timeline-banner">
@@ -317,38 +305,36 @@ const VendorHome = () => {
         </div>
       </main>
 
-      {/* --- NEW SMART PRICING MODAL --- */}
+      {/* --- NEW STREAMLINED PRICING MODAL --- */}
       {showPricingModal && (
         <div className="vhome-modal-overlay">
           <div className="vhome-pricing-modal" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <button className="vhome-modal-close" onClick={() => setShowPricingModal(false)}>✕</button>
-            <h3 className="vhome-modal-title">Itemized Billing</h3>
-            <p className="vhome-modal-subtitle" style={{marginBottom: '20px'}}>Enter weight or quantities for requested services.</p>
+            <h3 className="vhome-modal-title">Generate Wash & Iron Bill</h3>
+            <p className="vhome-modal-subtitle" style={{marginBottom: '20px'}}>Enter the total weight of the laundry bag in Kg.</p>
             
-            {/* Dynamic Inputs per service */}
-            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
-              {billingDetails.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', paddingBottom: '10px', borderBottom: '1px dashed #cbd5e1' }}>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ display: 'block', fontSize: '0.95rem', color: '#1e293b' }}>{item.name}</strong>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Rate: Rs. {item.rate} / {item.category}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <input 
-                      type="number" 
-                      placeholder={item.category}
-                      value={item.inputValue} 
-                      onChange={(e) => handleBillingChange(idx, e.target.value)} 
-                      style={{ width: '70px', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', textAlign: 'center' }}
-                    />
-                    <strong style={{ width: '70px', textAlign: 'right', color: '#2563eb' }}>Rs. {item.cost.toFixed(2)}</strong>
-                  </div>
-                </div>
-              ))}
+            <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '1.2rem' }}>
-                <strong>Total Bill:</strong>
-                <strong style={{ color: '#10b981' }}>Rs. {totalBill.toFixed(2)}</strong>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <span style={{ fontSize: '1.1rem', color: '#1e293b', fontWeight: 'bold' }}>Weight (Kg)</span>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  placeholder="e.g. 2.5"
+                  value={bagWeight} 
+                  onChange={handleWeightChange} 
+                  style={{ width: '100px', padding: '12px', borderRadius: '8px', border: '2px solid #3b82f6', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '15px', borderBottom: '1px dashed #cbd5e1' }}>
+                <span style={{ color: '#64748b' }}>Your Rate</span>
+                <span>₹{vendor.pricing?.washAndIron || 60} / Kg</span>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '1.4rem' }}>
+                <strong>Grand Total:</strong>
+                <strong style={{ color: '#10b981' }}>₹{totalBill.toFixed(2)}</strong>
               </div>
             </div>
 
@@ -357,21 +343,19 @@ const VendorHome = () => {
               <input type="datetime-local" value={readyTime} onChange={(e) => setReadyTime(e.target.value)} className="vhome-date-input"/>
             </div>
             
-            <button className="vhome-btn-accept" style={{width: '100%', marginTop: '16px'}} onClick={handleSendBill} disabled={totalBill === 0 || !readyTime}>
-              Send Bill & Start Washing
+            <button className="vhome-btn-accept" style={{width: '100%', marginTop: '16px', padding: '16px', fontSize: '1.1rem'}} onClick={handleSendBill} disabled={totalBill <= 0 || !readyTime}>
+              Send Bill to Customer
             </button>
           </div>
         </div>
       )}
 
       {/* Bottom Navigation */}
-      {/* Bottom Navigation */}
       <footer className="vhome-bottom-nav">
         <button className="vhome-nav-item active"><span>🏠</span><small>Home</small></button>
         <button className="vhome-nav-item" onClick={() => navigate('/vendor-wallet')}><span>💳</span><small>Wallet</small></button>
         <button className="vhome-nav-item" onClick={() => navigate('/vendor-earnings')}><span>💲</span><small>Earnings</small></button>
-        <button className="vhome-nav-item" onClick={() => navigate('/vendor-profile')}><span>👤</span><small>Profile</small>
-        </button>
+        <button className="vhome-nav-item" onClick={() => navigate('/vendor-profile')}><span>👤</span><small>Profile</small></button>
       </footer>
     </div>
   );

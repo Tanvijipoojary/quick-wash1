@@ -10,14 +10,12 @@ const vendorSchema = new mongoose.Schema({
   address: { type: String, required: true },
   status: { type: String, default: 'Pending' },
   
-  // 👇 NEW: Store Open/Closed Toggle
+  // Store Open/Closed Toggle
   isOpen: { type: Boolean, default: true }, 
   
-  // 👇 NEW: Pricing Engine
+  // --- STREAMLINED PRICING ENGINE ---
   pricing: { 
-    washAndFold: { type: Number, default: 40 },
-    washAndIron: { type: Number, default: 60 },
-    dryClean: { type: Number, default: 80 }
+    washAndIron: { type: Number, default: 60 } // Only the core service remains!
   },
 
   documents: {
@@ -29,5 +27,5 @@ const vendorSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Prevents the "OverwriteModelError" crash
+// Prevents the "OverwriteModelError" crash during hot reloads
 module.exports = mongoose.models.Vendor || mongoose.model('Vendor', vendorSchema);

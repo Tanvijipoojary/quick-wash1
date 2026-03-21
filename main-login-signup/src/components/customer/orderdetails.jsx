@@ -25,32 +25,29 @@ const OrderDetails = () => {
 
   useEffect(() => {
     if (id) {
-      fetchOrderDetails(); // Fetch immediately on load
-      
-      // LIVE TRACKING: Poll the database every 5 seconds for updates!
+      fetchOrderDetails(); 
       const interval = setInterval(fetchOrderDetails, 5000);
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (isLoading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading Tracking Details... ⏳</div>;
   if (!order) return <div style={{ padding: '50px', textAlign: 'center' }}>Order not found! ❌</div>;
 
-  const orderDate = new Date(order.createdAt).toLocaleDateString('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric'
-  });
-
   // --- 2. SMART STEPPER LOGIC ---
-  // Maps our 7 backend statuses to the 5 visual UI steps
+  // Strictly maps the exact Database statuses to the 5 visual UI steps
+  // --- 2. SMART STEPPER LOGIC ---
   const getActiveStepNumber = (status) => {
     switch (status) {
-      case 'Pending Pickup': return 1; 
-      case 'Picked Up': 
-      case 'Dropped at Hub': return 2; 
-      case 'At Shop': return 3; 
-      case 'Ready': 
-      case 'Out for Delivery': return 4; 
-      case 'Completed': return 5; 
+      case 'Pending': return 1; 
+      case 'Pending Pickup': return 2; // Vendor Accepted, Rider assigned
+      case 'Picked Up': return 3; // Rider actually has the clothes
+      case 'Dropped at Hub': 
+      case 'At Shop': return 4; // Vendor is washing
+      case 'Ready': return 5; // Ready for delivery
+      case 'Out for Delivery': return 6; // Rider heading back to customer
+      case 'Completed': return 7; // Done!
       default: return 1;
     }
   };
@@ -90,7 +87,7 @@ const OrderDetails = () => {
               <h2>Track Your Wash</h2>
               
               <div className="vertical-stepper">
-                {/* Step 1: Booking Confirmed */}
+                {/* Step 1: Confirmed */}
                 <div className={`step ${getStepClass(1)}`}>
                   <div className="step-icon">✅</div>
                   <div className="step-content">
@@ -103,36 +100,53 @@ const OrderDetails = () => {
                 <div className={`step ${getStepClass(2)}`}>
                   <div className="step-icon">🛵</div>
                   <div className="step-content">
-                    <h4>{order.status === 'Dropped at Hub' ? 'Arrived at Shop' : 'Rider Picked Up'}</h4>
-                    <p>{order.status === 'Dropped at Hub' ? 'Clothes dropped at vendor hub.' : 'Rider has collected your clothes.'}</p>
+                    <h4>Rider Assigned</h4>
+                    <p>Rider is on the way to collect your clothes.</p>
                   </div>
                 </div>
 
-                {/* Step 3: Weighing & Billing */}
+                {/* Step 3: Picked Up */}
                 <div className={`step ${getStepClass(3)}`}>
+                  <div className="step-icon">🛍️</div>
+                  <div className="step-content">
+                    <h4>Clothes Picked Up</h4>
+                    <p>Rider has collected your clothes and is heading to the Hub.</p>
+                  </div>
+                </div>
+
+                {/* Step 4: Received at Vendor */}
+                <div className={`step ${getStepClass(4)}`}>
                   <div className="step-icon">⚖️</div>
                   <div className="step-content">
-                    <h4>Weighing & Washing</h4>
+                    <h4>{order.status === 'Dropped at Hub' ? 'Received at Shop' : 'Weighing & Washing'}</h4>
                     <p>Vendor is processing your clothes and generating the final bill.</p>
                   </div>
                 </div>
 
-                {/* Step 4: Ready for Delivery */}
-                <div className={`step ${getStepClass(4)}`}>
-                  <div className="step-icon">🫧</div>
+                {/* Step 5: Ready for Delivery */}
+                <div className={`step ${getStepClass(5)}`}>
+                  <div className="step-icon">✨</div>
                   <div className="step-content">
-                    {/* Dynamically changes text when rider accepts the return trip! */}
-                    <h4>{order.status === 'Out for Delivery' ? 'Out for Delivery' : 'Ready for Pickup'}</h4>
-                    <p>{order.status === 'Out for Delivery' ? 'Rider is bringing your clean clothes!' : 'Washing is complete!'}</p>
+                    <h4>Ready for Pickup</h4>
+                    <p>Washing is complete! Waiting for a delivery rider.</p>
                   </div>
                 </div>
 
-                {/* Step 5: Delivered */}
-                <div className={`step ${getStepClass(5)}`}>
+                {/* Step 6: Out for Delivery */}
+                <div className={`step ${getStepClass(6)}`}>
+                  <div className="step-icon">🚚</div>
+                  <div className="step-content">
+                    <h4>Out for Delivery</h4>
+                    <p>Rider has picked up the clean clothes and is heading to you.</p>
+                  </div>
+                </div>
+
+                {/* Step 7: Delivered */}
+                <div className={`step ${getStepClass(7)}`}>
                   <div className="step-icon">📦</div>
                   <div className="step-content">
                     <h4>Delivered</h4>
-                    <p>Fresh clothes back at your door.</p>
+                    <p>Fresh clothes back at your door!</p>
                   </div>
                 </div>
               </div>
@@ -145,9 +159,22 @@ const OrderDetails = () => {
             
             <div className="info-card">
               <h3>Pickup Details</h3>
-              <p><strong>Date:</strong> {orderDate}</p>
-              <p><strong>Shop:</strong> {order.shopName}</p>
-              <p><strong>Time:</strong> {order.pickupSlot || 'ASAP'}</p>
+              <div style={{ marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>Laundry Hub</span>
+                <p style={{ margin: '2px 0 0 0', color: '#0f172a', fontWeight: '600' }}>{order.shopName}</p>
+              </div>
+              
+              <div style={{ marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>Pickup Address</span>
+                <p style={{ margin: '2px 0 0 0', color: '#0f172a', lineHeight: '1.4' }}>{order.pickupAddress}</p>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>Dispatch Status</span>
+                <p style={{ margin: '2px 0 0 0', color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  ⚡ Instant (ASAP)
+                </p>
+              </div>
             </div>
 
             <div className="info-card">
