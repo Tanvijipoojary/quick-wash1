@@ -24,6 +24,32 @@ const Checkout = () => {
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isChangingAddress, setIsChangingAddress] = useState(false);
 
+  // --- NEW: GARMENT INVENTORY STATE ---
+  const [garments, setGarments] = useState({
+    shirt: 0, tshirt: 0, tops: 0, trousers: 0, 
+    shorts: 0, shawls: 0, bedsheets: 0, undergarments: 0
+  });
+
+  const garmentCategories = [
+    { id: 'shirt', label: 'Shirts', icon: '👔' },
+    { id: 'tshirt', label: 'T-Shirts', icon: '👕' },
+    { id: 'tops', label: 'Tops', icon: '👚' },
+    { id: 'trousers', label: 'Trousers / Jeans', icon: '👖' },
+    { id: 'shorts', label: 'Shorts', icon: '🩳' },
+    { id: 'shawls', label: 'Shawls', icon: '🧣' },
+    { id: 'bedsheets', label: 'Bedsheets / Towels', icon: '🛏️' },
+    { id: 'undergarments', label: 'Undergarments', icon: '🧦' }
+  ];
+
+  const updateGarmentCount = (id, delta) => {
+    setGarments(prev => ({
+      ...prev,
+      [id]: Math.max(0, prev[id] + delta) // Prevents negative numbers!
+    }));
+  };
+
+  const totalGarments = Object.values(garments).reduce((acc, curr) => acc + curr, 0);
+
   useEffect(() => {
     const fetchAddresses = async () => {
       if (user.email) {
@@ -67,7 +93,6 @@ const Checkout = () => {
   const handleConfirmOrder = async (e) => {
     e.preventDefault();
     
-    // We removed the Date/Time check here!
     if (!selectedAddressId && !selectedAddressText) {
       alert("Please select a valid pickup address.");
       return;
@@ -89,7 +114,11 @@ const Checkout = () => {
         instructions: instructions,
         pickupAddress: selectedAddressText, 
         status: 'Pending', 
-        riderEmail: null
+        riderEmail: null,
+
+        // NEW: SENDING THE INVENTORY TO THE DATABASE!
+        garmentDetails: garments,
+        totalExpectedGarments: totalGarments
       };
 
       const res = await axios.post('http://localhost:5000/api/orders/place-order', orderPayload);
@@ -106,8 +135,6 @@ const Checkout = () => {
   };
 
   if (!cartData) return <div style={{padding: '50px', textAlign: 'center'}}>Preparing checkout...</div>;
-
-
 
   return (
     <div className="web-container">
@@ -183,24 +210,60 @@ const Checkout = () => {
                 )}
               </div>
 
-              {/* --- INSTANT DISPATCH BANNER (Replaces Date/Time Picker) --- */}
-              <div className="form-card" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                <h3 style={{ margin: '0 0 5px 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  ⚡ Instant Dispatch
-                </h3>
-                <p style={{ margin: 0, color: '#15803d', fontSize: '0.95rem' }}>
-                  A rider will be assigned immediately after you confirm this booking to pick up your clothes ASAP.
-                </p>
+              <br></br>
+
+              {/* --- NEW: GARMENT DETAILS COUNTER --- */}
+              <div className="form-card">
+                <div style={{ marginBottom: '15px' }}>
+                  <h3 style={{ margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>🧺 Garment Details <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>(Optional)</span></h3>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Let the laundry hub know what is in the bag.</p>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {garmentCategories.map((category) => (
+                    <div key={category.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{category.icon}</span>
+                        <span style={{ color: '#334155', fontWeight: '500' }}>{category.label}</span>
+                      </div>
+                      
+                      {/* Counter Controls */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '4px' }}>
+                        <button 
+                          type="button" // CRITICAL: prevents submitting the form
+                          onClick={() => updateGarmentCount(category.id, -1)}
+                          style={{ width: '30px', height: '30px', borderRadius: '6px', border: 'none', background: garments[category.id] > 0 ? '#e2e8f0' : '#f1f5f9', color: garments[category.id] > 0 ? '#0f172a' : '#cbd5e1', cursor: garments[category.id] > 0 ? 'pointer' : 'not-allowed', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}
+                        >-</button>
+                        
+                        <span style={{ width: '20px', textAlign: 'center', fontWeight: 'bold', color: '#0f172a' }}>
+                          {garments[category.id]}
+                        </span>
+                        
+                        <button 
+                          type="button" 
+                          onClick={() => updateGarmentCount(category.id, 1)}
+                          style={{ width: '30px', height: '30px', borderRadius: '6px', border: 'none', background: '#e0e7ff', color: '#4f46e5', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.2s' }}
+                        >+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: '15px', padding: '12px', background: '#f8fafc', borderRadius: '8px', textAlign: 'right', fontWeight: 'bold', color: '#0f172a' }}>
+                  Total Items in Bag: <span style={{color: '#2563eb'}}>{totalGarments}</span>
+                </div>
               </div>
+
+              <br></br>
 
               {/* --- INSTRUCTIONS CARD --- */}
               <div className="form-card">
-                <h3>📝 Rider Instructions (Optional)</h3>
+                <h3>📝 Rider Instructions <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>(Optional)</span></h3>
                 <textarea 
-                  placeholder="e.g., Call before arriving."
+                  placeholder="e.g., Call before arriving, doorbell is broken."
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', minHeight: '80px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', minHeight: '80px', fontFamily: 'inherit', boxSizing: 'border-box', marginTop: '10px' }}
                 ></textarea>
               </div>
             </form>
@@ -222,6 +285,15 @@ const Checkout = () => {
                 <span>Services Requested</span>
                 <span>{Object.keys(cartData.items).length}</span>
               </div>
+
+              {/* NEW: Show total garments in the summary box! */}
+              {totalGarments > 0 && (
+                <div className="summary-row" style={{ color: '#2563eb', fontWeight: '500' }}>
+                  <span>Garments Declared</span>
+                  <span>{totalGarments} items</span>
+                </div>
+              )}
+
               <div className="summary-row">
                 <span>Delivery Fee</span>
                 <span>₹{deliveryFee.toFixed(2)}</span>
@@ -238,7 +310,6 @@ const Checkout = () => {
                 type="button" 
                 className="confirm-btn" 
                 onClick={handleConfirmOrder}
-                // Button is now ONLY disabled if it's currently saving
                 disabled={isSaving}
                 style={{ width: '100%', background: '#cbd5e1', color: 'white', padding: '16px', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', transition: 'background 0.3s', backgroundColor: isSaving ? '#94a3b8' : '#2563eb' }}
               >

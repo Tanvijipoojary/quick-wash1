@@ -11,6 +11,9 @@ const orderSchema = new mongoose.Schema({
   shopId: { type: String, required: true },
   shopName: { type: String, required: true },
   pickupAddress: { type: String, required: true },
+
+  garmentDetails: { type: Object, default: {} },
+  totalExpectedGarments: { type: Number, default: 0 },
   
   pickupDate: { type: String }, 
   pickupSlot: { type: String },

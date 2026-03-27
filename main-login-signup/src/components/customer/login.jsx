@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Ensure this is imported!
+import axios from 'axios';
 import './login.css';
 import logo from '../assets/quickwash-logo.png'; 
 
@@ -9,6 +9,7 @@ const Login = () => {
 
   // --- STATE MANAGEMENT ---
   const [isLoginMode, setIsLoginMode] = useState(true); 
+  const [showOtpField, setShowOtpField] = useState(false); // NEW: OTP State
   const [isLoading, setIsLoading] = useState(false);
 
   // Notification States
@@ -20,7 +21,8 @@ const Login = () => {
     name: '', 
     phone: '', 
     email: '', 
-    password: '' 
+    password: '',
+    otp: '' // NEW: OTP Input
   });
 
   // --- HANDLERS ---
@@ -32,7 +34,8 @@ const Login = () => {
 
   const handleToggleMode = () => {
     setIsLoginMode(!isLoginMode);
-    setFormData({ ...formData, name: '', phone: '', password: '' });
+    setShowOtpField(false); // Reset OTP field if they toggle
+    setFormData({ name: '', phone: '', email: '', password: '', otp: '' });
     setErrorMessage('');
     setSuccessMessage('');
   };
@@ -46,9 +49,7 @@ const Login = () => {
     const enteredEmail = formData.email.toLowerCase();
     const enteredPassword = formData.password;
 
-    // ==========================================
-    // HARDCODED ADMIN LOGIN
-    // ==========================================
+    // --- HARDCODED ADMIN LOGIN ---
     if (enteredEmail === 'admin@quickwash.com') {
       if (enteredPassword === 'admin123') {
         navigate('/admin');
@@ -59,41 +60,61 @@ const Login = () => {
       return; 
     } 
 
-    // ==========================================
-    // REAL DATABASE CUSTOMER LOGIN / SIGN UP
-    // ==========================================
     try {
       if (isLoginMode) {
-        // --- LOGIN API CALL ---
+        // ==========================================
+        // 1. LOGIN API CALL
+        // ==========================================
         const response = await axios.post('http://localhost:5000/api/auth/user-login', {
           email: enteredEmail,
           password: enteredPassword
         });
 
         if (response.status === 200) {
-          // Save user info so the Home/Cart pages know who is logged in!
-          // 👇 Change getItem to setItem, and actually save the response data!
           localStorage.setItem('quickwash_user', JSON.stringify(response.data.user || response.data)); 
           navigate('/home'); 
         }
 
       } else {
-        // --- SIGNUP API CALL ---
-        const response = await axios.post('http://localhost:5000/api/auth/user-register', {
-          name: formData.name,
-          phone: formData.phone,
-          email: enteredEmail,
-          password: enteredPassword
-        });
+        // ==========================================
+        // 2. SIGNUP (WITH OTP)
+        // ==========================================
+        
+        if (!showOtpField) {
+          // STEP A: REQUEST THE OTP FIRST
+          const response = await axios.post('http://localhost:5000/api/auth/send-user-otp', {
+            email: enteredEmail
+          });
 
-        if (response.status === 201) {
-          setSuccessMessage("Account created successfully! Please log in.");
-          setIsLoginMode(true); 
-          setFormData({ ...formData, name: '', phone: '', password: '' }); 
+          if (response.status === 200) {
+            setSuccessMessage("OTP sent! Check your backend terminal for the code.");
+            setShowOtpField(true); // Reveal the OTP input box!
+          }
+        } else {
+          // STEP B: VERIFY OTP AND CREATE ACCOUNT
+          if (!formData.otp) {
+            setErrorMessage("Please enter the 6-digit OTP.");
+            setIsLoading(false);
+            return;
+          }
+
+          const response = await axios.post('http://localhost:5000/api/auth/user-register', {
+            name: formData.name,
+            phone: formData.phone,
+            email: enteredEmail,
+            password: enteredPassword,
+            otp: formData.otp // Send the OTP to backend for verification
+          });
+
+          if (response.status === 201) {
+            setSuccessMessage("Account created successfully! Please log in.");
+            setIsLoginMode(true); 
+            setShowOtpField(false);
+            setFormData({ name: '', phone: '', email: '', password: '', otp: '' }); 
+          }
         }
       }
     } catch (error) {
-      // Safely grab the error message from the backend, or show a default one
       if (error.response && error.response.data) {
         setErrorMessage(error.response.data.message);
       } else {
@@ -115,72 +136,100 @@ const Login = () => {
           <p>Your premium laundry partner.</p>
         </div>
 
-        {/* ==========================================
-            LOGIN & SIGNUP FORM
-        ========================================== */}
         <form className="login-form animate-fade" onSubmit={handleSubmit}>
-          <h2>{isLoginMode ? 'Welcome Back' : 'Create an Account'}</h2>
+          <h2>{isLoginMode ? 'Welcome Back' : (showOtpField ? 'Verify Email' : 'Create an Account')}</h2>
           <p className="form-subtitle">
             {isLoginMode 
               ? 'Enter your credentials to continue.' 
-              : 'Fill in your details to get started.'}
+              : (showOtpField ? `Enter the OTP sent to ${formData.email}` : 'Fill in your details to get started.')}
           </p>
 
-          {/* Error/Success Banners */}
           {errorMessage && <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #fecaca' }}>{errorMessage}</div>}
           {successMessage && <div style={{ color: '#166534', backgroundColor: '#f0fdf4', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', border: '1px solid #bbf7d0' }}>{successMessage}</div>}
           
-          {/* Extra fields for Sign Up Mode */}
-          {!isLoginMode && (
+          {/* Hide core fields if we are just verifying the OTP */}
+          {!showOtpField && (
             <>
+              {!isLoginMode && (
+                <>
+                  <div className="input-group">
+                    <label>Full Name</label>
+                    <input type="text" name="name" placeholder="e.g., Tanvi Poojary" value={formData.name} onChange={handleInputChange} required />
+                  </div>
+                  <div className="input-group">
+                    <label>Phone Number</label>
+                    <input type="tel" name="phone" placeholder="e.g., +91 98765 43210" value={formData.phone} onChange={handleInputChange} required />
+                  </div>
+                </>
+              )}
+
               <div className="input-group">
-                <label>Full Name</label>
-                <input type="text" name="name" placeholder="e.g., Tanvi Poojary" value={formData.name} onChange={handleInputChange} required />
+                <label>Email Address</label>
+                <input type="email" name="email" placeholder="e.g., hello@example.com" value={formData.email} onChange={handleInputChange} required />
               </div>
+
               <div className="input-group">
-                <label>Phone Number</label>
-                <input type="tel" name="phone" placeholder="e.g., +91 98765 43210" value={formData.phone} onChange={handleInputChange} required />
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handleInputChange} required />
               </div>
             </>
           )}
 
-          {/* Core Fields for both Login & Sign Up */}
-          <div className="input-group">
-            <label>Email Address</label>
-            <input type="email" name="email" placeholder="e.g., hello@example.com" value={formData.email} onChange={handleInputChange} required />
-          </div>
-
-          <div className="input-group">
-            <label>Password</label>
-            <input type="password" name="password" placeholder="Enter your password" value={formData.password} onChange={handleInputChange} required />
-          </div>
-          
-          <button type="submit" className="login-btn" disabled={isLoading}>
-            {isLoading ? 'Processing...' : (isLoginMode ? 'Log In' : 'Sign Up')}
-          </button>
-
-          <div className="toggle-mode-text">
-            {isLoginMode ? "Don't have an account? " : "Already have an account? "}
-            <span className="text-link" onClick={handleToggleMode} style={{cursor: 'pointer', color: '#2563eb', fontWeight: 'bold'}}>
-              {isLoginMode ? "Sign Up" : "Log In"}
-            </span>
-          </div>
-
-          {/* Partner Links */}
-          <div className="partner-section">
-            <div className="partner-divider"><span>OR</span></div>
-            <p className="partner-title">Partner with Quick Wash</p>
-            <div className="partner-buttons">
-              <button type="button" className="partner-btn vendor-btn" onClick={() => navigate('/vendor')}>
-                🏪 Shop Owner
-              </button>
-              <button type="button" className="partner-btn rider-btn" onClick={() => navigate('/rider')}>
-                🛵 Delivery Rider
+          {/* Reveal OTP Field if requested */}
+          {showOtpField && (
+            <div className="input-group animate-fade">
+              <label>6-Digit OTP</label>
+              <input 
+                type="text" 
+                name="otp" 
+                placeholder="Enter 6-digit code" 
+                value={formData.otp} 
+                onChange={handleInputChange} 
+                required 
+                maxLength="6"
+                style={{ letterSpacing: '2px', fontSize: '1.2rem', textAlign: 'center', fontWeight: 'bold' }}
+              />
+              <button 
+                type="button" 
+                onClick={() => setShowOtpField(false)} 
+                style={{ background: 'none', border: 'none', color: '#64748b', marginTop: '10px', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline' }}
+              >
+                Change Email / Back
               </button>
             </div>
-          </div>
-        </form>
+          )}
+          
+          <button type="submit" className="login-btn" disabled={isLoading}>
+            {isLoading 
+              ? 'Processing...' 
+              : (isLoginMode ? 'Log In' : (showOtpField ? 'Verify & Register' : 'Send OTP'))}
+          </button>
 
+          {!showOtpField && (
+            <div className="toggle-mode-text">
+              {isLoginMode ? "Don't have an account? " : "Already have an account? "}
+              <span className="text-link" onClick={handleToggleMode} style={{cursor: 'pointer', color: '#2563eb', fontWeight: 'bold'}}>
+                {isLoginMode ? "Sign Up" : "Log In"}
+              </span>
+            </div>
+          )}
+
+          {/* Partner Links */}
+          {isLoginMode && (
+            <div className="partner-section">
+              <div className="partner-divider"><span>OR</span></div>
+              <p className="partner-title">Partner with Quick Wash</p>
+              <div className="partner-buttons">
+                <button type="button" className="partner-btn vendor-btn" onClick={() => navigate('/vendor')}>
+                  🏪 Shop Owner
+                </button>
+                <button type="button" className="partner-btn rider-btn" onClick={() => navigate('/rider')}>
+                  🛵 Delivery Rider
+                </button>
+              </div>
+            </div>
+          )}
+        </form>
       </div>
     </div>
   );

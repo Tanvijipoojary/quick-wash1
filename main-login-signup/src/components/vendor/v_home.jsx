@@ -3,6 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './v_home.css';
 
+// --- DICTIONARY FOR PRETTY GARMENT LABELS ---
+const garmentLabels = {
+  shirt: '👔 Shirts',
+  tshirt: '👕 T-Shirts',
+  tops: '👚 Tops',
+  trousers: '👖 Trousers/Jeans',
+  shorts: '🩳 Shorts',
+  shawls: '🧣 Shawls',
+  bedsheets: '🛏️ Bedsheets/Towels',
+  undergarments: '🧦 Undergarments'
+};
+
 const VendorHome = () => {
   const navigate = useNavigate();
   
@@ -41,13 +53,13 @@ const VendorHome = () => {
       const formattedOrders = res.data.map(o => ({
         id: o._id,
         customer: o.customerEmail.split('@')[0], 
-        service: "Wash & Iron", // Hardcoded to match new model
+        service: "Wash & Iron", 
         
-        status: ['Pending', 'Pending Pickup', 'Picked Up', 'Dropped at Hub'].includes(o.status) ? 'New Requests' : 
+        status: ['Pending', 'Searching Rider', 'Pending Pickup', 'Picked Up', 'Dropped at Hub'].includes(o.status) ? 'New Requests' : 
                 ['At Shop', 'Ready'].includes(o.status) ? 'Processing' : 'Dispatched',
                 
-        // 👇 Here is the fully complete chain! 👇
-        subStatus: o.status === 'Pending' ? 'pending_acceptance' :
+        subStatus: o.status === 'Pending' ? 'needs_vendor_approval' : 
+                   o.status === 'Searching Rider' ? 'broadcasting' : 
                    o.status === 'Pending Pickup' ? 'rider_notified' :
                    o.status === 'Picked Up' ? 'awaiting_rider' :
                    o.status === 'Dropped at Hub' ? 'ready_to_receive' : 
@@ -59,7 +71,11 @@ const VendorHome = () => {
         weight: o.weightInKg || '0', 
         total: o.totalAmount || '0',
         estimatedReady: o.estimatedReady || '',
-        dateTime: o.updatedAt
+        dateTime: o.updatedAt,
+        
+        // Garment Data
+        garmentDetails: o.garmentDetails || {},
+        totalExpectedGarments: o.totalExpectedGarments || 0
       }));
       setOrders(formattedOrders);
     } catch (error) {
@@ -95,19 +111,18 @@ const VendorHome = () => {
     }
   };
 
+  const handleAcceptOrder = (orderId) => {
+    updateOrderStatus(orderId, { status: 'Searching Rider' });
+  };
 
-  
   const handleReceiveAtHub = (orderId) => {
     updateOrderStatus(orderId, { status: 'At Shop' });
     setActiveTab('Processing');
   };
 
-  // ==========================================
-  // --- NEW: STREAMLINED SMART BILLING ---
-  // ==========================================
   const handleOpenPricing = (orderId) => {
     setActiveOrderId(orderId);
-    setBagWeight(''); // Reset previous inputs
+    setBagWeight(''); 
     setTotalBill(0);
     setReadyTime('');
     setShowPricingModal(true);
@@ -117,7 +132,6 @@ const VendorHome = () => {
     const weight = e.target.value;
     setBagWeight(weight);
     
-    // Dynamically calculate: Weight * Vendor's specific Wash&Iron Rate (default 60)
     const rate = vendor.pricing?.washAndIron || 60;
     setTotalBill(Number(weight || 0) * rate);
   };
@@ -129,7 +143,6 @@ const VendorHome = () => {
     }
 
     try {
-      // Send the weight, rate, AND tracking details in ONE single call
       await axios.put(`http://localhost:5000/api/orders/generate-bill/${activeOrderId}`, {
         weightInKg: Number(bagWeight),
         pricePerKg: vendor.pricing?.washAndIron || 60,
@@ -138,12 +151,11 @@ const VendorHome = () => {
       });
       
       setShowPricingModal(false);
-      fetchVendorOrders(); // Instantly refresh UI
+      fetchVendorOrders(); 
     } catch (error) {
       alert("Failed to generate bill securely.");
     }
   };
-  // ==========================================
 
   const handleUpdateStage = (orderId, newStage) => {
     let updateData = { laundryStage: newStage };
@@ -206,32 +218,55 @@ const VendorHome = () => {
                   </div>
                 </div>
 
-                {/* --- NEW AUTOMATED RADAR ACTIONS --- */}
+                {/* GARMENT INVENTORY SLIP */}
+                {order.totalExpectedGarments > 0 && (
+                  <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', margin: '15px 0', border: '1px dashed #cbd5e1' }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      🧺 Declared Bag Contents ({order.totalExpectedGarments} Items)
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {Object.entries(order.garmentDetails)
+                        .filter(([key, value]) => value > 0)
+                        .map(([key, value]) => (
+                          <span key={key} style={{ background: '#e2e8f0', color: '#334155', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '500' }}>
+                            {garmentLabels[key] || key}: <strong style={{color: '#0f172a'}}>{value}</strong>
+                          </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* AUTOMATED RADAR ACTIONS */}
                 {order.status === 'New Requests' && (
                   <div className="vhome-actions">
-                    
-                    {/* 1. Customer just ordered, waiting for Rider to accept */}
-                    {order.subStatus === 'pending_acceptance' && (
+                    {order.subStatus === 'needs_vendor_approval' && (
+                      <button 
+                        className="vhome-btn-full" 
+                        onClick={() => handleAcceptOrder(order.id)} 
+                        style={{ background: '#2563eb', color: 'white', padding: '12px', fontSize: '1.05rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        ✅ Accept Order
+                      </button>
+                    )}
+
+                    {order.subStatus === 'broadcasting' && (
                       <div style={{ textAlign: 'center', padding: '12px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', color: '#1d4ed8', fontWeight: 'bold' }}>
                         📡 Broadcasting to nearby riders...
                       </div>
                     )}
 
-                    {/* 2. Rider accepted and is heading to the Customer */}
                     {order.subStatus === 'rider_notified' && (
                       <div style={{ textAlign: 'center', padding: '12px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0', color: '#059669', fontWeight: 'bold' }}>
-                        ✅ Rider assigned! Heading to customer...
+                        🛵 Rider assigned! Heading to customer...
                       </div>
                     )}
-                    
-                    {/* 3. Rider picked up the clothes and is driving to the Vendor */}
+
                     {order.subStatus === 'awaiting_rider' && (
                       <div style={{ textAlign: 'center', padding: '10px', background: '#fff7ed', borderRadius: '8px', border: '1px solid #fed7aa', color: '#ea580c', fontWeight: 'bold' }}>
                         🛵 Rider has the clothes and is driving to your hub!
                       </div>
                     )}
 
-                    {/* 4. Rider arrived at the Vendor. Time to hand over the clothes! */}
                     {order.subStatus === 'ready_to_receive' && (
                       <button className="vhome-btn-full" onClick={() => handleReceiveAtHub(order.id)} style={{ background: '#10b981', color: 'white' }}>
                         📦 Mark as Received from Rider
@@ -240,15 +275,17 @@ const VendorHome = () => {
                   </div>
                 )}
 
-                {/* --- PROCESSING & WEIGHING AREA --- */}
+                {/* PROCESSING & WEIGHING AREA */}
                 {order.status === 'Processing' && (
                   <div className="vhome-processing-area">
-                    {order.subStatus === 'needs_pricing' ? (
+                    {order.subStatus === 'needs_pricing' && (
                       <div className="vhome-pricing-alert">
                         <p>Clothes received! Weigh the bag to generate the bill.</p>
                         <button className="vhome-btn-full" onClick={() => handleOpenPricing(order.id)}>Weigh & Generate Bill</button>
                       </div>
-                    ) : (
+                    )}
+
+                    {order.subStatus !== 'needs_pricing' && (
                       <div className="vhome-laundry-tracker">
                         <div className="vhome-weight-row">
                           <span className="vhome-label">Weight: <strong>{order.weight} kg</strong></span>
@@ -305,7 +342,7 @@ const VendorHome = () => {
         </div>
       </main>
 
-      {/* --- NEW STREAMLINED PRICING MODAL --- */}
+      {/* PRICING MODAL */}
       {showPricingModal && (
         <div className="vhome-modal-overlay">
           <div className="vhome-pricing-modal" style={{ maxHeight: '90vh', overflowY: 'auto' }}>

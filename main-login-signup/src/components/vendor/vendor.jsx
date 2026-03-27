@@ -10,13 +10,14 @@ const VendorLogin = () => {
   const [isLoginMode, setIsLoginMode] = useState(true); 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState(''); // Added for OTP feedback
 
   // Signup States
   const [signupStep, setSignupStep] = useState(1);
 
-  // Form Data (Added password!)
+  // Form Data (Added OTP!)
   const [formData, setFormData] = useState({ 
-    email: '', name: '', phone: '', password: '', hubName: '', capacity: '', address: ''
+    email: '', name: '', phone: '', password: '', hubName: '', capacity: '', address: '', otp: ''
   });
 
   const [docs, setDocs] = useState({ 
@@ -27,6 +28,7 @@ const VendorLogin = () => {
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrorMessage('');
+    setSuccessMessage('');
   };
 
   const handleFileChange = (e, docName) => {
@@ -38,12 +40,13 @@ const VendorLogin = () => {
     setIsLoginMode(!isLoginMode);
     setSignupStep(1);
     setErrorMessage('');
+    setSuccessMessage('');
     // Clear sensitive info on toggle
-    setFormData({ ...formData, password: '' }); 
+    setFormData({ ...formData, password: '', otp: '' }); 
   };
 
   // ==========================================
-  // 🚀 LOGIN FLOW (PASSWORD BASED)
+  // 🚀 LOGIN FLOW
   // ==========================================
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -61,20 +64,14 @@ const VendorLogin = () => {
       });
 
       if (response.status === 200) {
-        // 1. Get the full vendor data returned from your backend
         const vendorDataFromDB = response.data.vendor || response.data;
-        
-        // 2. Create an object with the real MongoDB details
         const vendorSession = {
-          shopId: vendorDataFromDB._id, // This is the real dynamic ID from the DB
+          shopId: vendorDataFromDB._id, 
           name: vendorDataFromDB.hubName || vendorDataFromDB.name,
           email: vendorDataFromDB.email
         };
 
-        // 3. Save the WHOLE object to local storage
         localStorage.setItem('quickwash_vendor', JSON.stringify(vendorSession));
-        
-        // 4. Navigate to home
         navigate('/vendor-home'); 
       }
     } catch (error) {
@@ -85,9 +82,9 @@ const VendorLogin = () => {
   };
 
   // ==========================================
-  // 🚀 SIGNUP FLOW (WITH PASSWORD)
+  // 🚀 SIGNUP STEP A: REQUEST OTP
   // ==========================================
-  const handleSignupSubmit = async () => {
+  const handleRequestOTP = async () => {
     if (!formData.email || !formData.name || !formData.phone || !formData.password || !formData.hubName || !formData.capacity || !formData.address) {
       setErrorMessage("⚠️ Please fill in all text fields.");
       return;
@@ -101,14 +98,45 @@ const VendorLogin = () => {
     setIsLoading(true);
     setErrorMessage('');
 
+    try {
+      // Just request the OTP first, don't send files yet!
+      const response = await axios.post('http://localhost:5000/api/vendors/send-vendor-otp', {
+        email: formData.email.toLowerCase()
+      });
+      
+      if (response.status === 200) {
+        setSuccessMessage("OTP sent to your email!");
+        setSignupStep(4); // Move to OTP verification step
+      }
+    } catch (error) {
+      console.error("OTP request failed:", error);
+      setErrorMessage(error.response?.data?.message || "⚠️ Failed to send OTP.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ==========================================
+  // 🚀 SIGNUP STEP B: VERIFY OTP & UPLOAD DOCS
+  // ==========================================
+  const handleVerifyAndSubmit = async () => {
+    if (!formData.otp || formData.otp.length !== 6) {
+      setErrorMessage("⚠️ Please enter a valid 6-digit OTP.");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');
+
     const data = new FormData();
     data.append('email', formData.email.toLowerCase());
     data.append('name', formData.name);
     data.append('phone', formData.phone);
-    data.append('password', formData.password); // SENDS PASSWORD
+    data.append('password', formData.password); 
     data.append('hubName', formData.hubName);
     data.append('capacity', formData.capacity);
     data.append('address', formData.address);
+    data.append('otp', formData.otp); // Add the OTP to the payload!
     
     data.append('gst', docs.gst);
     data.append('shopAct', docs.shopAct);
@@ -117,16 +145,17 @@ const VendorLogin = () => {
     data.append('cheque', docs.cheque);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/vendor-signup', data, {
+      const response = await axios.post('http://localhost:5000/api/vendors/vendor-signup', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
       if (response.status === 201) {
-        setSignupStep(4); 
+        setSignupStep(5); // Move to Success Step
       }
     } catch (error) {
       console.error("Signup failed:", error);
-      setErrorMessage(error.response?.data?.message || "⚠️ Server error.");
+      // The backend will automatically delete the files if OTP is wrong!
+      setErrorMessage(error.response?.data?.message || "⚠️ Verification failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +169,7 @@ const VendorLogin = () => {
     <div className="v-page-container">
       
       {/* --- SIGNUP STEPPER HEADER --- */}
-      {!isLoginMode && signupStep < 4 && (
+      {!isLoginMode && signupStep < 5 && (
         <div className="v-signup-header animate-fade">
           <h1>Quick Wash <span>Vendor</span></h1>
           <div className="v-stepper">
@@ -307,21 +336,62 @@ const VendorLogin = () => {
 
                 <div className="v-btn-row mt-4" style={{display:'flex', gap:'15px', marginTop:'20px'}}>
                   <button type="button" className="v-btn-lightgray" onClick={() => setSignupStep(2)}>Back</button>
-                  <button type="button" className="v-btn-darkgreen" style={{flex: 1}} onClick={handleSignupSubmit} disabled={isLoading}>
-                    {isLoading ? 'Submitting...' : 'Submit Application'}
+                  {/* Changed this button to request OTP instead of directly submitting */}
+                  <button type="button" className="v-btn-darkgreen" style={{flex: 1}} onClick={handleRequestOTP} disabled={isLoading}>
+                    {isLoading ? 'Processing...' : 'Verify Email & Submit'}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* STEP 4: SUCCESS */}
+            {/* STEP 4: OTP VERIFICATION */}
             {signupStep === 4 && (
+              <div className="v-form animate-fade" style={{textAlign: 'center', padding: '20px 0'}}>
+                <h2 className="v-form-title dark">Verify Your Email</h2>
+                <p className="v-form-desc gray" style={{marginBottom: '25px'}}>
+                  We've sent a 6-digit code to <strong>{formData.email}</strong>. Enter it below to complete your registration.
+                </p>
+
+                {errorMessage && <p className="v-error" style={{ color: '#dc2626', background: '#fee2e2', padding: '10px', borderRadius: '5px', textAlign: 'left' }}>{errorMessage}</p>}
+                {successMessage && <p className="v-success" style={{ color: '#166534', background: '#dcfce7', padding: '10px', borderRadius: '5px', textAlign: 'left', marginBottom: '15px' }}>{successMessage}</p>}
+
+                <div className="v-input-group">
+                  <input 
+                    type="text" 
+                    name="otp" 
+                    placeholder="Enter 6-digit OTP" 
+                    value={formData.otp} 
+                    onChange={handleInputChange} 
+                    required 
+                    maxLength="6"
+                    style={{ letterSpacing: '4px', fontSize: '1.5rem', textAlign: 'center', fontWeight: 'bold', padding: '15px' }}
+                  />
+                </div>
+
+                <button 
+                  type="button" 
+                  className="v-btn-darkgreen" 
+                  style={{width: '100%', marginTop: '20px'}} 
+                  onClick={handleVerifyAndSubmit} 
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Uploading Documents...' : 'Secure Submit'}
+                </button>
+                
+                <button type="button" className="v-link-gray mt-4" onClick={() => setSignupStep(3)} style={{background:'none', border:'none', cursor:'pointer', width:'100%', marginTop:'15px'}}>
+                  Cancel and go back
+                </button>
+              </div>
+            )}
+
+            {/* STEP 5: SUCCESS */}
+            {signupStep === 5 && (
               <div className="v-form v-center-content animate-fade" style={{textAlign:'center'}}>
                 <div className="v-hourglass-container" style={{fontSize:'40px', marginBottom:'15px'}}>⏳</div>
                 <h2 className="v-form-title dark">Profile Under Review</h2>
                 <p className="v-form-desc gray">Thanks for applying, <strong>{formData.name || 'Vendor'}</strong>!</p>
                 <div className="v-review-box" style={{background:'#f9f9f9', padding:'20px', borderRadius:'10px', border:'1px dashed #ccc', margin:'20px 0'}}>
-                  Our admin team is reviewing your details. This usually takes <strong>24 to 48 hours</strong>.
+                  Our admin team is reviewing your details and verifying your documents. This usually takes <strong>24 to 48 hours</strong>.
                 </div>
                 <button type="button" className="v-link-teal-bold mt-4" onClick={toggleMode} style={{background:'none', border:'none', color:'#0d9488', fontWeight:'bold', cursor:'pointer'}}>
                   ← Return to Login Screen

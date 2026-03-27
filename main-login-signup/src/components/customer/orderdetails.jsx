@@ -36,19 +36,26 @@ const OrderDetails = () => {
   if (!order) return <div style={{ padding: '50px', textAlign: 'center' }}>Order not found! ❌</div>;
 
   // --- 2. SMART STEPPER LOGIC ---
-  // Strictly maps the exact Database statuses to the 5 visual UI steps
-  // --- 2. SMART STEPPER LOGIC ---
   const getActiveStepNumber = (status) => {
     switch (status) {
-      case 'Pending': return 1; 
-      case 'Pending Pickup': return 2; // Vendor Accepted, Rider assigned
-      case 'Picked Up': return 3; // Rider actually has the clothes
+      case 'Pending': 
+        return 1; 
+      case 'Searching Rider': // 👈 Added this!
+      case 'Pending Pickup': 
+        return 2; 
+      case 'Picked Up': 
+        return 3; 
       case 'Dropped at Hub': 
-      case 'At Shop': return 4; // Vendor is washing
-      case 'Ready': return 5; // Ready for delivery
-      case 'Out for Delivery': return 6; // Rider heading back to customer
-      case 'Completed': return 7; // Done!
-      default: return 1;
+      case 'At Shop': 
+        return 4; 
+      case 'Ready': 
+        return 5; 
+      case 'Out for Delivery': 
+        return 6; 
+      case 'Completed': 
+        return 7; 
+      default: 
+        return 1;
     }
   };
 

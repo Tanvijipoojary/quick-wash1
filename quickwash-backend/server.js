@@ -12,6 +12,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 
+
 const app = express();
 
 // --- MIDDLEWARE ---
@@ -26,6 +27,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // This links all your authentication logic (OTP, Signup, Login)
 // Your URLs will look like: http://localhost:5000/api/auth/send-otp
 app.use('/api/auth', authRoutes);
+
+app.use('/api/riders', require('./routes/riderRoutes'));
 
 app.use('/api/admin', adminRoutes);
 

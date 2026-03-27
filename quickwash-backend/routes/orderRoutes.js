@@ -53,8 +53,9 @@ router.get('/available-for-rider', async (req, res) => {
   try {
     const availableOrders = await Order.find({
       riderEmail: { $in: [null, ""] }, 
-      // 🔥 THE FIX: Broadcast 'Pending' (Instant Dispatch) and 'Ready' (Delivery)
-      status: { $in: ['Pending', 'Ready'] } 
+      // 🛑 THE BRICK WALL FIX: Only broadcast IF the vendor hit Accept ('Searching Rider') 
+      // OR if the vendor finished washing ('Ready' for delivery back to customer)
+      status: { $in: ['Searching Rider', 'Ready'] } 
     }).sort({ createdAt: -1 });
     
     res.status(200).json(availableOrders);
@@ -95,8 +96,8 @@ router.put('/claim/:orderId', async (req, res) => {
       return res.status(400).json({ message: "Too slow! Another rider just claimed this order." });
     }
 
-    // 2. If it's a brand new order, advance it to 'Pending Pickup' so the Vendor & Customer trackers update!
-    const newStatus = orderToClaim.status === 'Pending' ? 'Pending Pickup' : orderToClaim.status;
+    // 2. If it's a vendor-approved order, advance it to 'Pending Pickup' so Trackers update!
+    const newStatus = orderToClaim.status === 'Searching Rider' ? 'Pending Pickup' : orderToClaim.status;
 
     const claimedOrder = await Order.findByIdAndUpdate(
       req.params.orderId, 
@@ -161,4 +162,4 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

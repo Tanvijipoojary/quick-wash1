@@ -24,6 +24,23 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// --- TEMPORARY OTP STORAGE (In-Memory) ---
+// Note: In production, you would use Redis or MongoDB for this.
+const otpStore = new Map();
+
+const nodemailer = require('nodemailer');
+
+// ==========================================
+// 📧 EMAIL CONFIGURATION (NODEMAILER)
+// ==========================================
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER, // 👈 Pulls directly from your .env
+    pass: process.env.EMAIL_PASS  // 👈 Pulls directly from your .env
+  }
+});
+
 // quickwash-backend/routes/authRoutes.js (or userRoutes.js)
 
 // --- UPDATE USER PROFILE ---
@@ -59,24 +76,96 @@ router.put('/update-profile', async (req, res) => {
 // 🧑‍💼 1. CUSTOMER (USER) ROUTES
 // ==========================================
 
-// --- CUSTOMER REGISTRATION ---
-router.post('/user-register', async (req, res) => {
+// --- STEP 1: GENERATE & SEND REGISTRATION OTP (REAL EMAIL) ---
+router.post('/send-user-otp', async (req, res) => {
   try {
-    const { name, phone, email, password } = req.body;
+    const { email } = req.body;
+    const lowercaseEmail = email.toLowerCase();
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    // 1. Check if user already exists
+    const existingUser = await User.findOne({ email: lowercaseEmail });
     if (existingUser) {
       return res.status(400).json({ message: "Email already registered. Please log in." });
     }
 
+    // 2. Generate a random 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 3. Save to store (expires in 10 mins)
+    otpStore.set(lowercaseEmail, {
+      otp: otp,
+      expiresAt: Date.now() + 10 * 60 * 1000 
+    });
+
+    // 4. Send the Real Email!
+    // 4. Send the Real Email!
+    const mailOptions = {
+      from: `Quick Wash <${process.env.EMAIL_USER}>`, // 👈 Securely uses your .env email
+      to: lowercaseEmail,
+      subject: 'Quick Wash - Your Registration OTP',
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px; background-color: #f8fafc; text-align: center;">
+          <div style="max-width: 500px; margin: 0 auto; background-color: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <h2 style="color: #2563eb; margin-top: 0;">Welcome to Quick Wash! 🧺</h2>
+            <p style="color: #475569; font-size: 16px; line-height: 1.5;">Thank you for signing up. Please use the following One-Time Password (OTP) to complete your registration:</p>
+            
+            <div style="margin: 30px 0; padding: 20px; background-color: #eff6ff; border-radius: 12px; border: 2px dashed #bfdbfe;">
+              <h1 style="font-size: 48px; letter-spacing: 8px; color: #1e3a8a; margin: 0;">${otp}</h1>
+            </div>
+            
+            <p style="color: #64748b; font-size: 14px;">This code will expire in <strong>10 minutes</strong>. If you did not request this, please ignore this email.</p>
+          </div>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Real Email successfully sent to: ${lowercaseEmail}`);
+
+    res.status(200).json({ message: "OTP sent to your email inbox!" });
+  } catch (error) {
+    console.error("Email Sending Error:", error);
+    res.status(500).json({ message: "Failed to send email. Check backend configuration." });
+  }
+});
+
+// --- STEP 2: VERIFY OTP & CREATE CUSTOMER ---
+router.post('/user-register', async (req, res) => {
+  try {
+    const { name, phone, email, password, otp } = req.body;
+    const lowercaseEmail = email.toLowerCase();
+
+    // 1. Verify the OTP
+    const storedData = otpStore.get(lowercaseEmail);
+    
+    if (!storedData) {
+      return res.status(400).json({ message: "OTP expired or not requested. Please start over." });
+    }
+    if (storedData.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP. Please check and try again." });
+    }
+    if (Date.now() > storedData.expiresAt) {
+      otpStore.delete(lowercaseEmail);
+      return res.status(400).json({ message: "OTP expired. Please request a new one." });
+    }
+
+    // 2. Double-check user doesn't exist (Safety net)
+    const existingUser = await User.findOne({ email: lowercaseEmail });
+    if (existingUser) return res.status(400).json({ message: "Email already registered." });
+
+    // 3. Save User to Database
     const newUser = new User({
       name,
       phone,
-      email: email.toLowerCase(),
+      email: lowercaseEmail,
       password 
     });
 
     await newUser.save();
+    
+    // 4. Clear the OTP from memory so it can't be reused
+    otpStore.delete(lowercaseEmail);
+
     res.status(201).json({ message: "Account created successfully!" });
   } catch (error) {
     console.error("User Registration Error:", error);

@@ -19,15 +19,18 @@ const RiderHome = () => {
 
   const [availableOrders, setAvailableOrders] = useState([]);
 
-  // --- 1. FETCH LIVE BROADCASTS ---
+  // --- 1. FETCH LIVE BROADCASTS (BULLETPROOF FILTERING) ---
   const fetchAvailableOrders = async () => {
     if (!isOnline || activeTask) return; 
     try {
       const res = await axios.get('http://localhost:5000/api/orders/available-for-rider');
       
-      const formattedOrders = res.data.map(o => {
-        // 🔥 THE FIX: 'Pending' means it's a new Instant Dispatch collection!
-        const isCollection = o.status === 'Pending' || o.status === 'Pending Pickup'; 
+      // 🛑 STRICT BLOCKER: Only accept Vendor-Approved pickups OR Clean clothes ready for delivery
+      const validOrders = res.data.filter(o => ['Searching Rider', 'Ready'].includes(o.status));
+      
+      const formattedOrders = validOrders.map(o => {
+        // 🧠 THE BRAIN: Identify exactly what kind of trip this is based on status
+        const isCollection = ['Pending', 'Searching Rider', 'Pending Pickup'].includes(o.status); 
         
         return {
           id: o._id,
@@ -43,22 +46,31 @@ const RiderHome = () => {
             
           distance: 'Est. 4 km', 
           time: '15 mins', 
-          details: o.items.map(i => `${i.name} (x${i.qty})`).join(', '), 
+          details: o.totalExpectedGarments > 0 
+            ? `${o.totalExpectedGarments} Items Declared` 
+            : (o.items ? o.items.map(i => `${i.name} (x${i.qty})`).join(', ') : 'Mixed Laundry'), 
           amount: `Rs. ${o.deliveryFee || 40}`
         };
       });
+      
       setAvailableOrders(formattedOrders);
     } catch (error) {
       console.error("Error fetching live orders:", error);
     }
   };
 
+  // 🔥 FIX: Stop fetching in the background if the rider is currently on a trip!
   useEffect(() => {
-    fetchAvailableOrders();
-    const interval = setInterval(fetchAvailableOrders, 5000);
-    return () => clearInterval(interval);
+    let interval;
+    if (isOnline && !activeTask) {
+      fetchAvailableOrders();
+      interval = setInterval(fetchAvailableOrders, 5000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline]);
+  }, [isOnline, activeTask]);
 
   // --- 2. CLAIM THE ORDER ---
   const handleAcceptOrder = async (order) => {
@@ -73,10 +85,10 @@ const RiderHome = () => {
     }
   };
 
-  // --- 3. CONFIRM PICKUP (Updates Customer Tracker!) ---
+  // --- 3. CONFIRM PICKUP ---
   const handleConfirmPickup = async () => {
     try {
-      // 🔥 THE FIX: Advance the tracker depending on what we just picked up!
+      // Send the PERFECT status to the database depending on the trip type
       const newStatus = activeTask.taskType === 'Collection Run' ? 'Picked Up' : 'Out for Delivery';
       
       await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
@@ -89,15 +101,14 @@ const RiderHome = () => {
     }
   };
   
-  // --- 4. COMPLETE DROPOFF (Updates Tracker & Keeps Rider Credit) ---
+  // --- 4. COMPLETE DROPOFF ---
   const handleCompleteTrip = async () => {
     try {
-      // If Collection: We drop at Hub. If Delivery: We drop at Customer (Completed!).
+      // Send the PERFECT final status to the database
       const newStatus = activeTask.taskType === 'Collection Run' ? 'Dropped at Hub' : 'Completed';
       
       await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
         status: newStatus
-        // ❌ REMOVED: riderEmail: null (We want to keep their name on the receipt!)
       });
 
       setShowSuccess(true);
@@ -105,7 +116,6 @@ const RiderHome = () => {
         setShowSuccess(false);
         setActiveTask(null); 
         setTripStatus('');
-        fetchAvailableOrders(); // Look for next trip!
       }, 2500);
 
     } catch (error) {
