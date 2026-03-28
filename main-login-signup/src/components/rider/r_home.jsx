@@ -3,6 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './r_home.css';
 
+// --- DICTIONARY FOR PRETTY GARMENT LABELS ---
+const garmentLabels = {
+  shirt: '👔 Shirts',
+  tshirt: '👕 T-Shirts',
+  tops: '👚 Tops',
+  trousers: '👖 Trousers/Jeans',
+  shorts: '🩳 Shorts',
+  shawls: '🧣 Shawls',
+  bedsheets: '🛏️ Bedsheets/Towels',
+  undergarments: '🧦 Undergarments'
+};
+
 const RiderHome = () => {
   const navigate = useNavigate();
   
@@ -16,6 +28,9 @@ const RiderHome = () => {
   const [tripStatus, setTripStatus] = useState(''); 
   const [showSuccess, setShowSuccess] = useState(false);
   const [swipeValue, setSwipeValue] = useState(0);
+
+  // --- VERIFICATION CHECKBOX STATE ---
+  const [isVerified, setIsVerified] = useState(false);
 
   const [availableOrders, setAvailableOrders] = useState([]);
 
@@ -46,9 +61,10 @@ const RiderHome = () => {
             
           distance: 'Est. 4 km', 
           time: '15 mins', 
-          details: o.totalExpectedGarments > 0 
-            ? `${o.totalExpectedGarments} Items Declared` 
-            : (o.items ? o.items.map(i => `${i.name} (x${i.qty})`).join(', ') : 'Mixed Laundry'), 
+          
+          garmentDetails: o.garmentDetails || {},
+          totalExpectedGarments: o.totalExpectedGarments || 0,
+          
           amount: `Rs. ${o.deliveryFee || 40}`
         };
       });
@@ -59,7 +75,6 @@ const RiderHome = () => {
     }
   };
 
-  // 🔥 FIX: Stop fetching in the background if the rider is currently on a trip!
   useEffect(() => {
     let interval;
     if (isOnline && !activeTask) {
@@ -78,6 +93,7 @@ const RiderHome = () => {
       await axios.put(`http://localhost:5000/api/orders/claim/${order.id}`, { riderEmail: rider.email });
       setActiveTask(order);
       setTripStatus('accepted');
+      setIsVerified(false); // Reset checkbox for new trips!
       setAvailableOrders([]); 
     } catch (error) {
       alert(error.response?.data?.message || "Too slow! Another rider claimed this order.");
@@ -88,7 +104,6 @@ const RiderHome = () => {
   // --- 3. CONFIRM PICKUP ---
   const handleConfirmPickup = async () => {
     try {
-      // Send the PERFECT status to the database depending on the trip type
       const newStatus = activeTask.taskType === 'Collection Run' ? 'Picked Up' : 'Out for Delivery';
       
       await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
@@ -104,7 +119,6 @@ const RiderHome = () => {
   // --- 4. COMPLETE DROPOFF ---
   const handleCompleteTrip = async () => {
     try {
-      // Send the PERFECT final status to the database
       const newStatus = activeTask.taskType === 'Collection Run' ? 'Dropped at Hub' : 'Completed';
       
       await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
@@ -116,6 +130,7 @@ const RiderHome = () => {
         setShowSuccess(false);
         setActiveTask(null); 
         setTripStatus('');
+        setIsVerified(false); // Reset checkbox
       }, 2500);
 
     } catch (error) {
@@ -131,6 +146,7 @@ const RiderHome = () => {
     }
     setActiveTask(null);
     setTripStatus('');
+    setIsVerified(false); // Reset checkbox
   };
 
   const handleSwipe = (e) => {
@@ -271,7 +287,7 @@ const RiderHome = () => {
             )}
           </div>
         ) : (
-          <div className="rhome-active-task">
+          <div className="rhome-active-task" style={{ paddingBottom: '20px' }}>
             
             <div className="rhome-task-header">
               <div className={`rhome-task-badge ${activeTask.taskType === 'Collection Run' ? 'collection' : 'delivery'}`}>
@@ -280,7 +296,7 @@ const RiderHome = () => {
               <button className="rhome-text-btn-cancel" onClick={handleCancelTrip}>Cancel</button>
             </div>
 
-            <div className="rhome-route-timeline">
+            <div className="rhome-route-timeline" style={{ marginBottom: '15px' }}>
               <div className={`rhome-route-node ${tripStatus === 'picked_up' ? 'dimmed-node' : ''}`}>
                 <div className={`rhome-node-icon pickup-icon ${tripStatus === 'picked_up' ? 'completed-icon' : ''}`}>
                   {tripStatus === 'picked_up' && '✓'}
@@ -304,7 +320,7 @@ const RiderHome = () => {
               </div>
             </div>
             
-            <div className="rhome-task-details-grid">
+            <div className="rhome-task-details-grid" style={{ marginBottom: '15px' }}>
               <div className="rhome-detail-box">
                 <span className="rhome-detail-label">Distance</span>
                 <span className="rhome-detail-value">{activeTask.distance}</span>
@@ -315,11 +331,60 @@ const RiderHome = () => {
               </div>
             </div>
 
+            {/* 👇 NEW: UNIVERSAL VERIFICATION CHECKLIST (SHOWS ON BOTH PICKUPS) 👇 */}
+            {tripStatus === 'accepted' && (
+              <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1', marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#0f172a', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  📦 {activeTask.taskType === 'Collection Run' ? 'Verify Customer Bag' : 'Verify Clean Laundry'}
+                </h4>
+                
+                {activeTask.totalExpectedGarments > 0 ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '15px' }}>
+                    {Object.entries(activeTask.garmentDetails)
+                      .filter(([key, value]) => value > 0)
+                      .map(([key, value]) => (
+                        <span key={key} style={{ background: '#e2e8f0', color: '#334155', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '500' }}>
+                          {garmentLabels[key] || key}: <strong style={{color: '#0f172a'}}>{value}</strong>
+                        </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{fontSize: '0.85rem', color: '#64748b', margin: '0 0 15px 0'}}>
+                    {activeTask.taskType === 'Collection Run' 
+                      ? 'Customer did not declare items. Please ensure the bag is securely tied.' 
+                      : 'No item breakdown available. Please ensure the clean laundry bag is securely tied.'}
+                  </p>
+                )}
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem', color: '#475569', padding: '10px', background: isVerified ? '#dcfce7' : '#fff', border: isVerified ? '1px solid #86efac' : '1px solid #e2e8f0', borderRadius: '6px', transition: 'all 0.2s' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={isVerified} 
+                    onChange={(e) => setIsVerified(e.target.checked)} 
+                    style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#16a34a' }}
+                  />
+                  <strong style={{ color: isVerified ? '#16a34a' : '#334155' }}>I have verified the contents of this bag.</strong>
+                </label>
+              </div>
+            )}
+
             <div className="rhome-action-buttons">
               {tripStatus === 'accepted' && (
                 <>
                   <button className="rhome-btn-nav" onClick={openMapsForPickup}><span role="img" aria-label="nav">🧭</span> Navigate</button>
-                  <button className="rhome-btn-primary" onClick={handleConfirmPickup}>Confirm Pickup</button>
+                  
+                  {/* 👇 The Confirm Pickup button is now universally disabled until verified! 👇 */}
+                  <button 
+                    className="rhome-btn-primary" 
+                    onClick={handleConfirmPickup}
+                    disabled={!isVerified}
+                    style={{ 
+                      opacity: !isVerified ? 0.4 : 1,
+                      cursor: !isVerified ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Confirm Pickup
+                  </button>
                 </>
               )}
               {tripStatus === 'picked_up' && (

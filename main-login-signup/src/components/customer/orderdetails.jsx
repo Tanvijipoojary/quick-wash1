@@ -94,21 +94,22 @@ const OrderDetails = () => {
               <h2>Track Your Wash</h2>
               
               <div className="vertical-stepper">
-                {/* Step 1: Confirmed */}
+                
+                {/* Step 1: Request Sent vs Confirmed */}
                 <div className={`step ${getStepClass(1)}`}>
                   <div className="step-icon">✅</div>
                   <div className="step-content">
-                    <h4>Booking Confirmed</h4>
-                    <p>We received your request.</p>
+                    <h4>{order.status === 'Pending' ? 'Request Sent' : 'Booking Confirmed'}</h4>
+                    <p>{order.status === 'Pending' ? 'Waiting for the laundry hub to accept your order.' : 'The laundry hub has accepted your order!'}</p>
                   </div>
                 </div>
 
-                {/* Step 2: Rider Assigned */}
+                {/* Step 2: Searching vs Assigned */}
                 <div className={`step ${getStepClass(2)}`}>
                   <div className="step-icon">🛵</div>
                   <div className="step-content">
-                    <h4>Rider Assigned</h4>
-                    <p>Rider is on the way to collect your clothes.</p>
+                    <h4>{order.status === 'Searching Rider' ? 'Assigning Rider...' : 'Rider Assigned'}</h4>
+                    <p>{order.status === 'Searching Rider' ? 'Looking for a nearby delivery partner.' : 'A rider is on the way to collect your clothes.'}</p>
                   </div>
                 </div>
 

@@ -10,14 +10,15 @@ const VendorLogin = () => {
   const [isLoginMode, setIsLoginMode] = useState(true); 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState(''); // Added for OTP feedback
+  const [successMessage, setSuccessMessage] = useState(''); 
 
   // Signup States
   const [signupStep, setSignupStep] = useState(1);
 
-  // Form Data (Added OTP!)
+  // Form Data (Completely removed capacity!)
   const [formData, setFormData] = useState({ 
-    email: '', name: '', phone: '', password: '', hubName: '', capacity: '', address: '', otp: ''
+    email: '', name: '', phone: '', password: '', hubName: '', otp: '',
+    shopNo: '', area: '', city: 'Mangaluru', pincode: '' 
   });
 
   const [docs, setDocs] = useState({ 
@@ -41,8 +42,12 @@ const VendorLogin = () => {
     setSignupStep(1);
     setErrorMessage('');
     setSuccessMessage('');
-    // Clear sensitive info on toggle
     setFormData({ ...formData, password: '', otp: '' }); 
+  };
+
+  // Helper to stitch the address together
+  const getFullAddress = () => {
+    return `${formData.shopNo}, ${formData.area}, ${formData.city}, ${formData.pincode}`;
   };
 
   // ==========================================
@@ -85,8 +90,14 @@ const VendorLogin = () => {
   // 🚀 SIGNUP STEP A: REQUEST OTP
   // ==========================================
   const handleRequestOTP = async () => {
-    if (!formData.email || !formData.name || !formData.phone || !formData.password || !formData.hubName || !formData.capacity || !formData.address) {
-      setErrorMessage("⚠️ Please fill in all text fields.");
+    // 👇 Capacity has been removed from this blocker! 👇
+    if (!formData.email || !formData.name || !formData.phone || !formData.password || !formData.hubName || !formData.shopNo || !formData.area || !formData.pincode) {
+      setErrorMessage("⚠️ Please fill in all text fields, including full address.");
+      return;
+    }
+
+    if (formData.pincode.length !== 6) {
+      setErrorMessage("⚠️ Please enter a valid 6-digit Pincode.");
       return;
     }
 
@@ -99,14 +110,13 @@ const VendorLogin = () => {
     setErrorMessage('');
 
     try {
-      // Just request the OTP first, don't send files yet!
       const response = await axios.post('http://localhost:5000/api/vendors/send-vendor-otp', {
         email: formData.email.toLowerCase()
       });
       
       if (response.status === 200) {
         setSuccessMessage("OTP sent to your email!");
-        setSignupStep(4); // Move to OTP verification step
+        setSignupStep(4); 
       }
     } catch (error) {
       console.error("OTP request failed:", error);
@@ -134,9 +144,10 @@ const VendorLogin = () => {
     data.append('phone', formData.phone);
     data.append('password', formData.password); 
     data.append('hubName', formData.hubName);
-    data.append('capacity', formData.capacity);
-    data.append('address', formData.address);
-    data.append('otp', formData.otp); // Add the OTP to the payload!
+    data.append('otp', formData.otp); 
+    
+    // 👇 STITCH THE ADDRESS TOGETHER HERE 👇
+    data.append('address', getFullAddress());
     
     data.append('gst', docs.gst);
     data.append('shopAct', docs.shopAct);
@@ -150,11 +161,10 @@ const VendorLogin = () => {
       });
       
       if (response.status === 201) {
-        setSignupStep(5); // Move to Success Step
+        setSignupStep(5); 
       }
     } catch (error) {
       console.error("Signup failed:", error);
-      // The backend will automatically delete the files if OTP is wrong!
       setErrorMessage(error.response?.data?.message || "⚠️ Verification failed. Please try again.");
     } finally {
       setIsLoading(false);
@@ -277,25 +287,56 @@ const VendorLogin = () => {
               </form>
             )}
 
-            {/* STEP 2: BUSINESS PROFILE */}
+            {/* STEP 2: BUSINESS PROFILE (STRUCTURED ADDRESS) */}
             {signupStep === 2 && (
               <div className="v-form animate-fade">
                 <h2 className="v-form-title dark">Business Profile</h2>
-                <p className="v-form-desc gray">Tell us about your laundry hub capabilities.</p>
+                <p className="v-form-desc gray">Tell us about your laundry hub and its exact location.</p>
                 
                 <div className="v-input-group">
                   <label>LAUNDRY HUB NAME</label>
                   <input type="text" name="hubName" placeholder="e.g. Premium Cleaners" value={formData.hubName} onChange={handleInputChange} required />
                 </div>
-                
-                <div className="v-input-group">
-                  <label>DAILY WASHING CAPACITY (KG)</label>
-                  <input type="number" name="capacity" placeholder="e.g. 150" value={formData.capacity} onChange={handleInputChange} required />
-                </div>
-                
-                <div className="v-input-group">
-                  <label>FULL HUB ADDRESS</label>
-                  <textarea name="address" placeholder="Enter complete address..." rows="3" value={formData.address} onChange={handleInputChange} required></textarea>
+
+                <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '15px' }}>
+                  <h4 style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: '8px' }}>📍 Hub Location Details</h4>
+                  
+                  <div className="v-input-group">
+                    <label>BUILDING / SHOP NO.</label>
+                    <input type="text" name="shopNo" placeholder="e.g. Shop No. 12, Ground Floor" value={formData.shopNo} onChange={handleInputChange} required />
+                  </div>
+
+                  <div className="v-input-group">
+                    <label>STREET / ROAD / AREA</label>
+                    <input type="text" name="area" placeholder="e.g. MG Road, Near City Center" value={formData.area} onChange={handleInputChange} required />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '15px', width: '100%' }}>
+                    <div className="v-input-group" style={{ flex: 1, minWidth: 0 }}>
+                      <label>CITY</label>
+                      <input 
+                        type="text" 
+                        name="city" 
+                        value={formData.city} 
+                        onChange={handleInputChange} 
+                        required 
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div className="v-input-group" style={{ flex: 1, minWidth: 0 }}>
+                      <label>PINCODE</label>
+                      <input 
+                        type="text" 
+                        name="pincode" 
+                        placeholder="e.g. 575001" 
+                        value={formData.pincode} 
+                        onChange={handleInputChange} 
+                        maxLength="6" 
+                        required 
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="v-btn-row" style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
@@ -336,7 +377,6 @@ const VendorLogin = () => {
 
                 <div className="v-btn-row mt-4" style={{display:'flex', gap:'15px', marginTop:'20px'}}>
                   <button type="button" className="v-btn-lightgray" onClick={() => setSignupStep(2)}>Back</button>
-                  {/* Changed this button to request OTP instead of directly submitting */}
                   <button type="button" className="v-btn-darkgreen" style={{flex: 1}} onClick={handleRequestOTP} disabled={isLoading}>
                     {isLoading ? 'Processing...' : 'Verify Email & Submit'}
                   </button>

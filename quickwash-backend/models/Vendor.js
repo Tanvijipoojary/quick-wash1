@@ -6,7 +6,9 @@ const vendorSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   password: { type: String, required: true },
   hubName: { type: String, required: true },
-  capacity: { type: String, required: true },
+  
+  // ✂️ capacity has been completely removed from here! ✂️
+  
   address: { type: String, required: true },
   status: { type: String, default: 'Pending' },
   

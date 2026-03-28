@@ -152,7 +152,23 @@ router.post('/vendor-signup', upload.fields([
   } catch (error) {
     console.error("🚨 VENDOR SIGNUP ERROR:", error);
     cleanupFiles(); // Delete files on any server error
-    res.status(500).json({ message: "Server error during registration." });
+    
+    // 👇 NEW: Smart Error Handling to tell the Frontend exactly what broke! 👇
+    let exactErrorMessage = "Server error during registration.";
+    
+    if (error.code === 11000) {
+      // Catch Duplicate Emails or Phone Numbers
+      const duplicateField = Object.keys(error.keyValue)[0];
+      exactErrorMessage = `Registration failed: That ${duplicateField} is already in use!`;
+    } else if (error.name === 'ValidationError') {
+      // Catch missing Schema fields (like capacity or address)
+      exactErrorMessage = Object.values(error.errors).map(val => val.message).join(', ');
+    } else {
+      // Catch anything else
+      exactErrorMessage = error.message;
+    }
+
+    res.status(500).json({ message: exactErrorMessage });
   }
 });
 
