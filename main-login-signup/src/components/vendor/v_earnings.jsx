@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './v_earnings.css';
 
 const VendorEarnings = () => {
@@ -9,35 +10,99 @@ const VendorEarnings = () => {
   const [selectedEarning, setSelectedEarning] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  const [recentEarnings, setRecentEarnings] = useState([]);
+  const [weeklyData, setWeeklyData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock Chart Data for the week
-  const weeklyData = [
-    { id: 1, day: 'Mon', amount: 1200, height: '40%' },
-    { id: 2, day: 'Tue', amount: 2100, height: '70%' },
-    { id: 3, day: 'Wed', amount: 800, height: '30%' },
-    { id: 4, day: 'Thu', amount: 3200, height: '100%' },
-    { id: 5, day: 'Fri', amount: 2800, height: '85%' },
-    { id: 6, day: 'Sat', amount: 0, height: '5%' },
-    { id: 7, day: 'Sun', amount: 0, height: '5%' },
-  ];
+  // --- FETCH LIVE ORDERS FROM MONGODB ---
+  useEffect(() => {
+    const fetchEarnings = async () => {
+      const savedVendorStr = localStorage.getItem('quickwash_vendor');
+      if (!savedVendorStr) {
+        navigate('/vendor-login');
+        return;
+      }
+      
+      const parsedVendor = JSON.parse(savedVendorStr);
 
-  // Mock Completed Orders (Added 'rawDate' for easy filtering, and made 'net' a number for math)
-  const recentEarnings = [
-    { id: '8821XB', date: '27 Feb 2026', rawDate: '2026-02-27', time: '10:30 AM', customer: 'Sarah Smith', service: 'Premium Wash & Fold', gross: 800, fee: 80, net: 720 },
-    { id: '1234UA', date: '26 Feb 2026', rawDate: '2026-02-26', time: '04:15 PM', customer: 'Alex Johnson', service: 'Dry Clean Suit', gross: 1500, fee: 150, net: 1350 },
-    { id: '5566YC', date: '25 Feb 2026', rawDate: '2026-02-25', time: '02:00 PM', customer: 'Mike Ross', service: 'Wash & Iron', gross: 450, fee: 45, net: 405 },
-    { id: '9988ZD', date: '25 Feb 2026', rawDate: '2026-02-25', time: '11:45 AM', customer: 'Harvey Specter', service: 'Wash & Fold', gross: 600, fee: 60, net: 540 },
-    { id: '3344WE', date: '24 Feb 2026', rawDate: '2026-02-24', time: '09:20 AM', customer: 'Donna Paulsen', service: 'Ironing Only', gross: 200, fee: 20, net: 180 },
-  ];
+      try {
+        // Call your backend to get ONLY completed orders for this shop
+        const res = await axios.get(`http://localhost:5000/api/orders/vendor-earnings/${parsedVendor.shopId}`);
+        const orders = res.data;
+
+        // 1. Format the data for the History List
+        const formattedEarnings = orders.map(order => {
+          const dateObj = new Date(order.createdAt);
+          const rawDate = dateObj.toISOString().split('T')[0]; // "YYYY-MM-DD"
+          
+          // Calculate Fees
+          const gross = order.totalAmount || 0;
+          const fee = gross * 0.10; // Quick Wash takes 10%
+          const net = gross - fee;
+
+          return {
+            id: order._id.substring(order._id.length - 6).toUpperCase(), // Short ID
+            date: dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+            rawDate: rawDate,
+            time: dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            customer: order.customerName || 'Customer',
+            service: 'Wash & Iron', // Assuming core service
+            gross: gross,
+            fee: fee,
+            net: net
+          };
+        });
+
+        setRecentEarnings(formattedEarnings);
+
+        // 2. Format the data for the Weekly Bar Chart (Last 7 Days)
+        generateWeeklyChartData(formattedEarnings);
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching earnings:", error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchEarnings();
+  }, [navigate]);
+
+
+  // --- DYNAMIC CHART GENERATOR ---
+  const generateWeeklyChartData = (earningsData) => {
+    const daysMap = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
+    
+    // Group earnings by day of the week
+    earningsData.forEach(item => {
+      const dayName = new Date(item.rawDate).toLocaleDateString('en-US', { weekday: 'short' });
+      if (daysMap[dayName] !== undefined) {
+        daysMap[dayName] += item.net;
+      }
+    });
+
+    // Find the max value to scale the chart bars correctly
+    const maxEarning = Math.max(...Object.values(daysMap), 1); // Avoid division by zero
+
+    const chartData = Object.keys(daysMap).map((day, index) => {
+      const amount = daysMap[day];
+      // Calculate percentage height (cap at 100%)
+      const heightPercent = amount === 0 ? '5%' : `${Math.round((amount / maxEarning) * 100)}%`;
+      
+      return { id: index, day: day, amount: amount, height: heightPercent };
+    });
+
+    setWeeklyData(chartData);
+  };
+
 
   // Logic to filter orders based on selected dates
   const filteredEarnings = recentEarnings.filter(earning => {
     if (!startDate && !endDate) return true;
     
     const earningDate = new Date(earning.rawDate);
-    // Set start bounds (if no start date, default to very old date)
     const start = startDate ? new Date(startDate) : new Date('2000-01-01');
-    // Set end bounds (if no end date, default to future date)
     const end = endDate ? new Date(endDate) : new Date('2100-01-01');
     
     return earningDate >= start && earningDate <= end;
@@ -52,6 +117,8 @@ const VendorEarnings = () => {
     setEndDate('');
   };
 
+  if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Calculating Earnings... ⏳</div>;
+
   return (
     <div className="vearn-container">
       
@@ -61,7 +128,7 @@ const VendorEarnings = () => {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </button>
         <h1 className="vearn-header-title">Earnings</h1>
-        <div style={{ width: 24 }}></div> {/* Spacer for centering */}
+        <div style={{ width: 24 }}></div> 
       </header>
 
       <main className="vearn-main-content">
@@ -71,13 +138,13 @@ const VendorEarnings = () => {
           <div className="vearn-chart-header">
             <div>
               <span className="vearn-chart-label">
-                {(startDate || endDate) ? 'Filtered Net Earnings' : "This Week's Net Earnings"}
+                {(startDate || endDate) ? 'Filtered Net Earnings' : "All Time Net Earnings"}
               </span>
               <h2 className="vearn-chart-total">Rs. {totalEarnings.toLocaleString('en-IN')}</h2>
             </div>
             {!(startDate || endDate) && (
               <div className="vearn-trend-badge">
-                ↑ 12% vs last week
+                Live Data
               </div>
             )}
           </div>
@@ -100,7 +167,6 @@ const VendorEarnings = () => {
           <div className="vearn-history-header">
             <h3 className="vearn-section-title">Completed Orders</h3>
             
-            {/* NEW: Date Filter UI */}
             <div className="vearn-date-filters">
               <div className="vearn-date-input-wrapper">
                 <input 

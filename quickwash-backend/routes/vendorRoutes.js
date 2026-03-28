@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs'); // Needed to delete junk files!
 const nodemailer = require('nodemailer');
 const Vendor = require('../models/Vendor');
+const Order = require('../models/Order');
 
 // ==========================================
 // 📧 EMAIL & OTP CONFIGURATION
@@ -272,6 +273,119 @@ router.get('/shop/:id', async (req, res) => {
   } catch (error) {
     console.error("Error fetching shop details:", error);
     res.status(500).json({ message: "Server error fetching shop details" });
+  }
+});
+
+// --- UPLOAD SHOP PROFILE IMAGE ---
+// Notice we are using your existing 'upload' multer configuration!
+router.post('/upload-image', upload.single('shopImage'), async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided." });
+    }
+
+    const updatedVendor = await Vendor.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { shopImage: req.file.filename },
+      { new: true }
+    );
+
+    res.status(200).json({ 
+      message: "Shop image updated!", 
+      shopImage: updatedVendor.shopImage 
+    });
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    res.status(500).json({ message: "Server error during image upload" });
+  }
+});
+
+// ==========================================
+// 💰 SMART WALLET OPERATIONS
+// ==========================================
+
+// --- 1. GET DYNAMIC WALLET BALANCE & HISTORY ---
+// Notice the URL now accepts :shopId at the end!
+router.get('/wallet/:email/:shopId', async (req, res) => {
+  try {
+    const vendor = await Vendor.findOne({ email: req.params.email.toLowerCase() });
+    if (!vendor) return res.status(404).json({ message: "Vendor not found" });
+
+    // Step A: Search for orders using the EXACT shopId from the frontend
+    const completedOrders = await Order.find({ shopId: req.params.shopId, status: 'Completed' });
+    
+    // 🔍 DEBUG LOGS: Watch your terminal to see this math happen live!
+    console.log(`--- WALLET CHECK FOR: ${vendor.hubName} ---`);
+    console.log(`1. Found ${completedOrders.length} Completed Orders.`);
+
+    const totalEarned = completedOrders.reduce((sum, order) => sum + ((order.totalAmount || 0) * 0.9), 0);
+    console.log(`2. Total Earned (after 10% fee): Rs. ${totalEarned}`);
+
+    // Step B: Calculate Total Money Already Withdrawn
+    const totalWithdrawn = vendor.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    console.log(`3. Total Already Withdrawn: Rs. ${totalWithdrawn}`);
+
+    // Step C: True Available Balance
+    const availableBalance = totalEarned - totalWithdrawn;
+    console.log(`4. FINAL AVAILABLE BALANCE: Rs. ${availableBalance}`);
+    console.log(`-----------------------------------`);
+
+    // Sort transactions so newest are at the top
+    const sortedTx = vendor.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.status(200).json({
+      balance: availableBalance,
+      transactions: sortedTx
+    });
+  } catch (error) {
+    console.error("Error fetching wallet:", error);
+    res.status(500).json({ message: "Server error fetching wallet" });
+  }
+});
+
+// --- 2. SECURE WITHDRAWAL REQUEST ---
+router.post('/withdraw', async (req, res) => {
+  try {
+    const { email, amount, bankInfo } = req.body;
+    const withdrawAmount = Number(amount);
+
+    const vendor = await Vendor.findOne({ email: email.toLowerCase() });
+    if (!vendor) return res.status(404).json({ message: "Vendor not found" });
+
+    // Calculate True Balance again to verify they have the funds!
+    const completedOrders = await Order.find({ shopId: vendor._id.toString(), status: 'Completed' });
+    const totalEarned = completedOrders.reduce((sum, order) => sum + ((order.totalAmount || 0) * 0.9), 0);
+    const totalWithdrawn = vendor.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const availableBalance = totalEarned - totalWithdrawn;
+
+    // Block withdrawal if they are trying to take more than they have
+    if (availableBalance < withdrawAmount) {
+      return res.status(400).json({ message: "Insufficient funds!" });
+    }
+
+    // Create the transaction receipt
+    const newTx = {
+      txId: `TXN-${Math.floor(Math.random() * 100000000)}`,
+      title: 'Withdrawal to Bank',
+      amount: withdrawAmount,
+      status: 'Pending',
+      bank: bankInfo || 'Primary Bank Account'
+    };
+
+    // Save the receipt to the vendor's history
+    vendor.transactions.push(newTx);
+    await vendor.save();
+
+    res.status(200).json({ 
+      message: "Withdrawal successful", 
+      newBalance: availableBalance - withdrawAmount, // Send back the updated balance
+      transaction: newTx 
+    });
+  } catch (error) {
+    console.error("Error processing withdrawal:", error);
+    res.status(500).json({ message: "Server error during withdrawal" });
   }
 });
 

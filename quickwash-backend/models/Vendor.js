@@ -6,6 +6,18 @@ const vendorSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   password: { type: String, required: true },
   hubName: { type: String, required: true },
+  shopImage: { type: String, default: '' },
+
+  // --- WALLET & TRANSACTIONS ---
+  walletBalance: { type: Number, default: 0 },
+  transactions: [{
+    txId: { type: String },
+    title: { type: String, default: 'Withdrawal' },
+    amount: { type: Number },
+    date: { type: Date, default: Date.now },
+    status: { type: String, default: 'Pending' },
+    bank: { type: String }
+  }],
   
   // ✂️ capacity has been completely removed from here! ✂️
   

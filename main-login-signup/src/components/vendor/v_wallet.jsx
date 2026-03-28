@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './v_wallet.css';
 
 const VendorWallet = () => {
   const navigate = useNavigate();
+
+  // State
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState([]);
+  const [vendorEmail, setVendorEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modal States
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -11,29 +18,69 @@ const VendorWallet = () => {
   const [selectedTx, setSelectedTx] = useState(null); 
   const [withdrawAmount, setWithdrawAmount] = useState('');
 
-  // Mock Vendor Transactions (Withdrawals/Cash Outs)
-  const [transactions, setTransactions] = useState([
-    { id: 1, title: 'Withdrawal to SBI', date: '27 Feb 2026, 09:30 AM', amount: '5,000', status: 'Pending', txId: 'TXN-98237492', bank: 'SBI ending in 4411' },
-    { id: 2, title: 'Withdrawal to SBI', date: '20 Feb 2026, 09:15 AM', amount: '12,000', status: 'Completed', txId: 'TXN-87236412', bank: 'SBI ending in 4411' },
-    { id: 3, title: 'Withdrawal to HDFC', date: '12 Feb 2026, 02:20 PM', amount: '8,500', status: 'Completed', txId: 'TXN-45920183', bank: 'HDFC ending in 0922' },
-    { id: 4, title: 'Withdrawal to SBI', date: '01 Feb 2026, 11:00 AM', amount: '15,200', status: 'Completed', txId: 'TXN-11203948', bank: 'SBI ending in 4411' },
-  ]);
-
-  const handleConfirmWithdraw = () => {
-    if (withdrawAmount && withdrawAmount > 0) {
-      const newTx = {
-        id: Date.now(),
-        title: 'Withdrawal to SBI',
-        date: new Date().toLocaleString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        amount: parseFloat(withdrawAmount).toLocaleString('en-IN'),
-        status: 'Pending',
-        txId: `TXN-${Math.floor(Math.random() * 100000000)}`,
-        bank: 'SBI ending in 4411'
-      };
+  // --- 1. FETCH LIVE WALLET DATA ---
+  useEffect(() => {
+    const fetchWallet = async () => {
+      const savedVendorStr = localStorage.getItem('quickwash_vendor');
+      if (!savedVendorStr) {
+        navigate('/vendor-login');
+        return;
+      }
       
-      setTransactions([newTx, ...transactions]);
-      setShowWithdrawModal(false);
-      setShowSuccessModal(true);
+      const parsedVendor = JSON.parse(savedVendorStr);
+      setVendorEmail(parsedVendor.email);
+
+      try {
+        const res = await axios.get(`http://localhost:5000/api/vendors/wallet/${parsedVendor.email}/${parsedVendor.shopId}`);
+        setBalance(res.data.balance);
+        
+        // Format dates for the UI
+        const formattedTx = res.data.transactions.map(tx => ({
+          ...tx,
+          displayDate: new Date(tx.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        }));
+        
+        setTransactions(formattedTx);
+      } catch (error) {
+        console.error("Failed to fetch wallet data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchWallet();
+  }, [navigate]);
+
+  // --- 2. HANDLE LIVE WITHDRAWAL ---
+  const handleConfirmWithdraw = async () => {
+    if (withdrawAmount && withdrawAmount > 0) {
+      if (withdrawAmount > balance) {
+        alert("Amount exceeds your available balance!");
+        return;
+      }
+
+      try {
+        const res = await axios.post('http://localhost:5000/api/vendors/withdraw', {
+          email: vendorEmail,
+          amount: withdrawAmount,
+          bankInfo: 'Default Bank Account' // You can link this to real bank data later
+        });
+
+        // Update UI instantly
+        setBalance(res.data.newBalance);
+        
+        const newlyAddedTx = {
+          ...res.data.transaction,
+          displayDate: new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setTransactions([newlyAddedTx, ...transactions]);
+        setShowWithdrawModal(false);
+        setShowSuccessModal(true);
+      } catch (error) {
+        console.error("Withdrawal failed:", error);
+        alert(error.response?.data?.message || "Failed to process withdrawal.");
+      }
     }
   };
 
@@ -42,10 +89,12 @@ const VendorWallet = () => {
     setWithdrawAmount('');
   };
 
+  if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading Wallet... ⏳</div>;
+
   return (
     <div className="vwal-container">
       
-      {/* Glassmorphism Header (With Back Arrow) */}
+      {/* Glassmorphism Header */}
       <header className="vwal-header">
         <button className="vwal-back-btn" onClick={() => navigate(-1)}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -54,7 +103,7 @@ const VendorWallet = () => {
           </svg>
         </button>
         <h1 className="vwal-header-title">Wallet</h1>
-        <div style={{ width: 24 }}></div> {/* Invisible spacer keeps the title perfectly centered */}
+        <div style={{ width: 24 }}></div> 
       </header>
 
       <main className="vwal-main-content">
@@ -65,15 +114,15 @@ const VendorWallet = () => {
             <span className="vwal-balance-label">Available Balance</span>
             <span className="vwal-currency-badge">INR</span>
           </div>
-          <h2 className="vwal-balance-amount">Rs. 14,250.00</h2>
+          <h2 className="vwal-balance-amount">Rs. {balance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</h2>
           
           <div className="vwal-card-bottom">
             <div className="vwal-bank-info">
               <span className="vwal-bank-icon">🏦</span>
               <div className="vwal-bank-text-stack">
-                <span>State Bank of India •••• 4411</span>
+                <span>Linked Bank Account</span>
                 <button className="vwal-change-bank-link" onClick={() => navigate('/vendor-bank')}>
-                  Change Account 
+                  Manage 
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{marginLeft: '4px'}}><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
               </div>
@@ -81,6 +130,8 @@ const VendorWallet = () => {
             <button 
               className="vwal-withdraw-btn"
               onClick={() => setShowWithdrawModal(true)}
+              disabled={balance <= 0}
+              style={{ opacity: balance <= 0 ? 0.5 : 1 }}
             >
               Withdraw
             </button>
@@ -89,38 +140,38 @@ const VendorWallet = () => {
 
         {/* Withdrawal Requests List */}
         <div className="vwal-transactions-section">
-          <h3 className="vwal-section-title">Withdrawal Requests</h3>
+          <h3 className="vwal-section-title">Withdrawal History</h3>
           
           <div className="vwal-transactions-list">
-            {transactions.map((tx) => (
+            {transactions.length > 0 ? transactions.map((tx) => (
               <div 
-                key={tx.id} 
+                key={tx.txId || tx._id} 
                 className="vwal-transaction-item vwal-clickable"
                 onClick={() => setSelectedTx(tx)}
               >
                 <div className="vwal-tx-left">
-                  <div className="vwal-tx-icon vwal-icon-debit">
-                    ↑
-                  </div>
+                  <div className="vwal-tx-icon vwal-icon-debit">↑</div>
                   <div className="vwal-tx-details">
                     <span className="vwal-tx-title">{tx.title}</span>
-                    <span className="vwal-tx-date">{tx.date}</span>
+                    <span className="vwal-tx-date">{tx.displayDate}</span>
                   </div>
                 </div>
                 <div className="vwal-tx-right">
-                  <span className="vwal-tx-amount vwal-text-debit">- Rs. {tx.amount}</span>
+                  <span className="vwal-tx-amount vwal-text-debit">- Rs. {tx.amount.toLocaleString('en-IN')}</span>
                   <span className={`vwal-status-pill ${tx.status === 'Pending' ? 'vwal-status-pending' : 'vwal-status-completed'}`}>
                     {tx.status}
                   </span>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p style={{ textAlign: 'center', color: '#64748b', padding: '20px' }}>No transactions yet.</p>
+            )}
           </div>
         </div>
       </main>
 
       {/* =========================================
-          MODALS (Withdraw, Success, Details)
+          MODALS
           ========================================= */}
       {(showWithdrawModal || showSuccessModal || selectedTx) && (
         <div className="vwal-modal-overlay">
@@ -130,20 +181,30 @@ const VendorWallet = () => {
             <div className="vwal-modal-box">
               <div className="vwal-modal-top-row">
                 <span className="vwal-modal-label">Available to Withdraw</span>
-                <span className="vwal-modal-balance">Rs. 14,250</span>
+                <span className="vwal-modal-balance">Rs. {balance.toLocaleString('en-IN')}</span>
               </div>
               <div className="vwal-input-group">
                 <label>Enter Amount (Rs)</label>
-                <input type="number" placeholder="0.00" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} />
+                <input 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={withdrawAmount} 
+                  onChange={(e) => setWithdrawAmount(e.target.value)} 
+                  max={balance}
+                />
               </div>
               <div className="vwal-bank-preview">
                 <span className="vwal-bank-icon">🏦</span>
                 <div className="vwal-bank-text">
-                  <strong>Transfer to SBI</strong>
-                  <span>Account ending in 4411</span>
+                  <strong>Transfer to Bank</strong>
+                  <span>Standard processing time</span>
                 </div>
               </div>
-              <button className={`vwal-confirm-btn ${withdrawAmount > 0 ? 'active' : ''}`} onClick={handleConfirmWithdraw} disabled={!withdrawAmount || withdrawAmount <= 0}>
+              <button 
+                className={`vwal-confirm-btn ${withdrawAmount > 0 && withdrawAmount <= balance ? 'active' : ''}`} 
+                onClick={handleConfirmWithdraw} 
+                disabled={!withdrawAmount || withdrawAmount <= 0 || withdrawAmount > balance}
+              >
                 Confirm Withdraw
               </button>
               <button className="vwal-cancel-btn" onClick={() => setShowWithdrawModal(false)}>Cancel</button>
@@ -161,13 +222,13 @@ const VendorWallet = () => {
               </div>
               <h3 className="vwal-success-title">Withdrawal Initiated!</h3>
               <p className="vwal-success-subtitle">
-                Your request for <strong>Rs. {withdrawAmount}</strong> has been submitted. It usually reflects in your account within 1-2 business days.
+                Your request for <strong>Rs. {Number(withdrawAmount).toLocaleString('en-IN')}</strong> has been submitted. It usually reflects in your account within 1-2 business days.
               </p>
               <button className="vwal-confirm-btn active" style={{marginTop: '16px'}} onClick={handleCloseSuccess}>Back to Wallet</button>
             </div>
           )}
 
-          {/* Transaction Details Receipt Modal */}
+          {/* Transaction Details Modal */}
           {selectedTx && (
             <div className="vwal-modal-box">
               <button className="vwal-close-x" onClick={() => setSelectedTx(null)}>
@@ -177,7 +238,7 @@ const VendorWallet = () => {
               <h3 className="vwal-modal-title" style={{textAlign: 'center', margin: '0 0 8px 0'}}>Transaction Details</h3>
               
               <div className="vwal-receipt-header">
-                <span className="vwal-receipt-amount">Rs. {selectedTx.amount}</span>
+                <span className="vwal-receipt-amount">Rs. {selectedTx.amount.toLocaleString('en-IN')}</span>
                 <span className={`vwal-status-pill ${selectedTx.status === 'Pending' ? 'vwal-status-pending' : 'vwal-status-completed'}`} style={{marginTop: '8px', fontSize: '14px', padding: '6px 16px'}}>
                   {selectedTx.status}
                 </span>
@@ -186,11 +247,11 @@ const VendorWallet = () => {
               <div className="vwal-receipt-body">
                 <div className="vwal-receipt-row">
                   <span>Type</span>
-                  <strong>Withdrawal</strong>
+                  <strong>{selectedTx.title}</strong>
                 </div>
                 <div className="vwal-receipt-row">
                   <span>Date & Time</span>
-                  <strong>{selectedTx.date}</strong>
+                  <strong>{selectedTx.displayDate}</strong>
                 </div>
                 <div className="vwal-receipt-row">
                   <span>Transaction ID</span>

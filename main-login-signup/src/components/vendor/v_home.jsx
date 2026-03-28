@@ -158,6 +158,15 @@ const VendorHome = () => {
   };
 
   const handleUpdateStage = (orderId, newStage) => {
+    // 🔒 THE RIDER LOCK: Prevent marking as 'Ready' if no bill exists!
+    if (newStage === 'Ready') {
+      const currentOrder = orders.find(o => o.id === orderId);
+      if (!currentOrder || currentOrder.total === 0 || currentOrder.total === '0') {
+        alert("⚠️ You cannot request a Rider until you weigh the clothes and generate the bill!");
+        return; // Stop the update!
+      }
+    }
+
     let updateData = { laundryStage: newStage };
     if (newStage === 'Ready') updateData.status = 'Ready'; 
     updateOrderStatus(orderId, updateData);

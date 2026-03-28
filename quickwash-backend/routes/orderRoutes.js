@@ -162,4 +162,22 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET COMPLETED EARNINGS FOR A SPECIFIC SHOP
+router.get('/vendor-earnings/:shopId', async (req, res) => {
+  try {
+    const { shopId } = req.params;
+    
+    // Find all orders for this shop that are successfully completed
+    const completedOrders = await Order.find({ 
+      shopId: shopId,
+      status: 'Completed' 
+    }).sort({ createdAt: -1 }); // Newest first
+    
+    res.status(200).json(completedOrders);
+  } catch (error) {
+    console.error("Error fetching vendor earnings:", error);
+    res.status(500).json({ message: "Failed to fetch earnings data" });
+  }
+});
+
 module.exports = router;

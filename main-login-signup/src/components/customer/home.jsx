@@ -9,7 +9,7 @@ const CustomerHome = () => {
   
   // Dynamically load the logged-in user's data from localStorage!
   // Dynamically load the logged-in user's data from localStorage!
-  const [user, setUser] = useState(() => {
+  const [user] = useState(() => {
     const savedUserStr = localStorage.getItem('quickwash_user');
     
     if (savedUserStr) {
@@ -26,10 +26,6 @@ const CustomerHome = () => {
     return { name: "Guest", email: null, location: "Bejai Main Road, Mangaluru" };
   });
 
-  const [isEditingLocation, setIsEditingLocation] = useState(false);
-  const [tempLocation, setTempLocation] = useState("");
-  const [isDetecting, setIsDetecting] = useState(false);
-
   // --- REAL BACKEND SHOPS STATE ---
   const [shops, setShops] = useState([]);
   const [isLoadingShops, setIsLoadingShops] = useState(true);
@@ -45,9 +41,9 @@ const CustomerHome = () => {
         name: shop.hubName,     
         subtitle: shop.address, 
         time: '24 hrs',             
-        // 👇 Dynamically pulls the core service price!
         price: `₹${shop.pricing?.washAndIron || 60}/kg`,            
-        rating: shop.rating ? shop.rating : 'New!' 
+        rating: shop.rating ? shop.rating : 'New!',
+        shopImage: shop.shopImage || null // 👇 ADD THIS LINE!
       }));
       
       setShops(formattedShops);
@@ -62,15 +58,7 @@ const CustomerHome = () => {
     fetchActiveShops();
   }, []);
 
-  // 3. Fake GPS Button
-  const handleAutoDetect = () => {
-    setIsDetecting(true);
-    setTimeout(() => {
-      setUser({ ...user, location: "📍 Mangaluru, Karnataka" });
-      setIsDetecting(false);
-      setIsEditingLocation(false);
-    }, 800);
-  };
+  
 
   // ==========================================
   // --- REAL MONGODB FAVORITES LOGIC ---
@@ -134,17 +122,7 @@ const CustomerHome = () => {
   };
   // ==========================================
 
-  const handleEditClick = () => {
-    setTempLocation(user.location);
-    setIsEditingLocation(true);
-  };
 
-  const handleSaveLocation = () => {
-    if (tempLocation.trim() !== "") {
-      setUser({ ...user, location: tempLocation });
-    }
-    setIsEditingLocation(false);
-  };
 
   return (
     <div className="web-container">
@@ -154,29 +132,7 @@ const CustomerHome = () => {
           <h2>QUICK WASH</h2>
         </div>
 
-        <div className="nav-location">
-          <span className="loc-icon">📍</span>
-          {isEditingLocation ? (
-            <div className="inline-loc-editor animate-fade">
-              <input 
-                type="text" 
-                value={tempLocation} 
-                onChange={(e) => setTempLocation(e.target.value)}
-                placeholder="Enter area or apartment..."
-                autoFocus
-              />
-              <button className="inline-save-btn" onClick={handleSaveLocation}>Save</button>
-              <button className="inline-gps-btn" title="Use GPS" onClick={handleAutoDetect}>
-                {isDetecting ? "⏳" : "🎯"}
-              </button>
-            </div>
-          ) : (
-            <div className="loc-text-box" onClick={handleEditClick}>
-              <p className="loc-title">Delivering to <span className="drop-arrow">✎ Edit</span></p>
-              <p className="loc-address">{user.location}</p>
-            </div>
-          )}
-        </div>
+        
 
         <div className="nav-links">
           <div className="nav-item" onClick={() => navigate('/cart')}>🛒 Cart</div>
@@ -189,7 +145,10 @@ const CustomerHome = () => {
       <main className="main-content">
         <section className="web-banner">
           <div className="banner-text">
-            <h1>Fresh Clothes, <br/> Delivered to Your Door.</h1>
+            <h1>Fresh Clothes, Delivered to Your Door.</h1>
+            <p style={{ fontSize: '1.2rem', marginTop: '12px', opacity: 0.9, fontWeight: '500' }}>
+              Mangaluru's premier on-demand wash & iron service.
+            </p>
           </div>
         </section>
 
@@ -210,12 +169,19 @@ const CustomerHome = () => {
             ) : (
               shops.map((shop) => (
                 <div key={shop.id} className="web-laundry-card" onClick={() => navigate(`/shop/${shop.id}`)}>
-                  <div className="card-img-placeholder">
-                    {/* 👇 Pass the whole 'shop' object so we can send its name to the DB 👇 */}
-                    <span className="heart-icon" onClick={(e) => toggleFavorite(e, shop)}>
-                      {favorites.includes(shop.id) ? '❤️' : '🤍'}
-                    </span>
-                  </div>
+                  <div 
+                  className="card-img-placeholder" 
+                  style={{
+                    backgroundImage: shop.shopImage ? `url(http://localhost:5000/uploads/${shop.shopImage})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundColor: shop.shopImage ? 'transparent' : '#cbd5e1' // Gray fallback if no image
+                  }}
+                >
+                  <span className="heart-icon" onClick={(e) => toggleFavorite(e, shop)}>
+                    {favorites.includes(shop.id) ? '❤️' : '🤍'}
+                  </span>
+                </div>
                   <div className="web-card-info">
                     <h3>{shop.name}</h3>
                     <p className="web-subtitle">{shop.subtitle}</p>
