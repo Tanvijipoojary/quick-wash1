@@ -458,10 +458,18 @@ const VendorProfile = () => {
               
               <div style={{ height: '1px', background: '#e2e8f0', margin: '10px 20px' }}></div> 
 
-              <button className="vprof-side-item" onClick={() => alert('Opening Privacy Policy...')}><div className="vprof-side-left"><span className="vprof-side-icon">🔒</span><span className="vprof-side-label">Privacy Policy</span></div><span className="vprof-side-arrow">›</span></button>
-              <button className="vprof-side-item" onClick={() => alert('Opening About Us...')}><div className="vprof-side-left"><span className="vprof-side-icon">ℹ️</span><span className="vprof-side-label">About Us</span></div><span className="vprof-side-arrow">›</span></button>
-              <button className="vprof-side-item" onClick={() => alert('Connecting to Support...')}><div className="vprof-side-left"><span className="vprof-side-icon">❓</span><span className="vprof-side-label">Help</span></div><span className="vprof-side-arrow">›</span></button>
-
+              <button className="vprof-side-item" onClick={() => navigate('/vendor-privacy')}>
+                <div className="vprof-side-left"><span className="vprof-side-icon">🔒</span><span className="vprof-side-label">Privacy Policy</span></div><span className="vprof-side-arrow">›</span>
+              </button>
+              
+              <button className="vprof-side-item" onClick={() => navigate('/vendor-about')}>
+                <div className="vprof-side-left"><span className="vprof-side-icon">ℹ️</span><span className="vprof-side-label">About Us</span></div><span className="vprof-side-arrow">›</span>
+              </button>
+              
+              <button className="vprof-side-item" onClick={() => navigate('/vendor-help')}>
+                <div className="vprof-side-left"><span className="vprof-side-icon">❓</span><span className="vprof-side-label">Help</span></div><span className="vprof-side-arrow">›</span>
+              </button>
+              
               <div style={{ height: '1px', background: '#e2e8f0', margin: '10px 20px' }}></div> 
 
               <button className="vprof-side-item" onClick={handleLogout}><div className="vprof-side-left"><span className="vprof-side-icon" style={{color: '#e11d48'}}>🚪</span><span className="vprof-side-label" style={{color: '#e11d48', fontWeight: '600'}}>Logout</span></div></button>

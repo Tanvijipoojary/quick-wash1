@@ -7,46 +7,55 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
+  // --- CUSTOMER & SHOP DETAILS ---
   customerEmail: { type: String, required: true },
   shopId: { type: String, required: true },
   shopName: { type: String, required: true },
   pickupAddress: { type: String, required: true },
 
+  // --- GARMENT & ITEM DETAILS ---
   garmentDetails: { type: Object, default: {} },
   totalExpectedGarments: { type: Number, default: 0 },
-  
-  pickupDate: { type: String }, 
-  pickupSlot: { type: String },
-
   items: [orderItemSchema], 
+  instructions: { type: String, default: '' },
+  
+  // --- BILLING INFO ---
+  weightInKg: { type: Number, default: 0 }, 
+  totalAmount: { type: Number, default: 0 },
   deliveryFee: { type: Number, default: 40 },
   
-  // --- UPDATED 7-STEP TRACKING ---
+  // --- TRACKING STATUSES ---
   status: { 
     type: String, 
     enum: [
       'Pending',          // 1. Customer booked
-      'Pending Pickup',   // 2. Vendor accepted, rider assigned
-      'Picked Up',        // 3. Rider collected from customer
-      'Dropped at Hub',   // 4. Rider dropped at vendor
-      'At Shop',          // 4b. Vendor is weighing/washing
-      'Ready',            // 5. Vendor finished, waiting for rider
-      'Out for Delivery', // 6. Rider heading back to customer
-      'Completed'         // 7. Delivered!
+      'Searching Rider',  // 2. Vendor accepted, broadcasting to riders (Added this for your routes!)
+      'Pending Pickup',   // 3. Rider assigned, heading to customer
+      'Picked Up',        // 4. Rider collected from customer
+      'Dropped at Hub',   // 5. Rider dropped at vendor
+      'At Shop',          // 6. Vendor is weighing/washing
+      'Ready',            // 7. Vendor finished, waiting for return rider
+      'Out for Delivery', // 8. Rider heading back to customer
+      'Completed',        // 9. Delivered!
+      'Rejected'          // Vendor cancelled
     ],
     default: 'Pending' 
   },
-  
   subStatus: { type: String, default: 'pending_acceptance' },
   laundryStage: { type: String, default: 'Pending' },
-  riderEmail: { type: String, default: null }, 
   
-  // --- UPDATED SMART BILLING ---
-  weightInKg: { type: Number, default: 0 }, // Changed to a Number for accurate math!
-  totalAmount: { type: Number, default: 0 },
-  estimatedReady: { type: String, default: '' },
-  
-  instructions: { type: String, default: '' }
+  // --- RIDER ASSIGNMENTS ---
+  riderEmail: { type: String, default: null },         // Active rider handling the current leg
+  pickupRiderEmail: { type: String, default: null },   // History: who collected it
+  deliveryRiderEmail: { type: String, default: null }, // History: who delivered it 
+
+  // --- TIMELINES & DATES (Deduplicated!) ---
+  pickupDate: { type: String }, 
+  pickupSlot: { type: String },
+  estimatedPickup: { type: String, default: '' },  
+  estimatedReady: { type: String, default: '' },   // Formatted string sent by vendor (e.g., "Mar 31, 10:51 PM")
+  estimatedDelivery: { type: Date },               
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

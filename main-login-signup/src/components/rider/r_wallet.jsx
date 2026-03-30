@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './r_wallet.css';
 
 const RiderWallet = () => {
   const navigate = useNavigate();
 
   // App States
-  const [balance, setBalance] = useState(1250); 
-  const [pendingPayout, setPendingPayout] = useState(0); // NEW: Pending Payout State
+  const [riderEmail, setRiderEmail] = useState('');
+  const [balance, setBalance] = useState(0); 
+  const [pendingPayout, setPendingPayout] = useState(0); 
+  const [todaysEarnings, setTodaysEarnings] = useState(0);
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
   
   // Modal States
@@ -17,62 +22,96 @@ const RiderWallet = () => {
   const [selectedTxn, setSelectedTxn] = useState(null);
 
   // Dynamic Bank Details
-  const [bankDetails, setBankDetails] = useState({ name: 'HDFC Bank', ac: '4567' });
+  const [bankDetails, setBankDetails] = useState({ name: '', ac: '', ifsc: '' });
   const [newBank, setNewBank] = useState({ name: '', ac: '', ifsc: '' });
 
   // Withdraw State
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filter State
-  const [filterType, setFilterType] = useState('all'); // 'all', 'credit', 'debit'
+  const [filterType, setFilterType] = useState('all'); 
 
-  // Mock Transactions
-  const [transactions, setTransactions] = useState([
-    { id: 'TXN-8821XB', type: 'credit', title: 'Trip Earning (TSK-8821XB)', date: 'Today, 2:30 PM', amount: '+ Rs. 80', status: 'Completed' },
-    { id: 'TXN-9942YC', type: 'credit', title: 'Trip Earning (TSK-9942YC)', date: 'Today, 1:15 PM', amount: '+ Rs. 110', status: 'Completed' },
-    { id: 'TXN-BWD771', type: 'debit', title: 'Bank Withdrawal', date: 'Yesterday, 6:00 PM', amount: '- Rs. 850', status: `Processed to ${bankDetails.name}` },
-    { id: 'TXN-BNS004', type: 'credit', title: 'Weekly Bonus', date: 'Yesterday, 10:00 AM', amount: '+ Rs. 200', status: 'Credited' },
-    { id: 'TXN-5522AA', type: 'credit', title: 'Trip Earning (TSK-5522AA)', date: 'Yesterday, 9:30 AM', amount: '+ Rs. 60', status: 'Completed' },
-  ]);
+  // --- 1. FETCH WALLET DATA ---
+  const fetchWalletData = async (email) => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/riders/wallet/${email}`);
+      setBalance(res.data.balance);
+      setPendingPayout(res.data.pendingPayout);
+      setTodaysEarnings(res.data.todaysEarnings);
+      if (res.data.bankDetails && res.data.bankDetails.ac) {
+        setBankDetails(res.data.bankDetails);
+      }
+      setTransactions(res.data.transactions);
+    } catch (error) {
+      console.error("Failed to load wallet data", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // --- HANDLERS ---
-  const handleWithdraw = (e) => {
+  useEffect(() => {
+    const savedRider = localStorage.getItem('quickwash_rider');
+    if (!savedRider) {
+      navigate('/');
+      return;
+    }
+    const parsedData = JSON.parse(savedRider);
+    setRiderEmail(parsedData.email);
+    fetchWalletData(parsedData.email);
+  }, [navigate]);
+
+
+  // --- 2. HANDLERS ---
+  const handleWithdraw = async (e) => {
     e.preventDefault();
     const amount = parseInt(withdrawAmount);
     if (!amount || amount > balance || amount <= 0) return;
-
-    setTimeout(() => {
+    
+    if (!bankDetails.ac) {
+      alert("Please add a Bank Account first!");
       setIsWithdrawModalOpen(false);
-      
-      // NEW: Subtract from balance, Add to pending payout!
-      setBalance(prev => prev - amount);
-      setPendingPayout(prev => prev + amount);
-      
-      setShowSuccess(true);
-      
-      const newTxn = {
-        id: `TXN-BWD${Math.floor(Math.random() * 1000)}`,
-        type: 'debit',
-        title: 'Bank Withdrawal',
-        date: 'Just now',
-        amount: `- Rs. ${amount}`,
-        status: `Processing to ${bankDetails.name}`
-      };
-      setTransactions([newTxn, ...transactions]);
+      return;
+    }
 
+    setIsSubmitting(true);
+    try {
+      await axios.post('http://localhost:5000/api/riders/wallet/withdraw', {
+        email: riderEmail,
+        amount: amount
+      });
+      
+      setIsWithdrawModalOpen(false);
+      setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2500);
       setWithdrawAmount('');
-    }, 800);
+      
+      // Refresh data securely from backend!
+      fetchWalletData(riderEmail); 
+    } catch (error) {
+      alert("Failed to process withdrawal.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleUpdateBank = (e) => {
+  const handleUpdateBank = async (e) => {
     e.preventDefault();
-    if(newBank.name && newBank.ac) {
-      // Get last 4 digits for display
-      const last4 = newBank.ac.slice(-4);
-      setBankDetails({ name: newBank.name, ac: last4 });
-      setIsBankModalOpen(false);
-      setNewBank({ name: '', ac: '', ifsc: '' }); // Reset form
+    if(newBank.name && newBank.ac && newBank.ifsc) {
+      try {
+        await axios.put('http://localhost:5000/api/riders/wallet/bank', {
+          email: riderEmail,
+          bankDetails: newBank
+        });
+        
+        setBankDetails(newBank);
+        setIsBankModalOpen(false);
+        setNewBank({ name: '', ac: '', ifsc: '' }); 
+      } catch (error) {
+        console.error("Bank Error:", error);
+        // 👇 Now shows the EXACT error so we know what to fix
+        alert(error.response?.data?.message || "Failed to reach backend. Did you restart the server?");
+      }
     }
   };
 
@@ -82,16 +121,20 @@ const RiderWallet = () => {
     return txn.type === filterType;
   });
 
+  const formatDate = (isoString) => {
+    const d = new Date(isoString);
+    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' });
+  };
+
+  if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading Wallet... ⏳</div>;
+
   return (
     <div className="rwall-container">
       
       {/* --- HEADER --- */}
       <header className="rwall-header">
         <button className="rwall-back-btn" onClick={() => navigate(-1)}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </button>
         <h1 className="rwall-title">My Wallet</h1>
         <div style={{ width: 24 }}></div> 
@@ -110,16 +153,21 @@ const RiderWallet = () => {
               <span className="rwall-bank-icon">🏦</span>
               <div>
                 <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <strong>{bankDetails.name}</strong>
-                  <button className="rwall-change-bank-btn" onClick={() => setIsBankModalOpen(true)}>Change</button>
+                  <strong>{bankDetails.name || 'No Bank Added'}</strong>
+                  <button className="rwall-change-bank-btn" onClick={() => setIsBankModalOpen(true)}>
+                    {bankDetails.ac ? 'Change' : 'Add Bank'}
+                  </button>
                 </div>
-                <small>Ac/ No. **** {bankDetails.ac}</small>
+                <small>
+                  {bankDetails.ac ? `Ac/ No. **** ${bankDetails.ac.slice(-4)}` : 'Link bank to withdraw'}
+                </small>
               </div>
             </div>
             <button 
               className="rwall-withdraw-btn" 
               onClick={() => setIsWithdrawModalOpen(true)}
-              disabled={balance <= 0}
+              disabled={balance <= 0 || !bankDetails.ac}
+              style={{ opacity: (balance <= 0 || !bankDetails.ac) ? 0.5 : 1 }}
             >
               Withdraw
             </button>
@@ -130,11 +178,10 @@ const RiderWallet = () => {
         <div className="rwall-stats-grid">
           <div className="rwall-stat-box">
             <small>Today's Earnings</small>
-            <strong>Rs. 190</strong>
+            <strong>Rs. {todaysEarnings}</strong>
           </div>
           <div className="rwall-stat-box">
             <small>Pending Payout</small>
-            {/* NEW: Dynamically displays the pending payout state */}
             <strong>Rs. {pendingPayout}</strong>
           </div>
         </div>
@@ -152,20 +199,20 @@ const RiderWallet = () => {
             {filteredTransactions.length === 0 ? (
               <p style={{textAlign: 'center', color: '#888', marginTop: '20px'}}>No transactions found.</p>
             ) : (
-              filteredTransactions.map((txn) => (
-                <div key={txn.id} className="rwall-txn-item clickable" onClick={() => setSelectedTxn(txn)}>
+              filteredTransactions.map((txn, idx) => (
+                <div key={idx} className="rwall-txn-item clickable" onClick={() => setSelectedTxn(txn)}>
                   <div className="rwall-txn-left">
                     <div className={`rwall-txn-icon ${txn.type}`}>
                       {txn.type === 'credit' ? '↓' : '↑'}
                     </div>
                     <div className="rwall-txn-details">
                       <strong>{txn.title}</strong>
-                      <small>{txn.date}</small>
+                      <small>{formatDate(txn.date)}</small>
                     </div>
                   </div>
                   <div className="rwall-txn-right">
                     <div className={`rwall-txn-amount ${txn.type}`}>
-                      {txn.amount}
+                      {txn.type === 'credit' ? '+' : '-'} Rs. {txn.amount}
                     </div>
                     <span className="rwall-txn-arrow">›</span>
                   </div>
@@ -188,15 +235,9 @@ const RiderWallet = () => {
               <button className="rwall-close-btn" onClick={() => setIsFilterModalOpen(false)}>✕</button>
             </div>
             <div className="rwall-filter-options">
-              <button className={`rwall-filter-opt ${filterType === 'all' ? 'active' : ''}`} onClick={() => {setFilterType('all'); setIsFilterModalOpen(false);}}>
-                All Transactions
-              </button>
-              <button className={`rwall-filter-opt ${filterType === 'credit' ? 'active' : ''}`} onClick={() => {setFilterType('credit'); setIsFilterModalOpen(false);}}>
-                Earnings (Credits ↓)
-              </button>
-              <button className={`rwall-filter-opt ${filterType === 'debit' ? 'active' : ''}`} onClick={() => {setFilterType('debit'); setIsFilterModalOpen(false);}}>
-                Withdrawals (Debits ↑)
-              </button>
+              <button className={`rwall-filter-opt ${filterType === 'all' ? 'active' : ''}`} onClick={() => {setFilterType('all'); setIsFilterModalOpen(false);}}>All Transactions</button>
+              <button className={`rwall-filter-opt ${filterType === 'credit' ? 'active' : ''}`} onClick={() => {setFilterType('credit'); setIsFilterModalOpen(false);}}>Earnings (Credits ↓)</button>
+              <button className={`rwall-filter-opt ${filterType === 'debit' ? 'active' : ''}`} onClick={() => {setFilterType('debit'); setIsFilterModalOpen(false);}}>Withdrawals (Debits ↑)</button>
             </div>
           </div>
         </div>
@@ -207,7 +248,7 @@ const RiderWallet = () => {
         <div className="rwall-modal-overlay">
           <div className="rwall-modal-card">
             <div className="rwall-modal-header">
-              <h2>Update Bank Account</h2>
+              <h2>{bankDetails.ac ? 'Update Bank Account' : 'Link Bank Account'}</h2>
               <button className="rwall-close-btn" onClick={() => setIsBankModalOpen(false)}>✕</button>
             </div>
             <form onSubmit={handleUpdateBank}>
@@ -223,7 +264,7 @@ const RiderWallet = () => {
                 <label>IFSC Code</label>
                 <input type="text" placeholder="e.g. SBIN0001234" value={newBank.ifsc} onChange={(e) => setNewBank({...newBank, ifsc: e.target.value})} required style={{textTransform: 'uppercase'}}/>
               </div>
-              <button type="submit" className="rwall-submit-btn" style={{marginTop: '8px'}}>Save New Account</button>
+              <button type="submit" className="rwall-submit-btn" style={{marginTop: '8px'}}>Save Account</button>
             </form>
           </div>
         </div>
@@ -253,9 +294,10 @@ const RiderWallet = () => {
               <button 
                 type="submit" 
                 className="rwall-submit-btn"
-                disabled={!withdrawAmount || withdrawAmount > balance}
+                disabled={!withdrawAmount || withdrawAmount > balance || isSubmitting}
+                style={{ opacity: (!withdrawAmount || withdrawAmount > balance || isSubmitting) ? 0.6 : 1 }}
               >
-                Confirm Withdrawal
+                {isSubmitting ? 'Processing...' : 'Confirm Withdrawal'}
               </button>
             </form>
           </div>
@@ -275,7 +317,7 @@ const RiderWallet = () => {
               <div className={`rwall-txn-large-icon ${selectedTxn.type}`}>
                 {selectedTxn.type === 'credit' ? '↓' : '↑'}
               </div>
-              <h3 className="rwall-txn-detail-amount">{selectedTxn.amount}</h3>
+              <h3 className="rwall-txn-detail-amount">{selectedTxn.type === 'credit' ? '+' : '-'} Rs. {selectedTxn.amount}</h3>
               <span className={`rwall-txn-detail-status ${selectedTxn.type}`}>
                 {selectedTxn.status}
               </span>
@@ -290,7 +332,7 @@ const RiderWallet = () => {
               </div>
               <div className="rwall-txn-info-row">
                 <span>Date & Time</span>
-                <strong>{selectedTxn.date}</strong>
+                <strong>{formatDate(selectedTxn.date)}</strong>
               </div>
             </div>
 
@@ -305,12 +347,11 @@ const RiderWallet = () => {
           <div className="rwall-success-box">
             <div className="rwall-success-icon">✅</div>
             <h2>Withdrawal Initiated!</h2>
-            <p>Rs. {withdrawAmount} is on its way to your bank.</p>
+            <p>Your funds are on the way to your bank.</p>
           </div>
         </div>
       )}
 
-      {/* --- BOTTOM NAVIGATION --- */}
       {/* --- BOTTOM NAVIGATION --- */}
       <footer className="rwall-bottom-nav">
         <button className="rwall-nav-item" onClick={() => navigate('/rider-home')}>
@@ -319,13 +360,10 @@ const RiderWallet = () => {
         <button className="rwall-nav-item active" onClick={() => navigate('/rider-wallet')}>
           <span className="rwall-nav-icon">💳</span><small>Wallet</small>
         </button>
-        
-        {/* FIX: This now navigates to the Earnings page instead of showing an alert! */}
         <button className="rwall-nav-item" onClick={() => navigate('/rider-earnings')}>
           <span className="rwall-nav-icon">💲</span><small>Earnings</small>
         </button>
-        
-        <button className="rwall-nav-item" onClick={() => alert("Profile next!")}>
+        <button className="rwall-nav-item" onClick={() => navigate('/rider-profile')}>
           <span className="rwall-nav-icon">👤</span><small>Profile</small>
         </button>
       </footer>

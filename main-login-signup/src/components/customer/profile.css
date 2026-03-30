@@ -140,9 +140,9 @@
 
 .view-details-text-btn {
   background: none; border: none; padding: 0;
-  color: #fc8019; font-weight: bold; font-size: 0.85rem; cursor: pointer;
+  color: #0084c6; font-weight: bold; font-size: 0.85rem; cursor: pointer;
 }
-.view-details-text-btn:hover { color: #db680b; }
+.view-details-text-btn:hover { color: #00aaff; }s
 
 .order-delivery-status {
   color: #686b78;
@@ -177,13 +177,13 @@
   gap: 15px;
 }
 .reorder-btn {
-  background: #fc8019; color: white; border: none;
+  background: #0b92db; color: white; border: none;
   padding: 10px 25px; font-weight: bold; font-size: 0.85rem; cursor: pointer;
 }
-.reorder-btn:hover { background: #db680b; }
+.reorder-btn:hover { background: #70c5f3; }
 
 .help-btn {
-  background: white; color: #fc8019; border: 1px solid #fc8019;
+  background: white; color: #0b92db; border: 1px solid #0061b1;
   padding: 10px 25px; font-weight: bold; font-size: 0.85rem; cursor: pointer;
 }
 .help-btn:hover { background: #fff7f2; }

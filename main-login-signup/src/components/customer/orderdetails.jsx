@@ -91,6 +91,20 @@ const OrderDetails = () => {
           {/* --- LEFT COLUMN: LIVE TRACKER --- */}
           <div className="tracker-section">
             <div className="tracking-card">
+
+              {/* ADD THIS RIGHT ABOVE YOUR TRACKING TIMELINE */}
+        {order.status === 'Rejected' && (
+          <div style={{ background: '#fef2f2', border: '1px solid #f87171', padding: '20px', borderRadius: '12px', marginBottom: '20px', textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', marginBottom: '10px' }}>❌</div>
+            <h3 style={{ color: '#b91c1c', margin: '0 0 10px 0' }}>Order Cancelled</h3>
+            <p style={{ color: '#7f1d1d', margin: 0 }}>
+              The laundry hub is currently at full capacity and cannot accept new orders right now. Please try booking with another nearby shop!
+            </p>
+          </div>
+        )}
+
+
+
               <h2>Track Your Wash</h2>
               
               <div className="vertical-stepper">
@@ -164,6 +178,16 @@ const OrderDetails = () => {
 
           {/* --- RIGHT COLUMN: ORDER INFO --- */}
           <div className="order-info-section">
+
+           <div className="info-card" style={{ background: '#fffbeb', border: '1px solid #fef08a' }}>
+              <h3>Delivery Timeline</h3>
+              <p style={{ margin: '10px 0 0 0', fontSize: '1rem' }}>
+                <strong>Expected Delivery: </strong> 
+                <span style={{ color: '#b45309', fontWeight: 'bold' }}>
+                  {order.estimatedReady ? order.estimatedReady : "Waiting for vendor to confirm..."}
+                </span>
+              </p>
+            </div>
             
             <div className="info-card">
               <h3>Pickup Details</h3>
@@ -177,12 +201,7 @@ const OrderDetails = () => {
                 <p style={{ margin: '2px 0 0 0', color: '#0f172a', lineHeight: '1.4' }}>{order.pickupAddress}</p>
               </div>
 
-              <div>
-                <span style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>Dispatch Status</span>
-                <p style={{ margin: '2px 0 0 0', color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  ⚡ Instant (ASAP)
-                </p>
-              </div>
+              
             </div>
 
             <div className="info-card">
@@ -196,6 +215,12 @@ const OrderDetails = () => {
                   <span className="rate-badge" style={{ fontWeight: 'bold' }}>₹{item.price}{item.name.includes("Dry Clean") ? "/pc" : "/kg"}</span>
                 </div>
               ))}
+            </div>
+
+            <div className="info-card">
+              <h3>Delivery Timeline</h3>
+              <p><strong>Pickup:</strong> {order.estimatedPickup}</p>
+              <p><strong>Expected Delivery:</strong> {new Date(order.estimatedDelivery).toLocaleDateString()} by 8:00 PM</p>
             </div>
 
             <div className="info-card billing-card">

@@ -213,4 +213,184 @@ router.put('/accept-task/:orderId', async (req, res) => {
   }
 });
 
+// --- UPDATE ORDER STATUS ---
+router.put('/update-status/:id', async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const updateData = req.body; // This will contain { status: 'Searching Rider' } etc.
+
+    // Find the order and update it with the new data
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      { $set: updateData },
+      { new: true } // Returns the updated document
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({ message: "Order updated successfully", order: updatedOrder });
+  } catch (error) {
+    console.error("🚨 Error updating order status:", error);
+    res.status(500).json({ message: "Server error while updating order" });
+  }
+});
+
+// --- 4. GET RIDER EARNINGS & TRIP HISTORY ---
+router.get('/earnings/:email', async (req, res) => {
+  try {
+    const email = req.params.email.toLowerCase();
+    
+    // Find orders where the rider did EITHER the pickup OR the delivery
+    const trips = await Order.find({ 
+      $or: [
+        { pickupRiderEmail: email },
+        { deliveryRiderEmail: email }
+      ]
+    }).sort({ updatedAt: -1 }); 
+
+    res.status(200).json(trips);
+  } catch (error) {
+    console.error("Error fetching rider earnings:", error);
+    res.status(500).json({ message: "Failed to fetch earnings data" });
+  }
+});
+
+// ==========================================
+// 💳 RIDER WALLET & WITHDRAWALS
+// ==========================================
+
+// --- 1. GET WALLET DATA (DYNAMIC BALANCE) ---
+router.get('/wallet/:email', async (req, res) => {
+  try {
+    const email = req.params.email.toLowerCase();
+    const rider = await Rider.findOne({ email });
+    if (!rider) return res.status(404).json({ message: "Rider not found" });
+
+    // Find all trips
+    const trips = await Order.find({ $or: [{ pickupRiderEmail: email }, { deliveryRiderEmail: email }] });
+    
+    let totalEarned = 0;
+    let todaysEarnings = 0;
+    let allTxns = [];
+    const now = new Date();
+
+    // A. Generate "Credit" Transactions from Trips
+    trips.forEach(o => {
+      // Collection Run
+      if (o.pickupRiderEmail === email) {
+        totalEarned += 40;
+        if (new Date(o.createdAt).toDateString() === now.toDateString()) todaysEarnings += 40;
+        allTxns.push({ id: o._id.toString().slice(-6).toUpperCase(), type: 'credit', title: 'Collection Run', date: o.createdAt, amount: 40, status: 'Completed' });
+      }
+      // Delivery Run
+      if (o.deliveryRiderEmail === email) {
+        totalEarned += 40;
+        if (new Date(o.updatedAt).toDateString() === now.toDateString()) todaysEarnings += 40;
+        allTxns.push({ id: o._id.toString().slice(-6).toUpperCase(), type: 'credit', title: 'Delivery Run', date: o.updatedAt, amount: 40, status: 'Completed' });
+      }
+    });
+
+    // B. Generate "Debit" Transactions & Calculate Withdrawals
+    let totalWithdrawn = 0;
+    let pendingPayout = 0;
+
+    rider.withdrawals.forEach(w => {
+      totalWithdrawn += w.amount;
+      if (w.status === 'Pending') pendingPayout += w.amount;
+      
+      allTxns.push({ id: w.txId, type: 'debit', title: 'Bank Withdrawal', date: w.date, amount: w.amount, status: w.status === 'Pending' ? `Processing to ${rider.bankDetails.name || 'Bank'}` : 'Processed' });
+    });
+
+    // C. Calculate Final True Balance
+    const availableBalance = totalEarned - totalWithdrawn;
+
+    // D. Sort Transactions by newest first
+    allTxns.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.status(200).json({
+      balance: availableBalance,
+      pendingPayout,
+      todaysEarnings,
+      bankDetails: rider.bankDetails,
+      transactions: allTxns
+    });
+
+  } catch (error) {
+    console.error("Wallet Error:", error);
+    res.status(500).json({ message: "Failed to load wallet" });
+  }
+});
+
+// --- 2. REQUEST WITHDRAWAL ---
+router.post('/wallet/withdraw', async (req, res) => {
+  try {
+    const { email, amount } = req.body;
+    const rider = await Rider.findOne({ email: email.toLowerCase() });
+    
+    if (!rider) return res.status(404).json({ message: "Rider not found" });
+    if (!rider.bankDetails || !rider.bankDetails.ac) return res.status(400).json({ message: "Please add a bank account first." });
+
+    // Note: A real app would double-check the balance calculation here again for security!
+    
+    const newWithdrawal = {
+      txId: `TXN-BWD${Math.floor(Math.random() * 10000)}`,
+      amount: amount,
+      status: 'Pending'
+    };
+
+    rider.withdrawals.push(newWithdrawal);
+    await rider.save();
+
+    res.status(200).json({ message: "Withdrawal requested successfully", withdrawal: newWithdrawal });
+  } catch (error) {
+    res.status(500).json({ message: "Server error processing withdrawal" });
+  }
+});
+
+// --- 3. UPDATE BANK DETAILS ---
+router.put('/wallet/bank', async (req, res) => {
+  try {
+    const { email, bankDetails } = req.body;
+    console.log(`🏦 Updating Bank for ${email}:`, bankDetails); // 👈 Helpful log
+    
+    const rider = await Rider.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { $set: { bankDetails: bankDetails } }, // 👈 Forces the update safely
+      { new: true }
+    );
+    
+    if (!rider) return res.status(404).json({ message: "Rider not found in DB." });
+    
+    res.status(200).json({ message: "Bank details updated!", bankDetails: rider.bankDetails });
+  } catch (error) {
+    console.error("🚨 Bank Update Error:", error);
+    res.status(500).json({ message: "Server error saving bank details." });
+  }
+});
+
+router.post('/support-message', async (req, res) => {
+  const { riderEmail, subject, message } = req.body;
+
+  try {
+    const mailOptions = {
+      from: `Quick Wash Support <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_USER, 
+      replyTo: riderEmail, 
+      subject: `Rider Support: ${subject}`,
+      text: `Rider Email: ${riderEmail}\n\nMessage:\n${message}`
+    };
+
+    // 👇 UNCOMMENT THIS LINE TO SEND FOR REAL
+    await transporter.sendMail(mailOptions);
+    
+    console.log("🚀 Email sent successfully to tanvijipoojary@gmail.com");
+    res.status(200).json({ message: "Support email sent successfully" });
+  } catch (error) {
+    console.error("❌ Nodemailer Error:", error);
+    res.status(500).json({ message: "Failed to send email. Check App Password." });
+  }
+});
+
 module.exports = router;

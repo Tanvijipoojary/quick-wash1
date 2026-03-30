@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './r_profile.css';
 import axios from 'axios';
+import './r_profile.css';
 
 const RiderProfile = () => {
   const navigate = useNavigate();
@@ -13,45 +13,61 @@ const RiderProfile = () => {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   
-  // App Settings State
-  const [notificationsOn, setNotificationsOn] = useState(true);
+  // --- REAL DYNAMIC RIDER DATA ---
+  const [riderEmail, setRiderEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  // --- 1. REAL DYNAMIC RIDER DATA ---
   const [profile, setProfile] = useState({
+    id: '', // 👈 Added Database ID field
     name: 'Loading...',
     phone: '',
     email: '',
-    city: '',
+    city: 'Mangaluru', 
     vehicleType: '',
     regNo: '',
-    rating: '5.0', // Default rating for now
+    rating: '5.0', 
     kycStatus: 'Verified & Active',
-    docs: {
-      dl: 'Verified', rc: 'Verified', insurance: 'Verified', aadhar: 'Verified', pan: 'Verified'
-    }
+    docs: { dl: 'Verified', rc: 'Verified', insurance: 'Verified', aadhar: 'Verified', pan: 'Verified' }
   });
 
   // Edit Forms State
   const [personalForm, setPersonalForm] = useState({ name: '', phone: '', email: '', city: '' });
   const [vehicleForm, setVehicleForm] = useState({ type: '', regNo: '' });
 
-  // --- 2. FETCH DATA ON LOAD ---
+  // --- 1. FETCH LIVE DATA ON LOAD ---
   useEffect(() => {
-    const savedRider = localStorage.getItem('quickwash_rider');
-    if (savedRider) {
+    const fetchProfile = async () => {
+      const savedRider = localStorage.getItem('quickwash_rider');
+      if (!savedRider) {
+        navigate('/'); 
+        return;
+      }
+      
       const parsedData = JSON.parse(savedRider);
-      setProfile(prev => ({
-        ...prev,
-        name: parsedData.name || 'Awesome Rider',
-        phone: parsedData.phone || 'N/A',
-        email: parsedData.email || 'N/A',
-        city: parsedData.city || 'N/A',
-        vehicleType: parsedData.vehicleType || 'Two Wheeler',
-        regNo: parsedData.vehicleNumber || 'N/A' // Pulling the vehicleNumber from signup!
-      }));
-    } else {
-      navigate('/'); // Go to login if no data is found
-    }
+      setRiderEmail(parsedData.email);
+
+      try {
+        const res = await axios.get(`http://localhost:5000/api/riders/profile/${parsedData.email}`);
+        const dbRider = res.data;
+
+        setProfile(prev => ({
+          ...prev,
+          id: dbRider._id, // 👈 Pulling the actual ID from MongoDB!
+          name: dbRider.name || 'Awesome Rider',
+          phone: dbRider.phone || 'N/A',
+          email: dbRider.email || 'N/A',
+          vehicleType: dbRider.vehicle_type || dbRider.vehicleType || 'Two Wheeler',
+          regNo: dbRider.vehicle_number || dbRider.vehicleNumber || 'N/A'
+        }));
+        
+      } catch (error) {
+        console.error("Failed to load rider profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
   }, [navigate]);
 
   // Keep edit forms synced with the profile data
@@ -60,18 +76,44 @@ const RiderProfile = () => {
     setVehicleForm({ type: profile.vehicleType, regNo: profile.regNo });
   }, [profile]);
 
-  // Handlers
-  const handleSavePersonal = (e) => {
+  // --- 2. HANDLERS FOR UPDATING THE DATABASE ---
+  
+  const handleSavePersonal = async (e) => {
     e.preventDefault();
-    setProfile({ ...profile, ...personalForm });
-    setIsEditPersonalOpen(false);
-    // Note: In a real app, you would make an axios.put() request here to update MongoDB too!
+    try {
+      await axios.put('http://localhost:5000/api/riders/profile', {
+        email: riderEmail,
+        name: personalForm.name,
+        phone: personalForm.phone,
+        vehicleType: profile.vehicleType,
+        vehicleNumber: profile.regNo
+      });
+      
+      setProfile({ ...profile, name: personalForm.name, phone: personalForm.phone });
+      setIsEditPersonalOpen(false);
+    } catch (error) {
+      console.error("Error saving personal info:", error);
+      alert("Failed to save changes.");
+    }
   };
 
-  const handleSaveVehicle = (e) => {
+  const handleSaveVehicle = async (e) => {
     e.preventDefault();
-    setProfile({ ...profile, vehicleType: vehicleForm.type, regNo: vehicleForm.regNo });
-    setIsEditVehicleOpen(false);
+    try {
+      await axios.put('http://localhost:5000/api/riders/profile', {
+        email: riderEmail,
+        name: profile.name,
+        phone: profile.phone,
+        vehicleType: vehicleForm.type,
+        vehicleNumber: vehicleForm.regNo
+      });
+
+      setProfile({ ...profile, vehicleType: vehicleForm.type, regNo: vehicleForm.regNo });
+      setIsEditVehicleOpen(false);
+    } catch (error) {
+      console.error("Error saving vehicle info:", error);
+      alert("Failed to update vehicle details.");
+    }
   };
 
   const handleSaveKYC = (e) => {
@@ -82,18 +124,19 @@ const RiderProfile = () => {
       docs: { ...profile.docs, dl: 'Under Review' }
     });
     setIsEditKYCOpen(false);
+    alert("Documents submitted for review!");
   };
 
-  // --- 3. CLEAR DATA ON LOGOUT ---
   const handleLogout = () => {
-    localStorage.removeItem('quickwash_rider'); // Wipe the memory
-    navigate('/'); // Send back to login screen
+    localStorage.removeItem('quickwash_rider');
+    navigate('/'); 
   };
+
+  if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading Profile... ⏳</div>;
 
   return (
     <div className="rprof-container">
       
-      {/* --- HEADER --- */}
       <header className="rprof-header">
         <h1 className="rprof-title">My Profile</h1>
       </header>
@@ -104,13 +147,13 @@ const RiderProfile = () => {
         <div className="rprof-hero-card">
           <div className="rprof-avatar-ring">
             <div className="rprof-avatar-img">
-              {/* Dynamically gets the first letter of their name */}
               {profile.name.charAt(0).toUpperCase()}
             </div>
           </div>
           <h2 className="rprof-name">{profile.name}</h2>
           <div className="rprof-badge-row">
-            <span className="rprof-id-badge">ID: QW-R-8821</span>
+            {/* 👈 Clean 6-character Database ID! */}
+            <span className="rprof-id-badge">ID: {profile.id ? profile.id.slice(-6).toUpperCase() : '...'}</span>
             <span className="rprof-rating-badge">⭐ {profile.rating} Rating</span>
           </div>
         </div>
@@ -143,13 +186,6 @@ const RiderProfile = () => {
                 <strong>{profile.email}</strong>
               </div>
             </div>
-            <div className="rprof-info-row">
-              <span className="rprof-icon">📍</span>
-              <div className="rprof-info-text">
-                <small>Service City</small>
-                <strong>{profile.city}</strong>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -177,7 +213,7 @@ const RiderProfile = () => {
           </div>
         </div>
 
-        {/* --- 3. KYC DOCUMENTS --- */}
+        {/* --- 3. KYC DOCUMENTS (NOW ALL 5) --- */}
         <div className="rprof-section">
           <div className="rprof-section-header">
             <h3>KYC Documents</h3>
@@ -208,7 +244,7 @@ const RiderProfile = () => {
                 <span className={`rprof-doc-status ${profile.docs.insurance === 'Verified' ? 'green' : 'orange'}`}>{profile.docs.insurance}</span>
               </div>
               <div className="rprof-doc-item">
-                <span>Aadhar Card</span>
+                <span>Aadhaar Card</span>
                 <span className={`rprof-doc-status ${profile.docs.aadhar === 'Verified' ? 'green' : 'orange'}`}>{profile.docs.aadhar}</span>
               </div>
               <div className="rprof-doc-item">
@@ -219,51 +255,38 @@ const RiderProfile = () => {
           </div>
         </div>
 
-        {/* --- APP SETTINGS --- */}
-        <div className="rprof-section">
-          <h3>App Settings</h3>
-          <div className="rprof-info-card" style={{ gap: '0' }}>
-            <div className="rprof-settings-row">
-              <div className="rprof-settings-text">
-                <strong>Push Notifications</strong>
-                <small>Get alerts for new trips</small>
-              </div>
-              <label className="rprof-switch">
-                <input type="checkbox" checked={notificationsOn} onChange={() => setNotificationsOn(!notificationsOn)} />
-                <span className="rprof-slider"></span>
-              </label>
-            </div>
-            <div className="rprof-settings-divider"></div>
-            <div className="rprof-settings-row">
-              <div className="rprof-settings-text">
-                <strong>Default Navigation</strong>
-                <small>App used for directions</small>
-              </div>
-              <select className="rprof-select-nav">
-                <option value="google">Google Maps</option>
-                <option value="waze">Waze</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* --- SUPPORT & LOGOUT --- */}
+        {/* --- SECURITY, POLICY, SUPPORT & LOGOUT --- */}
         <div className="rprof-action-buttons">
-          <button className="rprof-btn-secondary" onClick={() => setIsSupportModalOpen(true)}>
-            Help & Support
-          </button>
-          <button className="rprof-btn-danger" onClick={() => setIsLogoutModalOpen(true)}>
-            Log Out
-          </button>
-        </div>
+          
+          <div className="rprof-settings-group">
+            {/* 👇 UPDATED: Now points to About Us 👇 */}
+            <button className="rprof-settings-btn" onClick={() => navigate('/rider-about')}>
+              <div className="rprof-settings-content">
+                <span className="rprof-settings-icon">ℹ️</span>
+                <strong>About Us</strong>
+              </div>
+              <span className="rprof-settings-arrow">›</span>
+            </button>
+            
+            <button className="rprof-settings-btn" onClick={() => navigate('/rider-policy')}>
+              <div className="rprof-settings-content">
+                <span className="rprof-settings-icon">📜</span>
+                <strong>Privacy Policy</strong>
+              </div>
+              <span className="rprof-settings-arrow">›</span>
+            </button>
+          </div>
 
+          <button className="rprof-btn-secondary" onClick={() => navigate('/rider-support')}>Help & Support</button>
+          <button className="rprof-btn-danger" onClick={() => setIsLogoutModalOpen(true)}>Log Out</button>
+        </div>
       </main>
 
-      {/* ========================================= */}
-      {/* MODALS                    */}
-      {/* ========================================= */}
+      {/* =========================================
+          MODALS
+          ========================================= */}
 
-      {/* --- 1. EDIT PERSONAL INFO MODAL --- */}
+      {/* 1. Edit Personal Modal */}
       {isEditPersonalOpen && (
         <div className="rprof-modal-overlay">
           <div className="rprof-modal-card">
@@ -282,11 +305,7 @@ const RiderProfile = () => {
               </div>
               <div className="rprof-input-group">
                 <label>Email Address</label>
-                <input type="email" value={personalForm.email} onChange={(e) => setPersonalForm({...personalForm, email: e.target.value})} disabled style={{background: '#f1f5f9'}} />
-              </div>
-              <div className="rprof-input-group">
-                <label>City</label>
-                <input type="text" value={personalForm.city} onChange={(e) => setPersonalForm({...personalForm, city: e.target.value})} required />
+                <input type="email" value={personalForm.email} disabled style={{background: '#f1f5f9'}} />
               </div>
               <button type="submit" className="rprof-submit-btn" style={{marginTop: '8px'}}>Save Changes</button>
             </form>
@@ -294,7 +313,7 @@ const RiderProfile = () => {
         </div>
       )}
 
-      {/* --- 2. EDIT VEHICLE MODAL --- */}
+      {/* 2. Edit Vehicle Modal */}
       {isEditVehicleOpen && (
         <div className="rprof-modal-overlay">
           <div className="rprof-modal-card">
@@ -321,7 +340,7 @@ const RiderProfile = () => {
         </div>
       )}
 
-      {/* --- 3. EDIT KYC DOCUMENTS MODAL --- */}
+      {/* 3. KYC Modal (Static UI) */}
       {isEditKYCOpen && (
         <div className="rprof-modal-overlay">
           <div className="rprof-modal-card rprof-modal-scrollable">
@@ -331,60 +350,20 @@ const RiderProfile = () => {
             </div>
             <form onSubmit={handleSaveKYC}>
               <p className="rprof-modal-subtitle">Upload clear photos of your original documents to update your profile.</p>
-              
               <div className="rprof-upload-grid">
-                <div className="rprof-upload-box">
-                  <div className="rprof-upload-info">
-                    <strong>🪪 Driving License</strong>
-                    <small>Front & Back</small>
-                  </div>
-                  <button type="button" className="rprof-upload-btn">Upload</button>
-                </div>
-
-                <div className="rprof-upload-box">
-                  <div className="rprof-upload-info">
-                    <strong>🏍️ RC Book / Smart Card</strong>
-                    <small>Vehicle Registration</small>
-                  </div>
-                  <button type="button" className="rprof-upload-btn">Upload</button>
-                </div>
-
-                <div className="rprof-upload-box">
-                  <div className="rprof-upload-info">
-                    <strong>🛡️ Vehicle Insurance</strong>
-                    <small>Valid Policy Copy</small>
-                  </div>
-                  <button type="button" className="rprof-upload-btn">Upload</button>
-                </div>
-
-                <div className="rprof-upload-box">
-                  <div className="rprof-upload-info">
-                    <strong>🆔 Aadhar Card</strong>
-                    <small>Identity Proof</small>
-                  </div>
-                  <button type="button" className="rprof-upload-btn">Upload</button>
-                </div>
-
-                <div className="rprof-upload-box">
-                  <div className="rprof-upload-info">
-                    <strong>💳 PAN Card</strong>
-                    <small>For Payments</small>
-                  </div>
-                  <button type="button" className="rprof-upload-btn">Upload</button>
-                </div>
+                <div className="rprof-upload-box"><div className="rprof-upload-info"><strong>🪪 Driving License</strong></div><button type="button" className="rprof-upload-btn">Upload</button></div>
+                <div className="rprof-upload-box"><div className="rprof-upload-info"><strong>🏍️ RC Book</strong></div><button type="button" className="rprof-upload-btn">Upload</button></div>
+                <div className="rprof-upload-box"><div className="rprof-upload-info"><strong>🛡️ Insurance</strong></div><button type="button" className="rprof-upload-btn">Upload</button></div>
+                <div className="rprof-upload-box"><div className="rprof-upload-info"><strong>🆔 Aadhaar Card</strong></div><button type="button" className="rprof-upload-btn">Upload</button></div>
+                <div className="rprof-upload-box"><div className="rprof-upload-info"><strong>💳 PAN Card</strong></div><button type="button" className="rprof-upload-btn">Upload</button></div>
               </div>
-
-              <p className="rprof-modal-note" style={{marginTop: '16px'}}>
-                Any updated documents will be reviewed by our team within 24 hours.
-              </p>
-              
-              <button type="submit" className="rprof-submit-btn">Submit Documents</button>
+              <button type="submit" className="rprof-submit-btn" style={{marginTop: '12px'}}>Submit Documents</button>
             </form>
           </div>
         </div>
       )}
 
-      {/* --- 4. HELP & SUPPORT MODAL --- */}
+      {/* 4. Support Modal */}
       {isSupportModalOpen && (
         <div className="rprof-modal-overlay">
           <div className="rprof-modal-card">
@@ -393,33 +372,29 @@ const RiderProfile = () => {
               <button className="rprof-close-btn" onClick={() => setIsSupportModalOpen(false)}>✕</button>
             </div>
             <div className="rprof-support-options">
-              <button className="rprof-support-btn" onClick={() => alert("Opening Live Chat...")}>
-                <span className="rprof-support-icon">💬</span>
-                <div>
-                  <strong>Chat with Support</strong>
-                  <small>Average wait: 2 mins</small>
-                </div>
-              </button>
+              
               <button className="rprof-support-btn" onClick={() => alert("Dialing Quick Wash Hotline...")}>
                 <span className="rprof-support-icon">📞</span>
-                <div>
-                  <strong>Call Hotline</strong>
-                  <small>For urgent live order issues</small>
+                <div style={{ textAlign: 'left' }}>
+                  <strong style={{ display: 'block', fontSize: '1.1rem', marginBottom: '4px', color: '#1e293b' }}>Call Hotline</strong>
+                  <small style={{ color: '#64748b', fontSize: '0.85rem' }}>For urgent live order issues</small>
                 </div>
               </button>
-              <button className="rprof-support-btn" onClick={() => alert("Opening FAQ PDF...")}>
-                <span className="rprof-support-icon">📖</span>
-                <div>
-                  <strong>Read FAQs</strong>
-                  <small>App guides and payout info</small>
+
+              <button className="rprof-support-btn" onClick={() => window.location.href = "mailto:support@quickwash.com"}>
+                <span className="rprof-support-icon">✉️</span>
+                <div style={{ textAlign: 'left' }}>
+                  <strong style={{ display: 'block', fontSize: '1.1rem', marginBottom: '4px', color: '#1e293b' }}>Email Support</strong>
+                  <small style={{ color: '#64748b', fontSize: '0.85rem' }}>For account & payment queries</small>
                 </div>
               </button>
+
             </div>
           </div>
         </div>
       )}
 
-      {/* --- 5. LOGOUT CONFIRMATION MODAL --- */}
+      {/* 5. Logout Confirmation */}
       {isLogoutModalOpen && (
         <div className="rprof-modal-overlay">
           <div className="rprof-modal-card" style={{textAlign: 'center', padding: '32px 24px'}}>
@@ -436,20 +411,11 @@ const RiderProfile = () => {
 
       {/* --- BOTTOM NAVIGATION --- */}
       <footer className="rprof-bottom-nav">
-        <button className="rprof-nav-item" onClick={() => navigate('/rider-home')}>
-          <span className="rprof-nav-icon">🛵</span><small>Ride</small>
-        </button>
-        <button className="rprof-nav-item" onClick={() => navigate('/rider-wallet')}>
-          <span className="rprof-nav-icon">💳</span><small>Wallet</small>
-        </button>
-        <button className="rprof-nav-item" onClick={() => navigate('/rider-earnings')}>
-          <span className="rprof-nav-icon">💲</span><small>Earnings</small>
-        </button>
-        <button className="rprof-nav-item active" onClick={() => navigate('/rider-profile')}>
-          <span className="rprof-nav-icon">👤</span><small>Profile</small>
-        </button>
+        <button className="rprof-nav-item" onClick={() => navigate('/rider-home')}><span className="rprof-nav-icon">🛵</span><small>Ride</small></button>
+        <button className="rprof-nav-item" onClick={() => navigate('/rider-wallet')}><span className="rprof-nav-icon">💳</span><small>Wallet</small></button>
+        <button className="rprof-nav-item" onClick={() => navigate('/rider-earnings')}><span className="rprof-nav-icon">💲</span><small>Earnings</small></button>
+        <button className="rprof-nav-item active" onClick={() => navigate('/rider-profile')}><span className="rprof-nav-icon">👤</span><small>Profile</small></button>
       </footer>
-
     </div>
   );
 };

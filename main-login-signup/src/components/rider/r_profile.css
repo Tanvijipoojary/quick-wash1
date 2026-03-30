@@ -122,3 +122,192 @@ input:checked + .rprof-slider:before { transform: translateX(20px); }
 .rprof-nav-item.active { color: #eb6d1e; }
 .rprof-nav-icon { font-size: 22px; }
 .rprof-nav-item small { font-size: 11px; font-weight: 700; }
+
+/* --- NEW SETTINGS BUTTONS (SECURITY & POLICY) --- */
+.rprof-settings-group {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.rprof-settings-btn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.rprof-settings-btn:last-child {
+  border-bottom: none;
+}
+
+.rprof-settings-btn:hover {
+  background: #f8fafc;
+}
+
+.rprof-settings-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rprof-settings-icon {
+  font-size: 1.2rem;
+}
+
+.rprof-settings-btn strong {
+  color: #334155;
+  font-size: 1rem;
+}
+
+.rprof-settings-arrow {
+  color: #94a3b8;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* --- UPDATED SUPPORT MODAL BUTTONS --- */
+.rprof-support-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.rprof-support-btn {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.rprof-support-btn:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
+}
+
+.rprof-support-icon {
+  font-size: 1.8rem;
+  background: #f1f5f9;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.rprof-support-btn:hover .rprof-support-icon {
+  background: white;
+}
+
+/* --- IN-APP CONTACT SUPPORT FORM --- */
+.rprof-contact-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+.rprof-contact-title {
+  text-align: center;
+  color: #065f46; /* Dark Green from screenshot */
+  font-size: 1.3rem;
+  margin-top: 0;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rprof-contact-subtitle {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+
+.rprof-form-group {
+  margin-bottom: 20px;
+}
+
+.rprof-form-group label {
+  display: block;
+  text-align: center;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.rprof-form-group input,
+.rprof-form-group textarea {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #334155;
+  background: #ffffff;
+  transition: border-color 0.2s;
+  box-sizing: border-box; /* Ensures padding doesn't stretch inputs */
+}
+
+.rprof-form-group input:focus,
+.rprof-form-group textarea:focus {
+  outline: none;
+  border-color: #10b981;
+}
+
+.rprof-send-btn {
+  width: 100%;
+  background: #10b981; /* Primary Green */
+  color: white;
+  padding: 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.rprof-send-btn:hover {
+  background: #059669; /* Darker green on hover */
+}
+
+/* Input Focus Orange Glow */
+.rprof-contact-form input:focus,
+.rprof-contact-form textarea:focus {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+/* Back button hover */
+.rprof-back-btn:hover {
+  background: #fff7ed;
+  color: #f97316;
+}

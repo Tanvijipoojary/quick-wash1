@@ -21,7 +21,19 @@ const riderSchema = new mongoose.Schema({
     insurance: { type: String }, // New field
     aadhaar: { type: String },
     pan: { type: String }
-  }
+  },
+  // --- NEW: WALLET & BANK DETAILS ---
+  bankDetails: {
+    name: { type: String, default: '' },
+    ac: { type: String, default: '' },
+    ifsc: { type: String, default: '' }
+  },
+  withdrawals: [{
+    txId: String,
+    amount: Number,
+    date: { type: Date, default: Date.now },
+    status: { type: String, default: 'Pending' } // Pending or Processed
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Rider', riderSchema);

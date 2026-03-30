@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './r_home.css';
@@ -20,52 +20,75 @@ const RiderHome = () => {
   
   const [rider] = useState(() => {
     const saved = localStorage.getItem('quickwash_rider');
-    return saved ? JSON.parse(saved) : { name: 'Awesome Rider', email: 'rider@quickwash.com' };
+    return saved ? JSON.parse(saved) : null;
   });
 
-  const [isOnline, setIsOnline] = useState(true);
+  // 👇 REVERTED: Back to your original local state! 👇
+  const [isOnline, setIsOnline] = useState(true); 
+  const [todaysEarnings, setTodaysEarnings] = useState(0);
+  const BASE_FARE = 40;
+
   const [activeTask, setActiveTask] = useState(null); 
   const [tripStatus, setTripStatus] = useState(''); 
   const [showSuccess, setShowSuccess] = useState(false);
   const [swipeValue, setSwipeValue] = useState(0);
-
-  // --- VERIFICATION CHECKBOX STATE ---
   const [isVerified, setIsVerified] = useState(false);
-
   const [availableOrders, setAvailableOrders] = useState([]);
 
-  // --- 1. FETCH LIVE BROADCASTS (BULLETPROOF FILTERING) ---
-  const fetchAvailableOrders = async () => {
+  // --- 0. INITIAL LOAD: FETCH EARNINGS ---
+  const fetchTodaysEarnings = useCallback(async (email) => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/riders/earnings/${email}`);
+      const now = new Date();
+      let todayTotal = 0;
+
+      res.data.forEach(order => {
+        if (order.pickupRiderEmail === email && new Date(order.createdAt).toDateString() === now.toDateString()) {
+          todayTotal += BASE_FARE;
+        }
+        if (order.deliveryRiderEmail === email && new Date(order.updatedAt).toDateString() === now.toDateString()) {
+          todayTotal += BASE_FARE;
+        }
+      });
+      setTodaysEarnings(todayTotal);
+    } catch (error) {
+      console.error("Failed to load earnings:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!rider) {
+      navigate('/');
+      return;
+    }
+    fetchTodaysEarnings(rider.email);
+  }, [rider, navigate, fetchTodaysEarnings]);
+
+  // --- 1. FETCH LIVE BROADCASTS (THE RADAR) ---
+  const fetchAvailableOrders = useCallback(async () => {
     if (!isOnline || activeTask) return; 
     try {
       const res = await axios.get('http://localhost:5000/api/orders/available-for-rider');
       
-      // 🛑 STRICT BLOCKER: Only accept Vendor-Approved pickups OR Clean clothes ready for delivery
       const validOrders = res.data.filter(o => ['Searching Rider', 'Ready'].includes(o.status));
       
       const formattedOrders = validOrders.map(o => {
-        // 🧠 THE BRAIN: Identify exactly what kind of trip this is based on status
         const isCollection = ['Pending', 'Searching Rider', 'Pending Pickup'].includes(o.status); 
         
         return {
           id: o._id,
           taskType: isCollection ? 'Collection Run' : 'Delivery Run', 
-          
           pickup: isCollection 
-            ? { label: 'Pickup from Customer', name: o.customerEmail.split('@')[0], address: o.pickupAddress || 'Customer Address' }
-            : { label: 'Pickup from Vendor Hub', name: o.shopName, address: 'Vendor Hub (See Map)' }, 
-            
+            ? { label: 'Pickup from Customer', name: o.customerEmail?.split('@')[0] || 'Customer', address: o.pickupAddress || 'Customer Address' }
+            : { label: 'Pickup from Vendor Hub', name: o.shopName || 'Vendor', address: 'Vendor Hub (See Map)' }, 
           dropoff: isCollection 
-            ? { label: 'Drop at Vendor Hub', name: o.shopName, address: 'Vendor Hub (See Map)' }
-            : { label: 'Drop to Customer', name: o.customerEmail.split('@')[0], address: o.pickupAddress || 'Customer Address' },
-            
+            ? { label: 'Drop at Vendor Hub', name: o.shopName || 'Vendor', address: 'Vendor Hub (See Map)' }
+            : { label: 'Drop to Customer', name: o.customerEmail?.split('@')[0] || 'Customer', address: o.pickupAddress || 'Customer Address' },
           distance: 'Est. 4 km', 
           time: '15 mins', 
-          
           garmentDetails: o.garmentDetails || {},
           totalExpectedGarments: o.totalExpectedGarments || 0,
-          
-          amount: `Rs. ${o.deliveryFee || 40}`
+          amount: `Rs. ${BASE_FARE}`
         };
       });
       
@@ -73,30 +96,37 @@ const RiderHome = () => {
     } catch (error) {
       console.error("Error fetching live orders:", error);
     }
-  };
+  }, [isOnline, activeTask]);
 
   useEffect(() => {
     let interval;
     if (isOnline && !activeTask) {
       fetchAvailableOrders();
-      interval = setInterval(fetchAvailableOrders, 5000);
+      interval = setInterval(fetchAvailableOrders, 5000); 
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline, activeTask]);
+  }, [isOnline, activeTask, fetchAvailableOrders]);
 
-  // --- 2. CLAIM THE ORDER ---
+
+  // --- 2. CLAIM THE ORDER (SMART ROUTING) ---
   const handleAcceptOrder = async (order) => {
     try {
-      await axios.put(`http://localhost:5000/api/orders/claim/${order.id}`, { riderEmail: rider.email });
+      const riderField = order.taskType === 'Collection Run' ? 'pickupRiderEmail' : 'deliveryRiderEmail';
+      const newStatus = order.taskType === 'Collection Run' ? 'Pending Pickup' : 'Out for Delivery';
+
+      await axios.put(`http://localhost:5000/api/orders/update-status/${order.id}`, { 
+        [riderField]: rider.email,
+        status: newStatus
+      });
+      
       setActiveTask(order);
       setTripStatus('accepted');
-      setIsVerified(false); // Reset checkbox for new trips!
+      setIsVerified(false); 
       setAvailableOrders([]); 
     } catch (error) {
-      alert(error.response?.data?.message || "Too slow! Another rider claimed this order.");
+      alert("Too slow! Another rider claimed this order.");
       fetchAvailableOrders(); 
     }
   };
@@ -105,14 +135,10 @@ const RiderHome = () => {
   const handleConfirmPickup = async () => {
     try {
       const newStatus = activeTask.taskType === 'Collection Run' ? 'Picked Up' : 'Out for Delivery';
-      
-      await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
-        status: newStatus
-      });
-      
+      await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, { status: newStatus });
       setTripStatus('picked_up');
     } catch (error) {
-      alert("Failed to update database. Is your backend running?");
+      alert("Failed to update database.");
     }
   };
   
@@ -120,17 +146,16 @@ const RiderHome = () => {
   const handleCompleteTrip = async () => {
     try {
       const newStatus = activeTask.taskType === 'Collection Run' ? 'Dropped at Hub' : 'Completed';
-      
-      await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, {
-        status: newStatus
-      });
+      await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, { status: newStatus });
 
       setShowSuccess(true);
+      fetchTodaysEarnings(rider.email); // Refresh earnings pill
+
       setTimeout(() => {
         setShowSuccess(false);
         setActiveTask(null); 
         setTripStatus('');
-        setIsVerified(false); // Reset checkbox
+        setIsVerified(false);
       }, 2500);
 
     } catch (error) {
@@ -138,17 +163,24 @@ const RiderHome = () => {
     }
   };
 
+  // --- 5. CANCEL/RELEASE TRIP ---
   const handleCancelTrip = async () => {
     if (activeTask) {
       try {
-        await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, { riderEmail: null });
+        const riderField = activeTask.taskType === 'Collection Run' ? 'pickupRiderEmail' : 'deliveryRiderEmail';
+        const revertStatus = activeTask.taskType === 'Collection Run' ? 'Searching Rider' : 'Ready';
+        await axios.put(`http://localhost:5000/api/orders/update-status/${activeTask.id}`, { 
+          [riderField]: null, 
+          status: revertStatus 
+        });
       } catch (err) { console.error("Failed to release order"); }
     }
     setActiveTask(null);
     setTripStatus('');
-    setIsVerified(false); // Reset checkbox
+    setIsVerified(false); 
   };
 
+  // 👇 REVERTED: Your original swipe logic 👇
   const handleSwipe = (e) => {
     const val = parseInt(e.target.value, 10);
     setSwipeValue(val);
@@ -170,6 +202,8 @@ const RiderHome = () => {
     const destination = encodeURIComponent(activeTask.dropoff.address);
     window.open(`http://googleusercontent.com/maps.google.com/?q=${destination}`, '_blank');
   };
+
+  if (!rider) return null;
 
   return (
     <div className="rhome-container">
@@ -195,7 +229,7 @@ const RiderHome = () => {
       <header className="rhome-header">
         <div className="rhome-header-top">
           <div className="rhome-profile-badge" onClick={() => navigate('/rider-profile')}>
-            <div className="rhome-avatar">{rider.name.charAt(0)}</div>
+            <div className="rhome-avatar">{rider.name.charAt(0).toUpperCase()}</div>
           </div>
 
           <div className="rhome-status-toggle">
@@ -203,6 +237,7 @@ const RiderHome = () => {
               {isOnline ? 'You\'re Online' : 'You\'re Offline'}
             </span>
             <label className="rhome-switch">
+              {/* 👇 REVERTED: Your original checkbox logic 👇 */}
               <input 
                 type="checkbox" 
                 checked={isOnline} 
@@ -218,7 +253,7 @@ const RiderHome = () => {
 
         <div className="rhome-earnings-pill" onClick={() => navigate('/rider-earnings')}>
           <span className="rhome-pill-label">Today's Earnings</span>
-          <span className="rhome-pill-amount">Rs. 450</span>
+          <span className="rhome-pill-amount">Rs. {todaysEarnings}</span>
           <span className="rhome-pill-arrow">›</span>
         </div>
       </header>
@@ -228,7 +263,7 @@ const RiderHome = () => {
           <div className="rhome-success-card">
             <div className="rhome-success-icon">🎉</div>
             <h2>Trip Completed!</h2>
-            <p>You earned <strong>{activeTask?.amount}</strong></p>
+            <p>You earned <strong>Rs. {BASE_FARE}</strong></p>
           </div>
         </div>
       )}
@@ -331,7 +366,7 @@ const RiderHome = () => {
               </div>
             </div>
 
-            {/* 👇 NEW: UNIVERSAL VERIFICATION CHECKLIST (SHOWS ON BOTH PICKUPS) 👇 */}
+            {/* UNIVERSAL VERIFICATION CHECKLIST */}
             {tripStatus === 'accepted' && (
               <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1', marginBottom: '20px' }}>
                 <h4 style={{ margin: '0 0 10px 0', color: '#0f172a', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -372,8 +407,6 @@ const RiderHome = () => {
               {tripStatus === 'accepted' && (
                 <>
                   <button className="rhome-btn-nav" onClick={openMapsForPickup}><span role="img" aria-label="nav">🧭</span> Navigate</button>
-                  
-                  {/* 👇 The Confirm Pickup button is now universally disabled until verified! 👇 */}
                   <button 
                     className="rhome-btn-primary" 
                     onClick={handleConfirmPickup}

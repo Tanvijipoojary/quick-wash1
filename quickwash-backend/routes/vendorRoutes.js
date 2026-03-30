@@ -306,31 +306,21 @@ router.post('/upload-image', upload.single('shopImage'), async (req, res) => {
 // 💰 SMART WALLET OPERATIONS
 // ==========================================
 
-// --- 1. GET DYNAMIC WALLET BALANCE & HISTORY ---
-// Notice the URL now accepts :shopId at the end!
+// --- 1. GET DYNAMIC WALLET BALANCE & HISTORY (CLEAN VERSION) ---
 router.get('/wallet/:email/:shopId', async (req, res) => {
   try {
     const vendor = await Vendor.findOne({ email: req.params.email.toLowerCase() });
     if (!vendor) return res.status(404).json({ message: "Vendor not found" });
 
-    // Step A: Search for orders using the EXACT shopId from the frontend
+    // Step A: Calculate Total Earnings
     const completedOrders = await Order.find({ shopId: req.params.shopId, status: 'Completed' });
-    
-    // 🔍 DEBUG LOGS: Watch your terminal to see this math happen live!
-    console.log(`--- WALLET CHECK FOR: ${vendor.hubName} ---`);
-    console.log(`1. Found ${completedOrders.length} Completed Orders.`);
-
     const totalEarned = completedOrders.reduce((sum, order) => sum + ((order.totalAmount || 0) * 0.9), 0);
-    console.log(`2. Total Earned (after 10% fee): Rs. ${totalEarned}`);
 
     // Step B: Calculate Total Money Already Withdrawn
     const totalWithdrawn = vendor.transactions.reduce((sum, tx) => sum + tx.amount, 0);
-    console.log(`3. Total Already Withdrawn: Rs. ${totalWithdrawn}`);
 
     // Step C: True Available Balance
     const availableBalance = totalEarned - totalWithdrawn;
-    console.log(`4. FINAL AVAILABLE BALANCE: Rs. ${availableBalance}`);
-    console.log(`-----------------------------------`);
 
     // Sort transactions so newest are at the top
     const sortedTx = vendor.transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -386,6 +376,38 @@ router.post('/withdraw', async (req, res) => {
   } catch (error) {
     console.error("Error processing withdrawal:", error);
     res.status(500).json({ message: "Server error during withdrawal" });
+  }
+});
+
+// ==========================================
+// 📩 SUPPORT & COMPLAINT BOX
+// ==========================================
+router.post('/support-message', async (req, res) => {
+  try {
+    const { vendorEmail, subject, message } = req.body;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER, // Your server email
+      to: 'tanvijipoojary@gmail.com',  // Where the complaint goes!
+      replyTo: vendorEmail,         // If you hit "Reply" in Gmail, it goes directly to the vendor
+      subject: `Vendor Support: ${subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #e3000f;">🚨 New Vendor Support Request</h2>
+          <p><strong>From Vendor:</strong> ${vendorEmail}</p>
+          <p><strong>Subject:</strong> ${subject}</p>
+          <hr style="border: 1px solid #ccc;" />
+          <h4 style="margin-bottom: 5px;">Message:</h4>
+          <p style="white-space: pre-wrap; background: #f9f9f9; padding: 15px; border-radius: 5px;">${message}</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "Support ticket sent successfully!" });
+  } catch (error) {
+    console.error("Support Email Error:", error);
+    res.status(500).json({ message: "Failed to send message to support." });
   }
 });
 

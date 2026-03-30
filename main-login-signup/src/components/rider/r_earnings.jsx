@@ -1,40 +1,116 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './r_earnings.css';
 
 const RiderEarnings = () => {
   const navigate = useNavigate();
-  const [timeframe, setTimeframe] = useState('week'); // 'today', 'week', 'month'
   
-  // NEW: State to hold the specific trip a rider clicks on for details
+  // --- TIMEFRAME & FILTER STATES ---
+  const [timeframe, setTimeframe] = useState('overall'); // 'today', 'week', 'overall', 'custom'
+  const [filterType, setFilterType] = useState('all'); // 'all', 'collection', 'delivery'
+  
+  // Custom Date States
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [allTrips, setAllTrips] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock Chart Data for the Week
-  const weeklyData = [
-    { day: 'Mon', amount: 350, height: '40%' },
-    { day: 'Tue', amount: 420, height: '50%' },
-    { day: 'Wed', amount: 210, height: '25%' },
-    { day: 'Thu', amount: 680, height: '80%' },
-    { day: 'Fri', amount: 550, height: '65%' },
-    { day: 'Sat', amount: 890, height: '100%' }, 
-    { day: 'Sun', amount: 190, height: '20%' }, 
-  ];
+  const BASE_FARE = 40; // Flat Rs. 40 per trip
 
-  // Dynamic Breakdown based on Timeframe
-  const getBreakdown = () => {
-    if (timeframe === 'today') return { total: '190', fares: '150', bonus: '0', tips: '40', hours: '3h 15m', trips: '4' };
-    if (timeframe === 'month') return { total: '12,450', fares: '10,200', bonus: '1,500', tips: '750', hours: '98h 30m', trips: '142' };
-    return { total: '3,290', fares: '2,650', bonus: '500', tips: '140', hours: '24h 15m', trips: '42' }; // Week default
+  useEffect(() => {
+    const fetchEarnings = async () => {
+      const savedRider = localStorage.getItem('quickwash_rider');
+      if (!savedRider) {
+        navigate('/');
+        return;
+      }
+      const parsedData = JSON.parse(savedRider);
+
+      try {
+        const res = await axios.get(`http://localhost:5000/api/riders/earnings/${parsedData.email}`);
+        
+        // 🚨 NEW LOGIC: Split 1 Order into 2 Trips if the rider did BOTH!
+        let processedTrips = [];
+        const myEmail = parsedData.email;
+
+        res.data.forEach(order => {
+          // If they did the pickup, create a Collection Receipt
+          if (order.pickupRiderEmail === myEmail) {
+            processedTrips.push({ ...order, runType: 'Collection', sortDate: new Date(order.createdAt) });
+          }
+          // If they did the delivery, create a Delivery Receipt
+          if (order.deliveryRiderEmail === myEmail) {
+            processedTrips.push({ ...order, runType: 'Delivery', sortDate: new Date(order.updatedAt) });
+          }
+        });
+
+        // Sort them so the newest trips are at the top
+        processedTrips.sort((a, b) => b.sortDate - a.sortDate);
+        setAllTrips(processedTrips);
+
+      } catch (error) {
+        console.error("Failed to fetch trips:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEarnings();
+  }, [navigate]);
+
+  // --- SMART FILTER: Handles Timeframe, Custom Dates, and Trip Type ---
+  const getFilteredTrips = () => {
+    const now = new Date();
+    
+    // Step 1: Filter by Timeframe
+    let filtered = allTrips;
+    
+    if (timeframe === 'today') {
+      filtered = filtered.filter(trip => new Date(trip.updatedAt || trip.createdAt).toDateString() === now.toDateString());
+    } 
+    else if (timeframe === 'week') {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(now.getDate() - 7);
+      filtered = filtered.filter(trip => new Date(trip.updatedAt || trip.createdAt) >= oneWeekAgo);
+    }
+    else if (timeframe === 'custom' && customStart && customEnd) {
+      // 👈 NEW: Custom Date Filtering Logic
+      const start = new Date(customStart);
+      start.setHours(0, 0, 0, 0); // Start of the day
+      const end = new Date(customEnd);
+      end.setHours(23, 59, 59, 999); // End of the day
+      
+      filtered = filtered.filter(trip => {
+        const tripDate = new Date(trip.updatedAt || trip.createdAt);
+        return tripDate >= start && tripDate <= end;
+      });
+    }
+    // If timeframe is 'overall', we skip the date filter completely!
+
+    // Step 2: Filter by Trip Type (Updated!)
+    if (filterType === 'delivery') {
+      filtered = filtered.filter(trip => trip.runType === 'Delivery');
+    } else if (filterType === 'collection') {
+      filtered = filtered.filter(trip => trip.runType === 'Collection');
+    }
+
+    return filtered;
   };
 
-  const currentStats = getBreakdown();
+  const filteredTrips = getFilteredTrips();
 
-  // Mock Trip History with Detailed Breakdown
-  const recentTrips = [
-    { id: 'TSK-8821XB', type: 'Collection', time: 'Today, 2:30 PM', total: 'Rs. 80', baseFare: 'Rs. 50', distancePay: 'Rs. 20', tip: 'Rs. 10' },
-    { id: 'TSK-9942YC', type: 'Delivery', time: 'Today, 1:15 PM', total: 'Rs. 110', baseFare: 'Rs. 50', distancePay: 'Rs. 40', tip: 'Rs. 20' },
-    { id: 'TSK-5522AA', type: 'Collection', time: 'Yesterday, 9:30 AM', total: 'Rs. 60', baseFare: 'Rs. 50', distancePay: 'Rs. 10', tip: 'Rs. 0' },
-  ];
+  // --- CALCULATE BREAKDOWN ---
+  const currentStats = {
+    total: filteredTrips.length * BASE_FARE,
+    fares: filteredTrips.length * BASE_FARE,
+    hours: '--', 
+    trips: filteredTrips.length
+  };
+
+  if (isLoading) return <div style={{padding: '50px', textAlign: 'center'}}>Loading Earnings... ⏳</div>;
 
   return (
     <div className="rearn-container">
@@ -53,46 +129,73 @@ const RiderEarnings = () => {
 
       <main className="rearn-main-content">
         
-        {/* --- TIMEFRAME TOGGLE --- */}
-        <div className="rearn-toggle-wrapper">
-          <button className={`rearn-toggle-btn ${timeframe === 'today' ? 'active' : ''}`} onClick={() => setTimeframe('today')}>Today</button>
-          <button className={`rearn-toggle-btn ${timeframe === 'week' ? 'active' : ''}`} onClick={() => setTimeframe('week')}>This Week</button>
-          <button className={`rearn-toggle-btn ${timeframe === 'month' ? 'active' : ''}`} onClick={() => setTimeframe('month')}>This Month</button>
+        {/* --- TIMEFRAME & FILTER CONTROLS --- */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
+          
+          {/* 1. Timeframe Toggle (Now includes Custom Date) */}
+          <div className="rearn-toggle-wrapper" style={{ marginBottom: 0 }}>
+            <button className={`rearn-toggle-btn ${timeframe === 'today' ? 'active' : ''}`} onClick={() => setTimeframe('today')}>Today</button>
+            <button className={`rearn-toggle-btn ${timeframe === 'week' ? 'active' : ''}`} onClick={() => setTimeframe('week')}>Week</button>
+            <button className={`rearn-toggle-btn ${timeframe === 'overall' ? 'active' : ''}`} onClick={() => setTimeframe('overall')}>Overall</button>
+            <button className={`rearn-toggle-btn ${timeframe === 'custom' ? 'active' : ''}`} onClick={() => setTimeframe('custom')}>Custom</button>
+          </div>
+
+          {/* 👈 NEW: Custom Date Picker Inputs (Only shows if 'custom' is clicked) */}
+          {timeframe === 'custom' && (
+            <div style={{ display: 'flex', gap: '10px', background: 'white', padding: '15px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>Start Date</label>
+                <input 
+                  type="date" 
+                  value={customStart} 
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
+                />
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <label style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 'bold' }}>End Date</label>
+                <input 
+                  type="date" 
+                  value={customEnd} 
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  style={{ padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 2. Run Type Filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 5px' }}>
+            <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 'bold' }}>Run Type:</span>
+            <select 
+              value={filterType} 
+              onChange={(e) => setFilterType(e.target.value)}
+              style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', background: 'white', flex: 1, color: '#334155', fontSize: '0.95rem', fontWeight: '500' }}
+            >
+              <option value="all">All Trips</option>
+              <option value="collection">Collection Runs Only</option>
+              <option value="delivery">Delivery Runs Only</option>
+            </select>
+          </div>
+
         </div>
 
         {/* --- BIG EARNINGS DISPLAY --- */}
         <div className="rearn-hero-section">
-          <small>Total Earnings ({timeframe === 'week' ? 'Mon - Sun' : timeframe === 'today' ? 'Today' : 'Feb 1 - Feb 28'})</small>
+          <small>
+            Total Earnings (
+            {timeframe === 'week' ? 'Past 7 Days' : 
+             timeframe === 'today' ? 'Today' : 
+             timeframe === 'custom' && customStart && customEnd ? `${new Date(customStart).toLocaleDateString()} - ${new Date(customEnd).toLocaleDateString()}` : 
+             'Lifetime'}
+            )
+          </small>
           <h2>Rs. {currentStats.total}</h2>
           <div className="rearn-online-time">
             <span>⏱️ {currentStats.hours} Online</span>
             <span>🛵 {currentStats.trips} Trips</span>
           </div>
         </div>
-
-        {/* --- CSS BAR CHART (Shows only on 'week' view) --- */}
-        {timeframe === 'week' && (
-          <div className="rearn-chart-card">
-            <div className="rearn-chart-header">
-              <h3>Weekly Trends</h3>
-              <span>Best Day: Saturday</span>
-            </div>
-            
-            <div className="rearn-chart-area">
-              {weeklyData.map((data, index) => (
-                <div key={index} className="rearn-bar-column">
-                  <div className="rearn-bar-track">
-                    <div 
-                      className={`rearn-bar-fill ${data.day === 'Sat' ? 'peak' : ''}`} 
-                      style={{ height: data.height }}
-                    ></div>
-                  </div>
-                  <span className="rearn-day-label">{data.day}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* --- EARNINGS BREAKDOWN --- */}
         <div className="rearn-breakdown-card">
@@ -104,51 +207,42 @@ const RiderEarnings = () => {
             </div>
             <strong>Rs. {currentStats.fares}</strong>
           </div>
-          <div className="rearn-breakdown-row">
-            <div className="rearn-bd-left">
-              <span className="rearn-bd-icon" style={{background: '#dcfce7', color: '#10b981'}}>🎁</span>
-              <span>Bonuses</span>
-            </div>
-            <strong>Rs. {currentStats.bonus}</strong>
-          </div>
-          <div className="rearn-breakdown-row">
-            <div className="rearn-bd-left">
-              <span className="rearn-bd-icon" style={{background: '#fef3c7', color: '#d97706'}}>⭐</span>
-              <span>Customer Tips</span>
-            </div>
-            <strong>Rs. {currentStats.tips}</strong>
-          </div>
         </div>
 
-        {/* --- RECENT TRIPS (Now Clickable!) --- */}
+        {/* --- RECENT TRIPS (DYNAMICALLY FILTERED) --- */}
         <div className="rearn-trips-section">
           <div className="rearn-section-header">
             <h3>Recent Trips</h3>
-            {/* Navigates to Wallet to see the full transaction history */}
             <button className="rearn-text-link" onClick={() => navigate('/rider-wallet')}>See Wallet</button>
           </div>
           <div className="rearn-trips-list">
-            {recentTrips.map((trip, idx) => (
-              <div key={idx} className="rearn-trip-item clickable" onClick={() => setSelectedTrip(trip)}>
-                <div className="rearn-trip-left">
-                  <div className={`rearn-trip-dot ${trip.type === 'Collection' ? 'collection' : 'delivery'}`}></div>
-                  <div className="rearn-trip-info">
-                    <strong>{trip.type} Run</strong>
-                    <small>{trip.time}</small>
+            {filteredTrips.length === 0 ? (
+              <p style={{textAlign: 'center', color: '#64748b', padding: '20px 0'}}>
+                {timeframe === 'custom' && (!customStart || !customEnd) ? "Please select a Start and End date above." : "No trips found for this filter."}
+              </p>
+            ) : (
+              filteredTrips.map((trip, idx) => ( 
+                <div key={idx} className="rearn-trip-item clickable" onClick={() => setSelectedTrip(trip)}>
+                  <div className="rearn-trip-left">
+                    <div className={`rearn-trip-dot ${trip.status === 'Completed' ? 'delivery' : 'collection'}`}></div>
+                    <div className="rearn-trip-info">
+                      <strong>{trip.status === 'Completed' ? 'Delivery Run' : 'Collection Run'}</strong>
+                      <small>{new Date(trip.updatedAt || trip.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' })}</small>
+                    </div>
+                  </div>
+                  <div className="rearn-trip-right">
+                    <strong>Rs. {BASE_FARE}</strong>
+                    <span className="rearn-trip-arrow">›</span>
                   </div>
                 </div>
-                <div className="rearn-trip-right">
-                  <strong>{trip.total}</strong>
-                  <span className="rearn-trip-arrow">›</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
       </main>
 
-      {/* --- NEW: DETAILED EARNING RECEIPT MODAL --- */}
+      {/* --- DETAILED EARNING RECEIPT MODAL --- */}
       {selectedTrip && (
         <div className="rearn-modal-overlay">
           <div className="rearn-modal-card">
@@ -159,10 +253,10 @@ const RiderEarnings = () => {
             
             <div className="rearn-receipt-body">
               <div className="rearn-receipt-top">
-                <span className="rearn-receipt-id">ID: {selectedTrip.id}</span>
-                <h3 className="rearn-receipt-total">{selectedTrip.total}</h3>
-                <span className={`rearn-receipt-badge ${selectedTrip.type === 'Collection' ? 'collection' : 'delivery'}`}>
-                  {selectedTrip.type} Run
+                <span className="rearn-receipt-id">ID: {selectedTrip._id.slice(-6).toUpperCase()}</span>
+                <h3 className="rearn-receipt-total">Rs. {BASE_FARE}</h3>
+                <span className={`rearn-receipt-badge ${selectedTrip.status === 'Completed' ? 'delivery' : 'collection'}`}>
+                  {selectedTrip.status === 'Completed' ? 'Delivery Run' : 'Collection Run'}
                 </span>
               </div>
               
@@ -170,15 +264,11 @@ const RiderEarnings = () => {
 
               <div className="rearn-receipt-row">
                 <span>Base Fare</span>
-                <strong>{selectedTrip.baseFare}</strong>
+                <strong>Rs. {BASE_FARE}</strong>
               </div>
               <div className="rearn-receipt-row">
                 <span>Distance Pay</span>
-                <strong>{selectedTrip.distancePay}</strong>
-              </div>
-              <div className="rearn-receipt-row">
-                <span>Customer Tip</span>
-                <strong style={{color: '#10b981'}}>{selectedTrip.tip}</strong>
+                <strong>Rs. 0</strong>
               </div>
             </div>
 
@@ -187,7 +277,7 @@ const RiderEarnings = () => {
         </div>
       )}
 
-      {/* --- BOTTOM NAVIGATION (Fully Wired!) --- */}
+      {/* --- BOTTOM NAVIGATION --- */}
       <footer className="rearn-bottom-nav">
         <button className="rearn-nav-item" onClick={() => navigate('/rider-home')}>
           <span className="rearn-nav-icon">🛵</span><small>Ride</small>
@@ -198,7 +288,6 @@ const RiderEarnings = () => {
         <button className="rearn-nav-item active" onClick={() => navigate('/rider-earnings')}>
           <span className="rearn-nav-icon">💲</span><small>Earnings</small>
         </button>
-        {/* We will build the profile page next! */}
         <button className="rearn-nav-item" onClick={() => navigate('/rider-profile')}>
           <span className="rearn-nav-icon">👤</span><small>Profile</small>
         </button>

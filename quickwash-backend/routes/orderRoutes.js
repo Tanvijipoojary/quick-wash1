@@ -12,6 +12,9 @@ router.post('/place-order', async (req, res) => {
       orderData.items = Object.values(orderData.items);
     }
 
+    // REMOVED: deliveryDate and estimatedPickup logic to prevent "Invalid Date" confusion.
+    // We now rely purely on the Vendor updating 'estimatedReady' during billing.
+
     const newOrder = new Order(orderData);
     const savedOrder = await newOrder.save();
 

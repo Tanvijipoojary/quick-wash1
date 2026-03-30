@@ -33,6 +33,9 @@ import RiderLanguage from './components/rider/r_language';
 import RiderVehicle from './components/rider/r_vehicle';
 import RiderBank from './components/rider/r_bank';
 import RiderSchedule from './components/rider/r_schedule';
+import RiderAbout from './components/rider//RiderAbout';
+import RiderPolicy from './components/rider//RiderPolicy';
+import RiderSupport from './components/rider//RiderSupport';
 
 // ==========================================
 // 🟢 VENDOR PORTAL IMPORTS
@@ -45,6 +48,9 @@ import VendorSchedule from './components/vendor/v_schedule';
 import VendorWallet from './components/vendor/v_wallet';
 import VendorEarnings from './components/vendor/v_earnings';
 import VendorProfile from './components/vendor/v_profile';
+import VendorPrivacy from './components/vendor/v_Privacy';
+import VendorAbout from './components/vendor/v_About';
+import VendorHelp from './components/vendor/V_Help';
 
 
 // Global App CSS (if you have one)
@@ -85,6 +91,9 @@ function App() {
           <Route path="/rider-vehicle" element={<RiderVehicle />} />
           <Route path="/rider-bank" element={<RiderBank />} />
           <Route path="/rider-schedule" element={<RiderSchedule />} />
+          <Route path="/rider-about" element={<RiderAbout />} />
+          <Route path="/rider-policy" element={<RiderPolicy />} />
+          <Route path="/rider-support" element={<RiderSupport />} />
 
           
           
@@ -98,6 +107,9 @@ function App() {
           <Route path="/vendor-wallet" element={<VendorWallet />} />
           <Route path="/vendor-earnings" element={<VendorEarnings />} />
           <Route path="/vendor-profile" element={<VendorProfile />} />
+          <Route path="/vendor-privacy" element={<VendorPrivacy />} />
+          <Route path="/vendor-about" element={<VendorAbout />} />
+          <Route path="/vendor-help" element={<VendorHelp />} />
 
           
         </Routes>

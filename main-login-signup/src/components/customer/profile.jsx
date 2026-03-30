@@ -304,7 +304,7 @@ const Profile = () => {
                      <div key={shop._id} className="swiggy-address-card">
                        <div className="addr-content-wrapper">
                          <h3>{shop.shopName}</h3>
-                         <p style={{marginTop: '5px', color: '#fc8019'}}>★ {shop.shopRating || 4.5}</p>
+                         <p style={{marginTop: '5px', color: '#19dafc'}}>★ {shop.shopRating || 4.5}</p>
                          <div className="addr-actions" style={{marginTop: '15px'}}>
                            <button onClick={() => navigate(`/shop/${shop.shopId}`)}>VISIT SHOP</button>
                          </div>

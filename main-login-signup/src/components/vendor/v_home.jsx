@@ -101,18 +101,30 @@ const VendorHome = () => {
     return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
+
   // --- Workflow Actions ---
   const updateOrderStatus = async (orderId, updateData) => {
+    console.log(`🔘 Button Clicked! Updating Order ${orderId} to:`, updateData); // 👈 ADD THIS LOG
+    
     try {
       await axios.put(`http://localhost:5000/api/orders/update-status/${orderId}`, updateData);
+      console.log("✅ Backend updated successfully! Refreshing orders..."); // 👈 ADD THIS LOG
       fetchVendorOrders(); 
     } catch (error) {
+      console.error("❌ Failed to update order:", error);
       alert("Failed to update order status.");
     }
   };
 
   const handleAcceptOrder = (orderId) => {
     updateOrderStatus(orderId, { status: 'Searching Rider' });
+  };
+
+  const handleRejectOrder = (orderId) => {
+    const isSure = window.confirm("Are you sure you want to reject this order?");
+    if (isSure) {
+      updateOrderStatus(orderId, { status: 'Rejected', subStatus: 'rejected_by_vendor' });
+    }
   };
 
   const handleReceiveAtHub = (orderId) => {
@@ -142,11 +154,21 @@ const VendorHome = () => {
       return;
     }
 
+    // 👇 ADD THIS: Convert the raw HTML calendar input into the pretty string
+    const dateObj = new Date(readyTime);
+    const prettyReadyTime = dateObj.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    });
+
     try {
       await axios.put(`http://localhost:5000/api/orders/generate-bill/${activeOrderId}`, {
         weightInKg: Number(bagWeight),
         pricePerKg: vendor.pricing?.washAndIron || 60,
-        estimatedReady: readyTime,
+        estimatedReady: prettyReadyTime, // 👈 Send the beautifully formatted string to the DB!
         laundryStage: 'Washing'
       });
       
@@ -158,15 +180,6 @@ const VendorHome = () => {
   };
 
   const handleUpdateStage = (orderId, newStage) => {
-    // 🔒 THE RIDER LOCK: Prevent marking as 'Ready' if no bill exists!
-    if (newStage === 'Ready') {
-      const currentOrder = orders.find(o => o.id === orderId);
-      if (!currentOrder || currentOrder.total === 0 || currentOrder.total === '0') {
-        alert("⚠️ You cannot request a Rider until you weigh the clothes and generate the bill!");
-        return; // Stop the update!
-      }
-    }
-
     let updateData = { laundryStage: newStage };
     if (newStage === 'Ready') updateData.status = 'Ready'; 
     updateOrderStatus(orderId, updateData);
@@ -248,14 +261,43 @@ const VendorHome = () => {
                 {/* AUTOMATED RADAR ACTIONS */}
                 {order.status === 'New Requests' && (
                   <div className="vhome-actions">
+                    {/* 👇 FULL-WIDTH ACCEPT / REJECT BUTTONS 👇 */}
                     {order.subStatus === 'needs_vendor_approval' && (
-                      <button 
-                        className="vhome-btn-full" 
-                        onClick={() => handleAcceptOrder(order.id)} 
-                        style={{ background: '#2563eb', color: 'white', padding: '12px', fontSize: '1.05rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                      >
-                        ✅ Accept Order
-                      </button>
+                      <div style={{ display: 'flex', width: '100%', gap: '12px', marginTop: '16px' }}>
+                        
+                        {/* ACCEPT BUTTON */}
+                        <button 
+                          onClick={() => handleAcceptOrder(order.id)} 
+                          style={{ 
+                            flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                            background: '#10b981', color: 'white', padding: '12px 0', fontSize: '1.05rem', 
+                            border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600',
+                            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+                          }}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          Accept
+                        </button>
+
+                        {/* REJECT BUTTON */}
+                        <button 
+                          onClick={() => handleRejectOrder(order.id)} 
+                          style={{ 
+                            flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                            background: '#fef2f2', color: '#ef4444', padding: '12px 0', fontSize: '1.05rem', 
+                            border: '1px solid #fca5a5', borderRadius: '8px', cursor: 'pointer', fontWeight: '600'
+                          }}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                          Reject
+                        </button>
+
+                      </div>
                     )}
 
                     {order.subStatus === 'broadcasting' && (
