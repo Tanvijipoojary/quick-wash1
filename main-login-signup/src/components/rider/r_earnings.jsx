@@ -224,10 +224,11 @@ const RiderEarnings = () => {
               filteredTrips.map((trip, idx) => ( 
                 <div key={idx} className="rearn-trip-item clickable" onClick={() => setSelectedTrip(trip)}>
                   <div className="rearn-trip-left">
-                    <div className={`rearn-trip-dot ${trip.status === 'Completed' ? 'delivery' : 'collection'}`}></div>
+                    {/* 👇 THE FIX: Use trip.runType instead of trip.status 👇 */}
+                    <div className={`rearn-trip-dot ${trip.runType === 'Delivery' ? 'delivery' : 'collection'}`}></div>
                     <div className="rearn-trip-info">
-                      <strong>{trip.status === 'Completed' ? 'Delivery Run' : 'Collection Run'}</strong>
-                      <small>{new Date(trip.updatedAt || trip.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' })}</small>
+                      <strong>{trip.runType} Run</strong>
+                      <small>{new Date(trip.sortDate || trip.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit' })}</small>
                     </div>
                   </div>
                   <div className="rearn-trip-right">
@@ -255,8 +256,9 @@ const RiderEarnings = () => {
               <div className="rearn-receipt-top">
                 <span className="rearn-receipt-id">ID: {selectedTrip._id.slice(-6).toUpperCase()}</span>
                 <h3 className="rearn-receipt-total">Rs. {BASE_FARE}</h3>
-                <span className={`rearn-receipt-badge ${selectedTrip.status === 'Completed' ? 'delivery' : 'collection'}`}>
-                  {selectedTrip.status === 'Completed' ? 'Delivery Run' : 'Collection Run'}
+                {/* 👇 THE FIX: Also use selectedTrip.runType here 👇 */}
+                <span className={`rearn-receipt-badge ${selectedTrip.runType === 'Delivery' ? 'delivery' : 'collection'}`}>
+                  {selectedTrip.runType} Run
                 </span>
               </div>
               

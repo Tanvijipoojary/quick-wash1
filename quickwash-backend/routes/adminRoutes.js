@@ -431,26 +431,85 @@ router.get('/force-sync-financials', async (req, res) => {
             if (customer) customerId = customer._id;
         }
 
-        // 👇 MATH FIX: Exactly as you requested!
-        const laundrySubtotal = order.totalAmount || 0; // E.g., 150
-        const riderCut = 40; // Flat ₹40 Rider Fee
-        const customerPaid = laundrySubtotal + riderCut; // E.g., 190
+        const laundrySubtotal = order.totalAmount || 0; 
+        const riderCut = 40; 
+        const customerPaid = laundrySubtotal + riderCut; 
         
-        // Use .toFixed(2) so we don't get crazy decimals like 0.60000001
-        const platformFee = Number((laundrySubtotal * 0.10).toFixed(2)); // E.g., 15
-        const vendorEarnings = Number((laundrySubtotal * 0.90).toFixed(2)); // E.g., 135
+        const platformFee = Number((laundrySubtotal * 0.10).toFixed(2)); 
+        const vendorEarnings = Number((laundrySubtotal * 0.90).toFixed(2)); 
+
+        // 👇 THE FIX: Grab the exact historical date the order was completed!
+        const realDate = order.updatedAt || order.createdAt || new Date();
 
         await Transaction.create({
-          orderId: order._id, customerId: customerId, 
-          totalAmountPaid: customerPaid, // Saves the true 190!
-          paymentMethod: order.paymentMethod || 'Cash', paymentStatus: 'Success',
-          platformFee: platformFee, vendorId: order.shopId, vendorEarnings: vendorEarnings,
-          riderId: order.riderId || null, riderEarnings: riderCut
+          orderId: order._id, 
+          customerId: customerId, 
+          totalAmountPaid: customerPaid, 
+          paymentMethod: order.paymentMethod || 'Cash', 
+          paymentStatus: 'Success',
+          platformFee: platformFee, 
+          vendorId: order.shopId, 
+          vendorEarnings: vendorEarnings,
+          riderId: order.riderId || null, 
+          riderEarnings: riderCut,
+          createdAt: realDate, // 👈 Forces the DB to respect the real timeline
+          updatedAt: realDate
         });
+        
         newlyCreatedCount++;
     }
-    res.status(200).json({ message: "Synced Perfectly!", count: newlyCreatedCount });
+    res.status(200).json({ message: "Synced Perfectly with Real Dates!", count: newlyCreatedCount });
   } catch (error) { res.status(500).json({ message: "Sync Failed" }); }
+});
+
+// ==========================================
+// 🏪 UPDATE VENDOR STATUS (Approve/Reject)
+// ==========================================
+router.put('/vendor-status/:id', async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    // Find the vendor by ID and update their status
+    const updatedVendor = await Vendor.findByIdAndUpdate(
+      req.params.id, 
+      { status: status }, 
+      { new: true }
+    );
+
+    if (!updatedVendor) {
+      return res.status(404).json({ message: "Vendor not found." });
+    }
+
+    res.status(200).json({ message: `Vendor successfully marked as ${status}!`, vendor: updatedVendor });
+  } catch (error) {
+    console.error("Error updating vendor status:", error);
+    res.status(500).json({ message: "Server error while updating vendor status." });
+  }
+});
+
+// ==========================================
+// 🛵 UPDATE RIDER STATUS (Approve/Reject)
+// ==========================================
+router.put('/rider-status/:id', async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    // Find the rider by ID and update their status
+    const updatedRider = await Rider.findByIdAndUpdate(
+      req.params.id, 
+      { status: status }, 
+      { new: true }
+    );
+
+    if (!updatedRider) {
+      return res.status(404).json({ message: "Rider not found." });
+    }
+
+    res.status(200).json({ message: `Rider successfully marked as ${status}!`, rider: updatedRider });
+  } catch (error) {
+    console.error("Error updating rider status:", error);
+    res.status(500).json({ message: "Server error while updating rider status." });
+  }
 });
 
 module.exports = router;

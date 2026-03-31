@@ -90,14 +90,14 @@ const ShopPage = () => {
       [serviceId]: { name: "Wash & Iron", price: washAndIronPrice, qty: 1 }
     });
 
-    const existingCartsStr = localStorage.getItem('quickwash_multi_cart');
-    const multiCart = existingCartsStr ? JSON.parse(existingCartsStr) : {};
-    
-    multiCart[shop.id] = {
-      shopId: shop.id,
-      shopName: shop.name,
-      shopAddress: shop.address,
-      items: { [serviceId]: { name: "Wash & Iron", price: washAndIronPrice, qty: 1 } }
+    // 👇 THE FIX: Wipe out old shops! Force the master cart to ONLY hold this shop.
+    const multiCart = {
+      [shop.id]: {
+        shopId: shop.id,
+        shopName: shop.name,
+        shopAddress: shop.address,
+        items: { [serviceId]: { name: "Wash & Iron", price: washAndIronPrice, qty: 1 } }
+      }
     };
     
     localStorage.setItem('quickwash_multi_cart', JSON.stringify(multiCart));
@@ -105,12 +105,9 @@ const ShopPage = () => {
 
   const handleRemoveFromCart = () => {
     setCart({}); 
-    const existingCartsStr = localStorage.getItem('quickwash_multi_cart');
-    if (existingCartsStr) {
-      const multiCart = JSON.parse(existingCartsStr);
-      delete multiCart[shop.id];
-      localStorage.setItem('quickwash_multi_cart', JSON.stringify(multiCart));
-    }
+    // 👇 THE FIX: Completely clear all storage arrays so nothing gets left behind
+    localStorage.removeItem('quickwash_cart');
+    localStorage.removeItem('quickwash_multi_cart');
   };
 
   const handleBookNow = () => {
@@ -122,7 +119,11 @@ const ShopPage = () => {
         [serviceId]: { name: "Wash & Iron", price: washAndIronPrice, qty: 1 }
       }
     };
+    
+    // 👇 THE FIX: Lock both storage arrays to the exact shop on the screen
     localStorage.setItem('quickwash_cart', JSON.stringify(cartData));
+    localStorage.setItem('quickwash_multi_cart', JSON.stringify({ [shop.id]: cartData }));
+
     navigate('/checkout'); 
   };
 

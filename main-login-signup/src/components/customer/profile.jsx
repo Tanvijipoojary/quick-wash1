@@ -271,7 +271,7 @@ const Profile = () => {
                           {order.items.map(i => `${i.name} (x${i.qty})`).join(', ')}
                         </p>
                         <p className="order-total-text">
-                          Total: {order.totalAmount === 0 ? "Pending Weighing" : `₹${order.totalAmount}`}
+                          Total: {order.totalAmount ? `₹${order.totalAmount + (order.deliveryFee || 40)}` : 'Pending Weighing'}
                         </p>
                       </div>
                       <div className="order-bottom-section">

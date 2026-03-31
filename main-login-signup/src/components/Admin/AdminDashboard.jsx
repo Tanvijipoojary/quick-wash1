@@ -91,10 +91,12 @@ const AdminDashboard = () => {
         let yearly = { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: financialStats.Yearly.withdrawn };
         let monthly = { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: financialStats.Monthly.withdrawn };
         
+        // 👇 NEW: Dedicated tracker for Today's Profit!
+        let todayProfit = 0; 
+        
         const now = new Date();
 
         const formattedTxns = txns.map(t => {
-          // Trust the database math now!
           const actualTotal = t.totalAmountPaid || 0;
           const actualShopCut = t.vendorEarnings || 0;
           const actualRiderCut = t.riderEarnings || 0;
@@ -103,10 +105,16 @@ const AdminDashboard = () => {
           const txDate = new Date(t.createdAt);
           const isThisYear = txDate.getFullYear() === now.getFullYear();
           const isThisMonth = isThisYear && txDate.getMonth() === now.getMonth();
+          
+          // 👇 NEW: Check if the transaction happened exactly today
+          const isToday = txDate.toDateString() === now.toDateString(); 
 
           overall.total += actualTotal; overall.shop += actualShopCut; overall.rider += actualRiderCut; overall.profit += actualProfit;
           if (isThisYear) { yearly.total += actualTotal; yearly.shop += actualShopCut; yearly.rider += actualRiderCut; yearly.profit += actualProfit; }
           if (isThisMonth) { monthly.total += actualTotal; monthly.shop += actualShopCut; monthly.rider += actualRiderCut; monthly.profit += actualProfit; }
+          
+          // 👇 NEW: Add to today's pile if it matches
+          if (isToday) { todayProfit += actualProfit; } 
 
           return {
             id: `#${t._id.slice(-6).toUpperCase()}`,
@@ -121,7 +129,8 @@ const AdminDashboard = () => {
         });
 
         setTransactionsData(formattedTxns);
-        setDashboardStats(prev => ({ ...prev, revenue: monthly.profit.toFixed(2) })); 
+        // 👇 FIX: Now we pass todayProfit exactly to the blue card!
+        setDashboardStats(prev => ({ ...prev, revenue: todayProfit.toFixed(2) })); 
         setFinancialStats({ Overall: overall, Yearly: yearly, Monthly: monthly });
 
       } catch (error) { console.error(error); }
@@ -153,8 +162,6 @@ const AdminDashboard = () => {
     name: 'Admin User', email: 'admin@quickwash.com', phone: '+91 9988776655', role: 'System Owner', joined: 'Nov 15, 2025',
     savedAccounts: [ { id: 1, bankName: 'HDFC Bank', accountName: 'Quick Wash Corporate', accountNumber: '50100234891234', ifscCode: 'HDFC0001234' } ]
   });
-
-  const [newAccount, setNewAccount] = useState({ bankName: '', accountName: '', accountNumber: '', ifscCode: '' });
 
   const currentStats = financialStats[timeFilter];
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
@@ -193,19 +200,6 @@ const AdminDashboard = () => {
       setRidersData(ridersData.map(r => r.id === id ? { ...r, status: 'Suspended' } : r));
       setReviewingRider(null);
     } catch (error) { alert("Error rejecting rider."); }
-  };
-
-  const handleAddAccount = (e) => {
-    e.preventDefault();
-    const newId = Date.now(); 
-    setAdminProfile(prev => ({ ...prev, savedAccounts: [...prev.savedAccounts, { id: newId, ...newAccount }] }));
-    setNewAccount({ bankName: '', accountName: '', accountNumber: '', ifscCode: '' }); 
-  };
-
-  const handleDeleteAccount = (id) => {
-    if(window.confirm('Are you sure you want to remove this bank account?')) {
-      setAdminProfile(prev => ({ ...prev, savedAccounts: prev.savedAccounts.filter(acc => acc.id !== id) }));
-    }
   };
 
   const handleWithdrawSubmit = (e) => {
@@ -384,7 +378,7 @@ const AdminDashboard = () => {
     }
   };
 
-  
+
   return (
     <div className="admin-container">
       
@@ -648,7 +642,7 @@ const AdminDashboard = () => {
                         </div>
                       </td>
                       <td><div><strong style={{ color: '#94a3b8' }}>📞</strong> {rider.phone}</div><div><strong style={{ color: '#94a3b8' }}>📍</strong> {rider.zone}</div></td>
-                      <td><div><strong>Tasks:</strong> {rider.stats.totalTasks}</div><div><strong>Rating:</strong> <span style={{ color: '#d97706', fontWeight: 'bold' }}>⭐ {rider.rating || "N/A"}</span></div></td>
+                      <td><div style={{ fontSize: '1rem', color: '#0f172a' }}><strong>Total Tasks:</strong> {rider.stats.totalTasks}</div></td>
                       <td><span style={{ color: '#15803d', fontWeight: 'bold', fontSize: '1rem' }}>₹{rider.stats.walletBal.toFixed(2)}</span><div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lifetime: ₹{rider.stats.totalEarned.toFixed(2)}</div></td>
                       <td><span className={`status-badge ${rider.status === 'Active' ? 'green' : rider.status === 'Suspended' ? 'red' : 'blue'}`}>{rider.status}</span></td>
                       <td>
@@ -690,12 +684,10 @@ const AdminDashboard = () => {
               <div className="stat-card" style={{background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0'}}>
                 <h3 style={{color: '#16a34a'}}>Total Rider Payments</h3><h2 style={{color: '#15803d'}}>₹{currentStats.rider.toFixed(2)}</h2><p style={{background: '#dcfce7', color: '#166534'}}>Owed to Drivers</p>
               </div>
-              <div className="stat-card" style={{background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
-                <div><h3 style={{color: '#2563eb'}}>Quick Wash Profit (Available)</h3><h2 style={{color: '#1d4ed8', fontSize: '2.2rem'}}>₹{currentStats.profit.toFixed(2)}</h2></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#3b82f6', fontWeight: 'bold' }}>Withdrawn: ₹{currentStats.withdrawn.toFixed(2)}</span>
-                  <button onClick={() => setIsWithdrawModalOpen(true)} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>💸 Withdraw</button>
-                </div>
+              <div className="stat-card" style={{background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe'}}>
+                <h3 style={{color: '#2563eb'}}>Quick Wash Profit</h3>
+                <h2 style={{color: '#1d4ed8'}}>₹{currentStats.profit.toFixed(2)}</h2>
+                <p style={{background: '#bfdbfe', color: '#1e3a8a'}}>Net Platform Earnings</p>
               </div>
             </div>
 
