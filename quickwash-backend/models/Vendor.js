@@ -10,6 +10,8 @@ const vendorSchema = new mongoose.Schema({
 
   // --- WALLET & TRANSACTIONS ---
   walletBalance: { type: Number, default: 0 },
+  lifetimeEarnings: { type: Number, default: 0 },   // 👈 NEW: Tracks total historical earnings
+  totalOrdersCompleted: { type: Number, default: 0 }, // 👈 NEW: Tracks successful orders
   transactions: [{
     txId: { type: String },
     title: { type: String, default: 'Withdrawal' },

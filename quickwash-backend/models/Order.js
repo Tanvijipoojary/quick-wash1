@@ -41,18 +41,16 @@ const orderSchema = new mongoose.Schema({
     ],
     default: 'Pending' 
   },
-  subStatus: { type: String, default: 'pending_acceptance' },
   laundryStage: { type: String, default: 'Pending' },
   
   // --- RIDER ASSIGNMENTS ---
-  riderEmail: { type: String, default: null },         // Active rider handling the current leg
-  pickupRiderEmail: { type: String, default: null },   // History: who collected it
-  deliveryRiderEmail: { type: String, default: null }, // History: who delivered it 
+  
+  pickupRiderEmail: { type: String, default: null },
+  deliveryRiderEmail: { type: String, default: null }, 
 
   // --- TIMELINES & DATES (Deduplicated!) ---
   pickupDate: { type: String }, 
-  pickupSlot: { type: String },
-  estimatedPickup: { type: String, default: '' },  
+  pickupSlot: { type: String }, 
   estimatedReady: { type: String, default: '' },   // Formatted string sent by vendor (e.g., "Mar 31, 10:51 PM")
   estimatedDelivery: { type: Date },               
 

@@ -149,7 +149,7 @@ router.get('/users', async (req, res) => {
 router.put('/rider-status/:id', async (req, res) => {
   try {
     const { status } = req.body; 
-    const updatedRider = await Rider.findByIdAndUpdate(req.params.id, { status: status }, { new: true });
+    const updatedRider = await Rider.findByIdAndUpdate(req.params.id, { status: status }, { returnDocument: 'after' });
 
     if (!updatedRider) return res.status(404).json({ message: "Rider not found" });
     res.status(200).json({ message: `Rider is now ${status}`, rider: updatedRider });
@@ -175,7 +175,7 @@ router.get('/users', async (req, res) => {
 router.put('/user-status/:id', async (req, res) => {
   try {
     const { status } = req.body; // 'Active' or 'Banned'
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, { status: status }, { new: true });
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, { status: status }, { returnDocument: 'after' });
 
     if (!updatedUser) return res.status(404).json({ message: "User not found" });
     res.status(200).json({ message: `User is now ${status}`, user: updatedUser });
@@ -473,7 +473,7 @@ router.put('/vendor-status/:id', async (req, res) => {
     const updatedVendor = await Vendor.findByIdAndUpdate(
       req.params.id, 
       { status: status }, 
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedVendor) {
@@ -498,7 +498,7 @@ router.put('/rider-status/:id', async (req, res) => {
     const updatedRider = await Rider.findByIdAndUpdate(
       req.params.id, 
       { status: status }, 
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedRider) {

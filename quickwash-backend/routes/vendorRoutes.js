@@ -259,7 +259,7 @@ router.put('/profile', async (req, res) => {
         address: hub_address, 
         pricing: pricing 
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
     
     if (!updatedVendor) return res.status(404).json({ message: "Vendor not found" });
@@ -291,7 +291,7 @@ router.put('/toggle-status', async (req, res) => {
         isOpen: is_open,
         status: newAdminStatus 
       },
-      { new: true } 
+      { returnDocument: 'after' } 
     );
 
     res.status(200).json({ 
@@ -330,7 +330,7 @@ router.post('/upload-image', upload.single('shopImage'), async (req, res) => {
     const updatedVendor = await Vendor.findOneAndUpdate(
       { email: email.toLowerCase() },
       { shopImage: req.file.filename },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     res.status(200).json({ 

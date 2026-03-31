@@ -26,7 +26,7 @@ const RiderHome = () => {
   // 👇 REVERTED: Back to your original local state! 👇
   const [isOnline, setIsOnline] = useState(true); 
   const [todaysEarnings, setTodaysEarnings] = useState(0);
-  const BASE_FARE = 40;
+  const BASE_FARE = 20;
 
   const [activeTask, setActiveTask] = useState(null); 
   const [tripStatus, setTripStatus] = useState(''); 

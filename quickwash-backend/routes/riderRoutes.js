@@ -178,12 +178,16 @@ router.get('/profile/:email', async (req, res) => {
   }
 });
 
-// --- 2. GET AVAILABLE LAUNDRY PICKUPS (VENDOR APPROVED ONLY) ---
+// --- 2. GET AVAILABLE LAUNDRY PICKUPS & DELIVERIES ---
 router.get('/available-tasks', async (req, res) => {
   try {
-    // 🛑 THE FIX: Only fetch orders where the Vendor has clicked "Accept"
-    const availableOrders = await Order.find({ status: 'Searching Rider' })
-                                       .sort({ createdAt: -1 }); // Newest first
+    // 📡 BROADCAST FIX: Find orders that need a Pickup Rider OR a Delivery Rider
+    const availableOrders = await Order.find({
+      $or: [
+        { status: 'Searching Rider', pickupRiderEmail: null }, // Needs collection
+        { status: 'Ready', deliveryRiderEmail: null }          // Needs delivery
+      ]
+    }).sort({ createdAt: -1 });
     
     res.status(200).json(availableOrders); 
   } catch (error) {
@@ -192,19 +196,35 @@ router.get('/available-tasks', async (req, res) => {
   }
 });
 
-// --- 3. RIDER ACCEPTS A TASK ---
+// --- 3. SMART RIDER ACCEPTANCE LOGIC ---
 router.put('/accept-task/:orderId', async (req, res) => {
   try {
     const { riderEmail } = req.body;
     
-    // 🛵 When Rider accepts, update status so the Vendor's radar updates!
+    // 1. Fetch the order first to see what stage it is in
+    const existingOrder = await Order.findById(req.params.orderId);
+    if (!existingOrder) return res.status(404).json({ message: "Order not found" });
+
+    let updateData = {};
+
+    // 2. If it's a brand new order, assign them as the Pickup Rider!
+    if (existingOrder.status === 'Searching Rider') {
+        updateData.status = 'Pending Pickup';
+        updateData.pickupRiderEmail = riderEmail;
+    } 
+    // 3. If the clothes are clean, assign them as the Delivery Rider!
+    else if (existingOrder.status === 'Ready') {
+        updateData.status = 'Out for Delivery';
+        updateData.deliveryRiderEmail = riderEmail;
+    } else {
+        return res.status(400).json({ message: "Task is no longer available." });
+    }
+
+    // 4. Save the exact rider to the exact leg of the journey
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.orderId,
-      { 
-        status: 'Pending Pickup', 
-        riderEmail: riderEmail 
-      },
-      { new: true }
+      { $set: updateData },
+      { returnDocument: 'after' }
     );
     
     res.status(200).json({ message: "Task accepted successfully!", order: updatedOrder });
@@ -213,6 +233,8 @@ router.put('/accept-task/:orderId', async (req, res) => {
     res.status(500).json({ message: "Failed to accept task" });
   }
 });
+
+
 // --- UPDATE ORDER STATUS ---
 router.put('/update-status/:id', async (req, res) => {
   try {
@@ -223,7 +245,7 @@ router.put('/update-status/:id', async (req, res) => {
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
       { $set: updateData },
-      { new: true } 
+      { returnDocument: 'after' } 
     );
 
     if (!updatedOrder) {
@@ -314,15 +336,15 @@ router.get('/wallet/:email', async (req, res) => {
     trips.forEach(o => {
       // Collection Run
       if (o.pickupRiderEmail === email) {
-        totalEarned += 40;
-        if (new Date(o.createdAt).toDateString() === now.toDateString()) todaysEarnings += 40;
-        allTxns.push({ id: o._id.toString().slice(-6).toUpperCase(), type: 'credit', title: 'Collection Run', date: o.createdAt, amount: 40, status: 'Completed' });
+        totalEarned += 20;
+        if (new Date(o.createdAt).toDateString() === now.toDateString()) todaysEarnings += 20;
+        allTxns.push({ id: o._id.toString().slice(-6).toUpperCase(), type: 'credit', title: 'Collection Run', date: o.createdAt, amount: 20, status: 'Completed' });
       }
       // Delivery Run
       if (o.deliveryRiderEmail === email) {
-        totalEarned += 40;
-        if (new Date(o.updatedAt).toDateString() === now.toDateString()) todaysEarnings += 40;
-        allTxns.push({ id: o._id.toString().slice(-6).toUpperCase(), type: 'credit', title: 'Delivery Run', date: o.updatedAt, amount: 40, status: 'Completed' });
+        totalEarned += 20;
+        if (new Date(o.updatedAt).toDateString() === now.toDateString()) todaysEarnings += 20;
+        allTxns.push({ id: o._id.toString().slice(-6).toUpperCase(), type: 'credit', title: 'Delivery Run', date: o.updatedAt, amount: 20, status: 'Completed' });
       }
     });
 
@@ -392,7 +414,7 @@ router.put('/wallet/bank', async (req, res) => {
     const rider = await Rider.findOneAndUpdate(
       { email: email.toLowerCase() },
       { $set: { bankDetails: bankDetails } }, // 👈 Forces the update safely
-      { new: true }
+      { returnDocument: 'after' }
     );
     
     if (!rider) return res.status(404).json({ message: "Rider not found in DB." });

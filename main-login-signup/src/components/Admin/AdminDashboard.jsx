@@ -330,7 +330,7 @@ const AdminDashboard = () => {
         // Process Collection Run
         if (isPickup) {
           totalTasks++;
-          totalEarned += 40;
+          totalEarned += 20;
           const isDone = ['Dropped at Hub', 'At Shop', 'Processing', 'Ready', 'Out for Delivery', 'Completed'].includes(t.status);
           if (isDone) completed++; else active++;
 
@@ -346,7 +346,7 @@ const AdminDashboard = () => {
         // Process Delivery Run
         if (isDelivery) {
           totalTasks++;
-          totalEarned += 40;
+          totalEarned += 20;
           const isDone = t.status === 'Completed';
           if (isDone) completed++; else active++;
 

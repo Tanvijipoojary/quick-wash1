@@ -18,7 +18,7 @@ const RiderEarnings = () => {
   const [allTrips, setAllTrips] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const BASE_FARE = 40; // Flat Rs. 40 per trip
+  const BASE_FARE = 20; // Flat Rs. 40 per trip
 
   useEffect(() => {
     const fetchEarnings = async () => {

@@ -53,7 +53,7 @@ router.put('/update-profile', async (req, res) => {
     const updatedUser = await User.findOneAndUpdate(
       { email: email }, 
       { name: name, phone: phone },
-      { new: true } // This tells MongoDB to return the newly updated document
+      { returnDocument: 'after' } // This tells MongoDB to return the newly updated document
     );
 
     if (!updatedUser) {

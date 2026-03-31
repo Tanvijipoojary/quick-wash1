@@ -24,6 +24,7 @@ const VendorHome = () => {
   // Modal States
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState(null);
+  const [vendorRate, setVendorRate] = useState(60);
   const [readyTime, setReadyTime] = useState('');
   
   // --- STREAMLINED BILLING STATE ---
@@ -83,9 +84,22 @@ const VendorHome = () => {
     }
   };
 
+  // 👇 ADD THIS NEW FUNCTION 👇
+  const fetchLivePricing = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/vendors/shop/${vendor.shopId}`);
+      if (res.data && res.data.pricing && res.data.pricing.washAndIron) {
+        setVendorRate(res.data.pricing.washAndIron); // Saves the real DB rate!
+      }
+    } catch (error) {
+      console.error("Failed to fetch live pricing");
+    }
+  };
+
   useEffect(() => {
     if (vendor && vendor.shopId) {
       fetchVendorOrders();
+      fetchLivePricing(); // 👈 TRIGGER IT HERE
       const interval = setInterval(fetchVendorOrders, 10000);
       return () => clearInterval(interval);
     }
@@ -144,8 +158,8 @@ const VendorHome = () => {
     const weight = e.target.value;
     setBagWeight(weight);
     
-    const rate = vendor.pricing?.washAndIron || 60;
-    setTotalBill(Number(weight || 0) * rate);
+    // 👇 Use the live rate here
+    setTotalBill(Number(weight || 0) * vendorRate);
   };
 
   const handleSendBill = async () => {
@@ -166,7 +180,7 @@ const VendorHome = () => {
     try {
       await axios.put(`http://localhost:5000/api/orders/generate-bill/${activeOrderId}`, {
         weightInKg: Number(bagWeight),
-        pricePerKg: vendor.pricing?.washAndIron || 60,
+        pricePerKg: vendorRate, // 👈 Use the live rate here
         estimatedReady: prettyReadyTime, 
         laundryStage: 'Washing'
       });
@@ -188,7 +202,7 @@ const VendorHome = () => {
     updateOrderStatus(orderId, { 
       status: 'Ready', 
       subStatus: 'return_requested',
-      riderEmail: null 
+      
     });
   };
 
@@ -514,7 +528,8 @@ const VendorHome = () => {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '15px', borderBottom: '1px dashed #cbd5e1' }}>
                 <span style={{ color: '#64748b' }}>Your Rate</span>
-                <span>₹{vendor.pricing?.washAndIron || 60} / Kg</span>
+                {/* 👇 Use the live rate here */}
+                <span>₹{vendorRate} / Kg</span> 
               </div>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '1.4rem' }}>

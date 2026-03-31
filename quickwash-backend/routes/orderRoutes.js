@@ -73,19 +73,103 @@ router.put('/update-status/:orderId', async (req, res) => {
   try {
     let updateData = { ...req.body };
     
+    // 1. Fetch the order FIRST
+    const existingOrder = await Order.findById(req.params.orderId);
+    if (!existingOrder) return res.status(404).json({ message: "Order not found" });
+
     if (updateData.status === 'Ready') {
-      updateData.riderEmail = null; 
+      updateData.riderEmail = null; // Clears the active rider so a new one can accept delivery
     }
 
+    // 2. Update the order in the database
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.orderId, 
       { $set: updateData }, 
-      { new: true }
+      { returnDocument: 'after' }
     );
     
-    if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
+    const Vendor = require('../models/Vendor'); 
+    const Transaction = require('../models/Transaction');
+    const Rider = require('../models/Rider'); 
+    const User = require('../models/User'); 
+
+    // ==========================================
+    // 🛵 RIDER PAY 1: COLLECTION RUN (₹20)
+    // ==========================================
+    const collectionDoneStatuses = ['Dropped at Hub', 'At Shop', 'Processing'];
+    if (!collectionDoneStatuses.includes(existingOrder.status) && collectionDoneStatuses.includes(updatedOrder.status)) {
+        // 👇 Uses the specific pickupRiderEmail
+        if (updatedOrder.pickupRiderEmail) {
+            await Rider.findOneAndUpdate(
+                { email: updatedOrder.pickupRiderEmail.toLowerCase() },
+                { $inc: { wallet_balance: 20, total_earnings: 20, total_tasks: 1, completed_tasks: 1 } }
+            );
+        }
+    }
+
+    // ==========================================
+    // 💰 MASTER PAY: DELIVERY RUN (₹20) + VENDOR
+    // ==========================================
+    if (existingOrder.status !== 'Completed' && updatedOrder.status === 'Completed') {
+        
+        const laundrySubtotal = updatedOrder.totalAmount || 0;
+        const vendorCut = Number((laundrySubtotal * 0.90).toFixed(2));
+        const platformFee = Number((laundrySubtotal * 0.10).toFixed(2));
+        const deliveryRiderCut = 20; 
+        const totalRiderPay = 40; // Total collected from customer for both legs
+        const customerPaid = laundrySubtotal + totalRiderPay;
+
+        // A. Pay the Vendor
+        await Vendor.findByIdAndUpdate(
+            updatedOrder.shopId,
+            { $inc: { walletBalance: vendorCut, lifetimeEarnings: vendorCut, totalOrdersCompleted: 1 } }
+        );
+
+        // B1. Get the Pickup Rider's Database ID for the receipt
+        let actualPickupRiderId = null;
+        if (updatedOrder.pickupRiderEmail) {
+            const pRider = await Rider.findOne({ email: updatedOrder.pickupRiderEmail.toLowerCase() });
+            if (pRider) actualPickupRiderId = pRider._id;
+        }
+
+        // B2. Pay the Delivery Rider (₹20) & get their Database ID
+        let actualDeliveryRiderId = null;
+        if (updatedOrder.deliveryRiderEmail) {
+            const dRider = await Rider.findOneAndUpdate(
+                { email: updatedOrder.deliveryRiderEmail.toLowerCase() },
+                { $inc: { wallet_balance: deliveryRiderCut, total_earnings: deliveryRiderCut, total_tasks: 1, completed_tasks: 1 } },
+                { returnDocument: 'after' } 
+            );
+            if (dRider) actualDeliveryRiderId = dRider._id;
+        }
+
+        // C. Grab Customer ID
+        let actualCustomerId = null;
+        if (updatedOrder.customerEmail) {
+            const customer = await User.findOne({ email: updatedOrder.customerEmail.toLowerCase() });
+            if (customer) actualCustomerId = customer._id;
+        }
+
+        // D. Generate the official Admin Transaction (Now 100% Split!)
+        await Transaction.create({
+            orderId: updatedOrder._id,
+            customerId: actualCustomerId,
+            totalAmountPaid: customerPaid,
+            paymentMethod: updatedOrder.paymentMethod || 'Cash',
+            paymentStatus: 'Success',
+            platformFee: platformFee,
+            vendorId: updatedOrder.shopId,
+            vendorEarnings: vendorCut,
+            pickupRiderId: actualPickupRiderId,     // 👈 Saved separately!
+            pickupRiderEarnings: 20,                // 👈 ₹20 logged
+            deliveryRiderId: actualDeliveryRiderId, // 👈 Saved separately!
+            deliveryRiderEarnings: 20               // 👈 ₹20 logged
+        });
+    }
+    
     res.status(200).json(updatedOrder);
   } catch (error) {
+    console.error("Error updating status:", error);
     res.status(500).json({ message: "Server error updating status" });
   }
 });
@@ -105,7 +189,7 @@ router.put('/claim/:orderId', async (req, res) => {
     const claimedOrder = await Order.findByIdAndUpdate(
       req.params.orderId, 
       { $set: { riderEmail: req.body.riderEmail, status: newStatus } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     
     res.status(200).json(claimedOrder);
@@ -143,7 +227,7 @@ router.put('/generate-bill/:orderId', async (req, res) => {
         laundryStage: laundryStage || 'Washing',
         status: 'At Shop' 
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
@@ -154,32 +238,36 @@ router.put('/generate-bill/:orderId', async (req, res) => {
   }
 });
 
+/// ==========================================
+// 🧹 DATABASE CLEANUP: Remove Dead Fields
+// ==========================================
+router.get('/cleanup-orders', async (req, res) => {
+  try {
+    const result = await Order.updateMany(
+      {}, 
+      { $unset: { subStatus: "", estimatedPickup: "" } }
+    );
+    res.status(200).json({ 
+      message: "Database successfully scrubbed!", 
+      ordersFixed: result.modifiedCount 
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to clean database." });
+  }
+});
+
 // --- 9. GET SINGLE ORDER BY ID (MUST BE AT THE VERY BOTTOM!) ---
 router.get('/:id', async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: "Order not found" });
-    res.status(200).json(order);
+    
+    // 👇 THIS is the line that got accidentally deleted! It sends the data to React!
+    res.status(200).json(order); 
+    
   } catch (error) {
+    console.error("Error fetching single order:", error);
     res.status(500).json({ message: "Server error fetching order" });
-  }
-});
-
-// GET COMPLETED EARNINGS FOR A SPECIFIC SHOP
-router.get('/vendor-earnings/:shopId', async (req, res) => {
-  try {
-    const { shopId } = req.params;
-    
-    // Find all orders for this shop that are successfully completed
-    const completedOrders = await Order.find({ 
-      shopId: shopId,
-      status: 'Completed' 
-    }).sort({ createdAt: -1 }); // Newest first
-    
-    res.status(200).json(completedOrders);
-  } catch (error) {
-    console.error("Error fetching vendor earnings:", error);
-    res.status(500).json({ message: "Failed to fetch earnings data" });
   }
 });
 
