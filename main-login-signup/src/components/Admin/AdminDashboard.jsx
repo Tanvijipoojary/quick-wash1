@@ -9,20 +9,26 @@ const AdminDashboard = () => {
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // --- FINANCIAL FILTERS ---
   const [financeFilter, setFinanceFilter] = useState('All'); 
   const [timeFilter, setTimeFilter] = useState('Overall'); 
 
-  // ==========================================
-  // 👥 DYNAMIC DATABASE STATES
-  // ==========================================
-  const [usersData, setUsersData] = useState([]); // Now empty, waiting for DB
+  const [usersData, setUsersData] = useState([]);
+  const [transactionsData, setTransactionsData] = useState([]);
   const [shopsData, setShopsData] = useState([]); 
   const [ridersData, setRidersData] = useState([]); 
 
-  // --- FETCH ALL ENTITIES FROM DATABASE ---
+  const [dashboardStats, setDashboardStats] = useState({
+    revenue: 0, totalOrders: 0, pendingOrders: 0, 
+    shopsOnline: 0, shopsTotal: 0, ridersOnline: 0, ridersTotal: 0
+  });
+
+  const [financialStats, setFinancialStats] = useState({
+    Overall: { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: 0 },
+    Yearly: { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: 0 },
+    Monthly: { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: 0 }
+  });
+
   useEffect(() => {
-    // 1. FETCH VENDORS (SHOPS)
     const fetchVendors = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/admin/vendors');
@@ -41,83 +47,92 @@ const AdminDashboard = () => {
             rejected: v.rejected_orders || 0,
             pending: v.pending_orders || 0,
             walletBal: v.wallet_balance || 0,
-            totalEarned: v.total_earnings || 0
+            totalEarned: v.total_earnings || 0,
+            withdrawn: v.total_withdrawn || 0 
           },
           recentOrders: v.recentOrders || [] 
         }));
         setShopsData(formattedVendors);
-      } catch (error) {
-        console.error("Error fetching vendors:", error);
-      }
+      } catch (error) { console.error(error); }
     };
     
-    // 2. FETCH RIDERS
     const fetchRiders = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/admin/riders');
         const formattedRiders = response.data.map(r => ({
-          id: r._id,
-          name: r.name,
-          phone: r.phone,
-          email: r.email,
-          zone: r.zone || "Mangaluru",
-          status: r.status,
-          vehicleInfo: { 
-            make: r.vehicle_type, 
-            plate: r.vehicle_number 
-          },
-          stats: {
-            totalTasks: r.total_tasks || 0,
-            completed: r.completed_tasks || 0,
-            walletBal: r.wallet_balance || 0,
-            totalEarned: r.total_earnings || 0
-          },
+          id: r._id, name: r.name, phone: r.phone, email: r.email, zone: r.zone || "Mangaluru", status: r.status,
+          vehicleInfo: { make: r.vehicle_type, plate: r.vehicle_number },
+          stats: { totalTasks: r.total_tasks || 0, completed: r.completed_tasks || 0, walletBal: r.wallet_balance || 0, totalEarned: r.total_earnings || 0, withdrawn: r.total_withdrawn || 0 },
           documents: r.documents || {} 
         }));
         setRidersData(formattedRiders);
-      } catch (error) {
-        console.error("Error fetching riders:", error);
-      }
+      } catch (error) { console.error(error); }
     };
 
-    // 3. FETCH CUSTOMERS (USERS)
     const fetchUsers = async () => {
       try {
-        // If inside authRoutes.js
-        const response = await axios.get('http://localhost:5000/api/auth/all-users');
-        const formattedUsers = response.data.map(u => {
-          // Format the date nicely if it exists
-          const joinedDate = u.createdAt 
-            ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) 
-            : "Unknown";
-          
-          return {
-            id: u._id, 
-            name: u.name || "Unnamed User", 
-            email: u.email, 
-            phone: u.phone || "N/A", 
-            status: u.status || "Active", 
-            joined: joinedDate, 
-            stats: { 
-              totalOrders: u.totalOrders || 0, 
-              completed: u.completedOrders || 0, 
-              cancelled: u.cancelledOrders || 0, 
-              pending: u.pendingOrders || 0, 
-              totalSpent: u.totalSpent || 0 
-            },
+        const response = await axios.get('http://localhost:5000/api/admin/users');
+        const formattedUsers = response.data.map(u => ({
+            id: u._id, name: u.name || "Unnamed User", email: u.email, phone: u.phone || "N/A", status: u.status || "Active", 
+            joined: u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : "Unknown", 
+            stats: { totalOrders: u.totalOrders || 0, completed: u.completedOrders || 0, cancelled: u.cancelledOrders || 0, pending: u.pendingOrders || 0, totalSpent: u.totalSpent || 0 },
             orderHistory: u.orderHistory || []
+        }));
+        setUsersData(formattedUsers);
+      } catch (error) { console.error(error); }
+    };
+
+    const fetchTransactions = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/admin/transactions');
+        const txns = response.data;
+        
+        let overall = { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: financialStats.Overall.withdrawn };
+        let yearly = { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: financialStats.Yearly.withdrawn };
+        let monthly = { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: financialStats.Monthly.withdrawn };
+        
+        const now = new Date();
+
+        const formattedTxns = txns.map(t => {
+          // Trust the database math now!
+          const actualTotal = t.totalAmountPaid || 0;
+          const actualShopCut = t.vendorEarnings || 0;
+          const actualRiderCut = t.riderEarnings || 0;
+          const actualProfit = t.platformFee || 0;
+
+          const txDate = new Date(t.createdAt);
+          const isThisYear = txDate.getFullYear() === now.getFullYear();
+          const isThisMonth = isThisYear && txDate.getMonth() === now.getMonth();
+
+          overall.total += actualTotal; overall.shop += actualShopCut; overall.rider += actualRiderCut; overall.profit += actualProfit;
+          if (isThisYear) { yearly.total += actualTotal; yearly.shop += actualShopCut; yearly.rider += actualRiderCut; yearly.profit += actualProfit; }
+          if (isThisMonth) { monthly.total += actualTotal; monthly.shop += actualShopCut; monthly.rider += actualRiderCut; monthly.profit += actualProfit; }
+
+          return {
+            id: `#${t._id.slice(-6).toUpperCase()}`,
+            orderId: `#${(t.orderId || 'UNKNOWN').slice(-6).toUpperCase()}`,
+            customerName: t.customerName, shopName: t.shopName,
+            total: actualTotal.toFixed(2), 
+            shopCut: actualShopCut.toFixed(2), 
+            riderCut: actualRiderCut.toFixed(2), 
+            profit: actualProfit.toFixed(2),
+            status: t.paymentStatus === 'Success' ? 'Completed' : 'Pending'
           };
         });
-        setUsersData(formattedUsers);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      }
+
+        setTransactionsData(formattedTxns);
+        setDashboardStats(prev => ({ ...prev, revenue: monthly.profit.toFixed(2) })); 
+        setFinancialStats({ Overall: overall, Yearly: yearly, Monthly: monthly });
+
+      } catch (error) { console.error(error); }
     };
 
     fetchVendors();
     fetchRiders();
     fetchUsers(); 
-  }, []);
+    fetchTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
   // --- MODAL STATES ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -134,40 +149,18 @@ const AdminDashboard = () => {
   const [isRiderEditModalOpen, setIsRiderEditModalOpen] = useState(false);
   const [reviewingRider, setReviewingRider] = useState(null);   
 
-  // --- MOCK TRANSACTIONS (Until backend is built) ---
-  const [transactionsData] = useState([
-    { id: "TXN-901", date: "Feb 26, 2026", orderId: "#ORD-9921", customerName: "Rahul M.", shopName: "Sparkle Clean Laundry", total: 340, shopCut: 270, riderCut: 40, profit: 30, status: "Completed" },
-    { id: "TXN-902", date: "Feb 25, 2026", orderId: "#ORD-9922", customerName: "Priya S.", shopName: "Quick Wash Hub", total: 120, shopCut: 95, riderCut: 15, profit: 10, status: "Pending Payout" },
-    { id: "TXN-903", date: "Feb 25, 2026", orderId: "#ORD-9923", customerName: "Amit K.", shopName: "Ocean Fresh Laundry", total: 450, shopCut: 360, riderCut: 50, profit: 40, status: "Completed" },
-    { id: "TXN-904", date: "Feb 24, 2026", orderId: "#ORD-9924", customerName: "Tanvi G.", shopName: "Elite Dry Cleaners", total: 890, shopCut: 710, riderCut: 80, profit: 100, status: "Completed" }
-  ]);
-
-  // --- ADMIN PROFILE STATE ---
   const [adminProfile, setAdminProfile] = useState({
-    name: 'Admin User',
-    email: 'admin@quickwash.com',
-    phone: '+91 9988776655',
-    role: 'System Owner',
-    joined: 'Nov 15, 2025',
-    savedAccounts: [
-      { id: 1, bankName: 'HDFC Bank', accountName: 'Quick Wash Corporate', accountNumber: '50100234891234', ifscCode: 'HDFC0001234' }
-    ]
+    name: 'Admin User', email: 'admin@quickwash.com', phone: '+91 9988776655', role: 'System Owner', joined: 'Nov 15, 2025',
+    savedAccounts: [ { id: 1, bankName: 'HDFC Bank', accountName: 'Quick Wash Corporate', accountNumber: '50100234891234', ifscCode: 'HDFC0001234' } ]
   });
 
   const [newAccount, setNewAccount] = useState({ bankName: '', accountName: '', accountNumber: '', ifscCode: '' });
 
-  // --- PLATFORM FINANCE STATE ---
-  const [financialStats, setFinancialStats] = useState({
-    Overall: { total: 1800, shop: 1435, rider: 185, profit: 180, withdrawn: 0 },
-    Yearly: { total: 24500, shop: 19600, rider: 2450, profit: 2450, withdrawn: 1000 },
-    Monthly: { total: 3200, shop: 2560, rider: 320, profit: 320, withdrawn: 0 }
-  });
   const currentStats = financialStats[timeFilter];
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const todayDate = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 
-  // --- HANDLERS ---
   const handleLogout = () => { navigate('/'); };
 
   const handleApproveShop = async (id) => {
@@ -175,7 +168,6 @@ const AdminDashboard = () => {
       await axios.put(`http://localhost:5000/api/admin/vendor-status/${id}`, { status: 'Active' });
       setShopsData(shopsData.map(s => s.id === id ? { ...s, status: 'Active' } : s));
       setReviewingShop(null);
-      alert("✅ Shop approved successfully! They can now receive orders.");
     } catch (error) { alert("Error approving shop."); }
   };
 
@@ -184,7 +176,6 @@ const AdminDashboard = () => {
       await axios.put(`http://localhost:5000/api/admin/vendor-status/${id}`, { status: 'Suspended' });
       setShopsData(shopsData.map(s => s.id === id ? { ...s, status: 'Suspended' } : s));
       setReviewingShop(null);
-      alert("❌ Shop application rejected.");
     } catch (error) { alert("Error rejecting shop."); }
   };
 
@@ -193,7 +184,6 @@ const AdminDashboard = () => {
       await axios.put(`http://localhost:5000/api/admin/rider-status/${id}`, { status: 'Active' });
       setRidersData(ridersData.map(r => r.id === id ? { ...r, status: 'Active' } : r));
       setReviewingRider(null); 
-      alert("✅ Rider approved successfully! They can now log in.");
     } catch (error) { alert("Error approving rider."); }
   };
 
@@ -202,7 +192,6 @@ const AdminDashboard = () => {
       await axios.put(`http://localhost:5000/api/admin/rider-status/${id}`, { status: 'Suspended' });
       setRidersData(ridersData.map(r => r.id === id ? { ...r, status: 'Suspended' } : r));
       setReviewingRider(null);
-      alert("❌ Rider application rejected.");
     } catch (error) { alert("Error rejecting rider."); }
   };
 
@@ -211,7 +200,6 @@ const AdminDashboard = () => {
     const newId = Date.now(); 
     setAdminProfile(prev => ({ ...prev, savedAccounts: [...prev.savedAccounts, { id: newId, ...newAccount }] }));
     setNewAccount({ bankName: '', accountName: '', accountNumber: '', ifscCode: '' }); 
-    alert('🏦 New bank account saved successfully!');
   };
 
   const handleDeleteAccount = (id) => {
@@ -235,9 +223,7 @@ const AdminDashboard = () => {
   };
   
   const handleMenuClick = (menu) => { 
-    setActiveMenu(menu); 
-    setSearchTerm(''); 
-    setFinanceFilter('All'); 
+    setActiveMenu(menu); setSearchTerm(''); setFinanceFilter('All'); 
   };
   
   const handleExportCSV = () => { alert("CSV Downloaded successfully!"); };
@@ -249,165 +235,156 @@ const AdminDashboard = () => {
   const toggleRiderStatus = (id, currentStatus) => setRidersData(ridersData.map(r => r.id === id ? { ...r, status: currentStatus === 'Active' ? 'Suspended' : 'Active' } : r));
   const handleEditRider = (e) => { e.preventDefault(); setRidersData(ridersData.map(r => r.id === editingRider.id ? editingRider : r)); setIsRiderEditModalOpen(false); };
 
-  // --- FILTER LOGIC ---
-// Change your filteredUsers variable to this:
   const filteredUsers = usersData.filter(u => 
     u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase()) // 👈 Added ? to prevent crashes
-  );  const filteredShops = shopsData.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.location.toLowerCase().includes(searchTerm.toLowerCase()));
+    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );  
+  const filteredShops = shopsData.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.location.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredRiders = ridersData.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.zone.toLowerCase().includes(searchTerm.toLowerCase()));
+  
   const filteredTransactions = transactionsData.filter(t => {
-    const matchesSearch = t.orderId.toLowerCase().includes(searchTerm.toLowerCase()) || t.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || t.shopName.toLowerCase().includes(searchTerm.toLowerCase());
+    const safeOrderId = t.orderId || "";
+    const safeCustomer = t.customerName || "";
+    const safeShop = t.shopName || "";
+    
+    const matchesSearch = safeOrderId.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          safeCustomer.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          safeShop.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = financeFilter === 'All' || t.status === financeFilter;
     return matchesSearch && matchesFilter;
   });
 
-  // --- FETCH SPECIFIC USER ORDERS ON CLICK ---
-  const handleViewUser = async (user) => {
-    // 1. Open the modal immediately with basic info
+  const handleViewUser = async (user) => { 
     setViewingUser(user); 
-
     try {
-      // 2. Fetch all orders belonging to this user's email
       const response = await axios.get(`http://localhost:5000/api/orders/user/${user.email}`);
       const userOrders = response.data;
-
-      // 3. Calculate dynamic stats
       const totalOrders = userOrders.length;
       const completed = userOrders.filter(o => ['Completed', 'Dropped at Hub'].includes(o.status)).length;
       const cancelled = userOrders.filter(o => o.status === 'Cancelled').length;
       const totalSpent = userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-      // 4. Format the order history for the table
       const formattedHistory = userOrders.map(o => ({
         id: `#${o._id.substring(o._id.length - 6).toUpperCase()}`,
         date: new Date(o.createdAt || o.updatedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
-        shop: o.shopId || "Quick Wash Hub", // Will display shop ID or default name
+        shop: o.shopId || "Quick Wash Hub", 
         amount: o.totalAmount || 0,
         status: o.status
       }));
-
-      // 5. Update the modal state with the real calculated data!
-      setViewingUser({
-        ...user,
-        stats: { totalOrders, completed, cancelled, totalSpent },
-        orderHistory: formattedHistory
-      });
-
-    } catch (error) {
-      console.error("Error fetching user orders:", error);
-    }
+      setViewingUser({ ...user, stats: { totalOrders, completed, cancelled, totalSpent }, orderHistory: formattedHistory });
+    } catch (error) { console.error(error); }
   };
 
-  // --- FETCH SPECIFIC SHOP ORDERS ON CLICK ---
-  const handleViewShop = async (shop) => {
-    // 1. Open the modal immediately with basic info
-    setViewingShop(shop);
-
+  const handleViewShop = async (shop) => { 
+    setViewingShop(shop); 
     try {
-      // 2. Fetch all orders belonging to this specific shop ID
       const response = await axios.get(`http://localhost:5000/api/orders/vendor/${shop.id}`);
       const shopOrders = response.data;
-
-      // 3. Calculate dynamic stats (Performance & Ledger)
+      
       const totalOrders = shopOrders.length;
-      
-      // Define what counts as 'Accepted' vs 'Pending' vs 'Rejected' based on your statuses
       const accepted = shopOrders.filter(o => ['At Shop', 'Ready', 'Picked Up', 'Out for Delivery', 'Completed'].includes(o.status)).length;
-      const pending = shopOrders.filter(o => ['Pending Pickup'].includes(o.status)).length;
-      const rejected = shopOrders.filter(o => o.status === 'Cancelled').length;
+      const pending = shopOrders.filter(o => ['Pending Pickup', 'Searching Rider', 'Pending'].includes(o.status)).length;
+      const rejected = shopOrders.filter(o => ['Cancelled', 'Rejected'].includes(o.status)).length;
       
-      // Calculate earnings (sum of totalAmount for completed/paid orders)
-      const totalEarned = shopOrders
-        .filter(o => o.paymentStatus === 'Paid' || o.status === 'Completed')
-        .reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-      // 4. Format the order history for the table
-      const formattedHistory = shopOrders.map(o => ({
-        id: `#${o._id.substring(o._id.length - 6).toUpperCase()}`,
-        date: new Date(o.createdAt || o.updatedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
-        customer: o.customerEmail ? o.customerEmail.split('@')[0] : "Guest",
-        amount: o.totalAmount || 0,
-        status: o.status
-      }));
-
-      // 5. Update the modal state with the real calculated data!
-      setViewingShop({
-        ...shop,
-        stats: { 
-          totalOrders, 
-          accepted, 
-          rejected, 
-          pending, 
-          totalEarned, 
-          walletBal: totalEarned, // Assuming wallet balance matches earnings for now
-          withdrawn: shop.stats?.withdrawn || 0 
-        },
-        recentOrders: formattedHistory
+      const completedOrders = shopOrders.filter(o => o.paymentStatus === 'Paid' || o.status === 'Completed');
+      const totalEarned = completedOrders.reduce((sum, order) => {
+          const laundrySubtotal = order.totalAmount || 0;
+          return sum + (laundrySubtotal * 0.9);
+      }, 0);
+      
+      const formattedHistory = shopOrders.map(o => {
+        const laundrySubtotal = o.totalAmount || 0;
+        return {
+          id: `#${o._id.substring(o._id.length - 6).toUpperCase()}`,
+          date: new Date(o.createdAt || o.updatedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
+          customer: o.customerEmail ? o.customerEmail.split('@')[0] : "Guest",
+          amount: (laundrySubtotal * 0.9).toFixed(2), 
+          status: o.status
+        }
       });
 
-    } catch (error) {
-      console.error("Error fetching shop orders:", error);
-    }
+      // 👇 DYNAMIC WALLET CALCULATION 👇
+      const withdrawnAmount = shop.stats.withdrawn || 0;
+      const currentWalletBal = totalEarned - withdrawnAmount;
+
+      setViewingShop({ 
+        ...shop, 
+        stats: { totalOrders, accepted, rejected, pending, totalEarned, walletBal: currentWalletBal, withdrawn: withdrawnAmount }, 
+        recentOrders: formattedHistory 
+      });
+    } catch (error) { console.error(error); }
   };
 
-  // --- FETCH SPECIFIC RIDER TASKS ON CLICK ---
-  const handleViewRider = async (rider) => {
-    // 1. Open the modal immediately with basic info
-    setViewingRider(rider);
-
+  const handleViewRider = async (rider) => { 
+    setViewingRider(rider); 
     try {
-      // 2. Fetch all orders claimed by this rider's email
-      const response = await axios.get(`http://localhost:5000/api/orders/rider/${rider.email}`);
-      const riderTasks = response.data;
-
-      // 3. Calculate dynamic stats
-      const totalTasks = riderTasks.length;
-      const completed = riderTasks.filter(t => t.status === 'Completed').length;
+      // 👇 FIX 1: Point to the correct Rider Earnings route so it finds all 6 tasks (₹240)!
+      const response = await axios.get(`http://localhost:5000/api/rider/earnings/${rider.email}`);
+      const riderOrders = response.data;
       
-      // Active tasks are anything they claimed but haven't completed yet
-      const active = riderTasks.filter(t => ['Picked Up', 'At Shop', 'Ready', 'Out for Delivery'].includes(t.status)).length;
-      
-      // Assuming riders get a flat Rs. 40 delivery fee per completed task
-      // Update this if your database stores a specific 'deliveryFee' field!
-      const totalEarned = riderTasks
-        .filter(t => t.status === 'Completed' || t.paymentStatus === 'Paid')
-        .reduce((sum, task) => sum + (task.deliveryFee || 40), 0);
+      let totalTasks = 0;
+      let completed = 0;
+      let active = 0;
+      let totalEarned = 0;
+      const formattedHistory = [];
 
-      // 4. Format the task ledger for the table
-      const formattedHistory = riderTasks.map(t => {
-        // Just a little logic to make the task names look nice
-        const taskName = t.status === 'Completed' ? '✅ Delivery Completed' : '🛵 Active Delivery';
+      riderOrders.forEach(t => {
+        const isPickup = t.pickupRiderEmail && t.pickupRiderEmail.toLowerCase() === rider.email.toLowerCase();
+        const isDelivery = t.deliveryRiderEmail && t.deliveryRiderEmail.toLowerCase() === rider.email.toLowerCase();
 
-        return {
-          id: `#${t._id.substring(t._id.length - 6).toUpperCase()}`,
-          taskType: taskName,
-          location: t.customerEmail ? t.customerEmail.split('@')[0] : "Customer",
-          amount: t.deliveryFee || 40,
-          status: t.status
-        };
+        // 👇 FIX 2: Correctly label Collection Runs vs Delivery Runs! 👇
+        
+        // Process Collection Run
+        if (isPickup) {
+          totalTasks++;
+          totalEarned += 40;
+          const isDone = ['Dropped at Hub', 'At Shop', 'Processing', 'Ready', 'Out for Delivery', 'Completed'].includes(t.status);
+          if (isDone) completed++; else active++;
+
+          formattedHistory.push({
+            id: `#${t._id.substring(t._id.length - 6).toUpperCase()}-C`,
+            taskType: isDone ? '✅ Collection Run' : '🛵 Active Collection',
+            location: t.customerEmail ? t.customerEmail.split('@')[0] : "Customer",
+            amount: 40,
+            status: isDone ? 'Completed' : t.status
+          });
+        }
+
+        // Process Delivery Run
+        if (isDelivery) {
+          totalTasks++;
+          totalEarned += 40;
+          const isDone = t.status === 'Completed';
+          if (isDone) completed++; else active++;
+
+          formattedHistory.push({
+            id: `#${t._id.substring(t._id.length - 6).toUpperCase()}-D`,
+            taskType: isDone ? '✅ Delivery Run' : '🛵 Active Delivery',
+            location: t.customerEmail ? t.customerEmail.split('@')[0] : "Customer",
+            amount: 40,
+            status: isDone ? 'Completed' : t.status
+          });
+        }
       });
 
-      // 5. Update the modal state with the real calculated data!
-      setViewingRider({
-        ...rider,
+      setViewingRider({ 
+        ...rider, 
         stats: { 
           totalTasks, 
           completed, 
-          declined: rider.stats?.declined || 0, // Hard to track declines, keeping default
+          declined: 0, 
           active, 
           totalEarned, 
-          walletBal: totalEarned, 
-          withdrawn: rider.stats?.withdrawn || 0 
-        },
-        recentTasks: formattedHistory
+          walletBal: rider.stats.walletBal, // Uses the true Database math!
+          withdrawn: rider.stats.withdrawn  // Uses the true Database math!
+        }, 
+        recentTasks: formattedHistory 
       });
-
-    } catch (error) {
-      console.error("Error fetching rider tasks:", error);
+    } catch (error) { 
+      console.error("Failed to load rider details:", error); 
     }
   };
 
+  
   return (
     <div className="admin-container">
       
@@ -442,9 +419,6 @@ const AdminDashboard = () => {
           </div>
         </header>
 
-        {/* ==========================================
-            ADMIN PROFILE TAB
-        ========================================== */}
         {activeMenu === 'profile' && (
           <div className="admin-dashboard-content animate-fade">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2.5fr', gap: '25px' }}>
@@ -462,7 +436,6 @@ const AdminDashboard = () => {
                     <div style={{ paddingTop: '8px' }}><strong>📅 Joined:</strong><br/>{adminProfile.joined}</div>
                  </div>
               </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                 <div style={{ background: 'white', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ margin: '0 0 20px 0', color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', fontSize: '1.2rem' }}>Personal Information</h3>
@@ -484,78 +457,11 @@ const AdminDashboard = () => {
                     </div>
                   </form>
                 </div>
-
-                <div style={{ background: 'white', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 20px 0', color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', fontSize: '1.2rem' }}>Security & Password</h3>
-                  <form onSubmit={(e) => { e.preventDefault(); alert('🔒 Password changed successfully!'); e.target.reset(); }} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Current Password</label>
-                      <input type="password" required placeholder="Enter current password" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}/>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>New Password</label>
-                        <input type="password" required placeholder="Min 8 characters" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}/>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Confirm New Password</label>
-                        <input type="password" required placeholder="Repeat new password" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}/>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right', marginTop: '10px' }}>
-                      <button type="submit" style={{ background: '#0f172a', color: 'white', border: 'none', padding: '12px 25px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem', transition: '0.2s' }}>Update Password</button>
-                    </div>
-                  </form>
-                </div>
-
-                <div style={{ background: 'white', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 20px 0', color: '#334155', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', fontSize: '1.2rem' }}>Saved Corporate Accounts</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
-                    {adminProfile.savedAccounts.length > 0 ? (
-                      adminProfile.savedAccounts.map(acc => (
-                        <div key={acc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                          <div>
-                            <strong style={{ color: '#0f172a', display: 'block', fontSize: '1rem' }}>{acc.bankName}</strong>
-                            <span style={{ color: '#475569', fontSize: '0.85rem' }}>{acc.accountName} •••• {acc.accountNumber.slice(-4)}</span>
-                          </div>
-                          <button onClick={() => handleDeleteAccount(acc.id)} style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>Remove</button>
-                        </div>
-                      ))
-                    ) : (
-                      <div style={{ padding: '15px', textAlign: 'center', color: '#64748b', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>No saved accounts. Please add one below to enable withdrawals.</div>
-                    )}
-                  </div>
-                  <h4 style={{ margin: '0 0 15px 0', color: '#475569', fontSize: '1rem' }}>+ Add New Bank Account</h4>
-                  <form onSubmit={handleAddAccount} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Bank Name</label>
-                      <input type="text" value={newAccount.bankName} onChange={e => setNewAccount({...newAccount, bankName: e.target.value})} required placeholder="e.g., SBI Bank" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}/>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Account Holder</label>
-                      <input type="text" value={newAccount.accountName} onChange={e => setNewAccount({...newAccount, accountName: e.target.value})} required placeholder="Quick Wash LLC" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}/>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>Account Number</label>
-                      <input type="password" value={newAccount.accountNumber} onChange={e => setNewAccount({...newAccount, accountNumber: e.target.value})} required placeholder="Enter A/C Number" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none' }}/>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569' }}>IFSC Code</label>
-                      <input type="text" value={newAccount.ifscCode} onChange={e => setNewAccount({...newAccount, ifscCode: e.target.value.toUpperCase()})} required placeholder="e.g., SBIN0001234" style={{ padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.95rem', outline: 'none', textTransform: 'uppercase' }}/>
-                    </div>
-                    <div style={{ gridColumn: 'span 2', textAlign: 'right', marginTop: '10px' }}>
-                      <button type="submit" style={{ background: '#16a34a', color: 'white', border: 'none', padding: '12px 25px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem', transition: '0.2s' }}>Save Account</button>
-                    </div>
-                  </form>
-                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* ==========================================
-            DASHBOARD TAB (Strictly Daily Report)
-        ========================================== */}
         {activeMenu === 'dashboard' && (
           <div className="admin-dashboard-content animate-fade">
             <div className="financial-stats-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -563,23 +469,34 @@ const AdminDashboard = () => {
               <div style={{ background: '#e2e8f0', color: '#334155', padding: '6px 14px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold' }}>📅 {todayDate}</div>
             </div>
             <div className="admin-stats-grid grid-2x2">
-              <div className="stat-card blue-gradient"><h3>Today's Revenue</h3><h2>₹3,240</h2><p>+5% from yesterday</p></div>
-              <div className="stat-card orange-gradient"><h3>Today's Orders</h3><h2>48</h2><p>12 pending right now</p></div>
-              <div className="stat-card green-gradient"><h3>Shops Online</h3><h2>22</h2><p>2 currently offline</p></div>
-              <div className="stat-card purple-gradient"><h3>Riders Online</h3><h2>18</h2><p>Out of 42 total riders</p></div>
+              <div className="stat-card blue-gradient">
+                <h3>Today's Platform Profit</h3>
+                <h2>₹{dashboardStats.revenue}</h2>
+                <p>Calculated at 10% commission</p>
+              </div>
+              <div className="stat-card orange-gradient">
+                <h3>Total Customers</h3>
+                <h2>{usersData.length}</h2>
+                <p>Registered on platform</p>
+              </div>
+              <div className="stat-card green-gradient">
+                <h3>Shops Online</h3>
+                <h2>{shopsData.filter(s => s.status === 'Active').length}</h2>
+                <p>Ready to wash</p>
+              </div>
+              <div className="stat-card purple-gradient">
+                <h3>Riders Online</h3>
+                <h2>{ridersData.filter(r => r.status === 'Active').length}</h2>
+                <p>Ready to deliver</p>
+              </div>
             </div>
             <div className="admin-header-actions" style={{ marginTop: '40px' }}>
               <div className="admin-actions-left" style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <h2 style={{ margin: 0, color: '#2b3674', fontSize: '1.3rem', marginRight: '10px' }}>Today's Ledger</h2>
+                <h2 style={{ margin: 0, color: '#2b3674', fontSize: '1.3rem', marginRight: '10px' }}>All Transactions</h2>
                 <div className="admin-search-bar">
                   <span className="search-icon">🔍</span>
                   <input type="text" placeholder="Search Order ID or Shop..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
-                <select className="admin-filter-dropdown" value={financeFilter} onChange={(e) => setFinanceFilter(e.target.value)}>
-                  <option value="All">All Statuses</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Pending Payout">Pending Payout</option>
-                </select>
               </div>
             </div>
             <div className="admin-table-container">
@@ -605,24 +522,8 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* --- USERS TAB --- */}
         {activeMenu === 'users' && (
           <div className="admin-dashboard-content animate-fade">
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '25px' }}>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Total Customers</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#0f172a', fontSize: '1.8rem' }}>{usersData.length}</h2>
-              </div>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Active Accounts</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#16a34a', fontSize: '1.8rem' }}>{usersData.filter(u => u.status === 'Active').length}</h2>
-              </div>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Banned Users</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#dc2626', fontSize: '1.8rem' }}>{usersData.filter(u => u.status === 'Banned').length}</h2>
-              </div>
-            </div>
-
             <div className="admin-header-actions">
               <div className="admin-search-bar" style={{ flex: '1', maxWidth: '400px' }}>
                 <span className="search-icon">🔍</span>
@@ -630,7 +531,6 @@ const AdminDashboard = () => {
               </div>
               <button className="export-btn" onClick={handleExportCSV}>📥 Export CSV</button>
             </div>
-
             <div className="admin-table-container">
               <table className="admin-table">
                 <thead>
@@ -648,65 +548,36 @@ const AdminDashboard = () => {
                     <tr key={u.id}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', border: '1px solid #bfdbfe' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                             {u.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <strong style={{ display: 'block', color: '#0f172a', fontSize: '0.95rem' }}>{u.name}</strong>
+                            <strong style={{ display: 'block', color: '#0f172a' }}>{u.name}</strong>
                             <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{u.id.substring(u.id.length - 6).toUpperCase()}</span>
                           </div>
                         </div>
                       </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                          <div><strong style={{ color: '#94a3b8' }}>✉</strong> {u.email}</div>
-                          <div><strong style={{ color: '#94a3b8' }}>📞</strong> {u.phone}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                          <div><strong>Orders:</strong> {u.stats.totalOrders}</div>
-                          <div><strong>Lifetime Spend:</strong> <span style={{ color: '#059669', fontWeight: 'bold' }}>₹{u.stats.totalSpent.toLocaleString()}</span></div>
-                        </div>
-                      </td>
+                      <td><div><strong style={{ color: '#94a3b8' }}>✉</strong> {u.email}</div><div><strong style={{ color: '#94a3b8' }}>📞</strong> {u.phone}</div></td>
+                      <td><div><strong>Orders:</strong> {u.stats.totalOrders}</div><div><strong>Lifetime Spend:</strong> <span style={{ color: '#059669', fontWeight: 'bold' }}>₹{u.stats.totalSpent.toLocaleString()}</span></div></td>
                       <td><span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{u.joined}</span></td>
                       <td><span className={`status-badge ${u.status === 'Active' ? 'green' : 'red'}`}>{u.status}</span></td>
                       <td>
                         <div className="action-buttons">
-                          <button className="view-btn" onClick={() => handleViewUser(u)} title="Full Analytics">👁️</button>
-                          <button className="edit-btn" onClick={() => { setEditingUser(u); setIsEditModalOpen(true); }} title="Edit Profile">✏️</button>
-                          <button className="ban-btn" onClick={() => toggleUserStatus(u.id, u.status)} title={u.status === 'Banned' ? 'Unban Account' : 'Ban Account'}>
-                            {u.status === 'Banned' ? '🔓' : '🚫'}
-                          </button>
+                          <button className="view-btn" onClick={() => handleViewUser(u)}>👁️</button>
+                          <button className="edit-btn" onClick={() => { setEditingUser(u); setIsEditModalOpen(true); }}>✏️</button>
+                          <button className="ban-btn" onClick={() => toggleUserStatus(u.id, u.status)}>{u.status === 'Banned' ? '🔓' : '🚫'}</button>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {filteredUsers.length === 0 && <div className="no-results" style={{ padding: '40px', color: '#64748b' }}>No customers found.</div>}
             </div>
           </div>
         )}
 
-        {/* --- VENDORS TAB --- */}
         {activeMenu === 'vendors' && (
           <div className="admin-dashboard-content animate-fade">
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '25px' }}>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Total Partner Shops</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#0f172a', fontSize: '1.8rem' }}>{shopsData.length}</h2>
-              </div>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Active Shops</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#16a34a', fontSize: '1.8rem' }}>{shopsData.filter(s => s.status === 'Active').length}</h2>
-              </div>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Pending Approvals</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#d97706', fontSize: '1.8rem' }}>{shopsData.filter(s => s.status === 'Pending').length}</h2>
-              </div>
-            </div>
-
             <div className="admin-header-actions">
               <div className="admin-search-bar" style={{ flex: '1', maxWidth: '400px' }}>
                 <span className="search-icon">🔍</span>
@@ -714,64 +585,34 @@ const AdminDashboard = () => {
               </div>
               <button className="export-btn" onClick={handleExportCSV}>📥 Export CSV</button>
             </div>
-
             <div className="admin-table-container">
               <table className="admin-table">
                 <thead>
-                  <tr>
-                    <th>Shop Profile</th>
-                    <th>Owner Details</th>
-                    <th>Performance</th>
-                    <th>Wallet Balance</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
+                  <tr><th>Shop Profile</th><th>Owner Details</th><th>Performance</th><th>Wallet Balance</th><th>Status</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                   {filteredShops.map(shop => (
                     <tr key={shop.id}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', border: '1px solid #bbf7d0' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#f0fdf4', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                             {shop.name.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <strong style={{ display: 'block', color: '#0f172a', fontSize: '0.95rem' }}>{shop.name}</strong>
-                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>📍 {shop.location}</span>
-                          </div>
+                          <div><strong style={{ display: 'block', color: '#0f172a' }}>{shop.name}</strong><span style={{ fontSize: '0.8rem', color: '#64748b' }}>📍 {shop.location}</span></div>
                         </div>
                       </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                          <div><strong style={{ color: '#94a3b8' }}>👤</strong> {shop.owner}</div>
-                          <div><strong style={{ color: '#94a3b8' }}>📞</strong> {shop.phone}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                          <div><strong>Orders:</strong> {shop.stats.totalOrders}</div>
-                          <div><strong>Rating:</strong> <span style={{ color: '#d97706', fontWeight: 'bold' }}>⭐ {shop.rating}</span></div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                          <span style={{ color: '#15803d', fontWeight: 'bold', fontSize: '1rem' }}>₹{shop.stats.walletBal.toLocaleString()}</span>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lifetime: ₹{shop.stats.totalEarned.toLocaleString()}</div>
-                        </div>
-                      </td>
+                      <td><div><strong style={{ color: '#94a3b8' }}>👤</strong> {shop.owner}</div><div><strong style={{ color: '#94a3b8' }}>📞</strong> {shop.phone}</div></td>
+                      <td><div><strong>Orders:</strong> {shop.stats.totalOrders}</div><div><strong>Rating:</strong> <span style={{ color: '#d97706', fontWeight: 'bold' }}>⭐ {shop.rating}</span></div></td>
+                      <td><span style={{ color: '#15803d', fontWeight: 'bold', fontSize: '1rem' }}>₹{shop.stats.walletBal.toFixed(2)}</span><div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lifetime: ₹{shop.stats.totalEarned.toFixed(2)}</div></td>
                       <td><span className={`status-badge ${shop.status === 'Active' ? 'green' : shop.status === 'Suspended' ? 'red' : 'blue'}`}>{shop.status}</span></td>
                       <td>
                         <div className="action-buttons">
-                          <button className="view-btn" onClick={() => handleViewShop(shop)} title="View Analytics & Orders">👁️</button>
-                          <button className="edit-btn" onClick={() => { setEditingShop(shop); setIsShopEditModalOpen(true); }} title="Edit Details">✏️</button>
+                          <button className="view-btn" onClick={() => handleViewShop(shop)}>👁️</button>
+                          <button className="edit-btn" onClick={() => { setEditingShop(shop); setIsShopEditModalOpen(true); }}>✏️</button>
                           {shop.status === 'Pending' ? (
-                            <button style={{ background: '#d97706', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setReviewingShop(shop)} title="Review KYC Documents">
-                              📋 Review KYC
-                            </button>
+                            <button style={{ background: '#d97706', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setReviewingShop(shop)}>📋 Review KYC</button>
                           ) : (
-                            <button className="ban-btn" onClick={() => toggleShopStatus(shop.id, shop.status)} title="Suspend Shop">
-                              {shop.status === 'Suspended' ? '🔓 Unsuspend' : '🛑 Suspend'}
-                            </button>
+                            <button className="ban-btn" onClick={() => toggleShopStatus(shop.id, shop.status)}>{shop.status === 'Suspended' ? '🔓 Unsuspend' : '🛑 Suspend'}</button>
                           )}
                         </div>
                       </td>
@@ -779,29 +620,12 @@ const AdminDashboard = () => {
                   ))}
                 </tbody>
               </table>
-              {filteredShops.length === 0 && <div className="no-results" style={{ padding: '40px', color: '#64748b' }}>No shops found.</div>}
             </div>
           </div>
         )}
 
-        {/* --- RIDERS TAB --- */}
         {activeMenu === 'riders' && (
           <div className="admin-dashboard-content animate-fade">
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '25px' }}>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Total Fleet</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#0f172a', fontSize: '1.8rem' }}>{ridersData.length}</h2>
-              </div>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Active Riders</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#16a34a', fontSize: '1.8rem' }}>{ridersData.filter(r => r.status === 'Active').length}</h2>
-              </div>
-              <div style={{ background: 'white', padding: '15px 25px', borderRadius: '12px', border: '1px solid #e2e8f0', flex: 1, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: 0, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Pending Approvals</h3>
-                <h2 style={{ margin: '5px 0 0 0', color: '#d97706', fontSize: '1.8rem' }}>{ridersData.filter(r => r.status === 'Pending').length}</h2>
-              </div>
-            </div>
-
             <div className="admin-header-actions">
               <div className="admin-search-bar" style={{ flex: '1', maxWidth: '400px' }}>
                 <span className="search-icon">🔍</span>
@@ -809,64 +633,32 @@ const AdminDashboard = () => {
               </div>
               <button className="export-btn" onClick={handleExportCSV}>📥 Export CSV</button>
             </div>
-
             <div className="admin-table-container">
               <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Rider Profile</th>
-                    <th>Contact & Zone</th>
-                    <th>Task Performance</th>
-                    <th>Wallet Balance</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>Rider Profile</th><th>Contact & Zone</th><th>Task Performance</th><th>Wallet Balance</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>
                   {filteredRiders.map(rider => (
                     <tr key={rider.id}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem', border: '1px solid #fed7aa' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                             {rider.name.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <strong style={{ display: 'block', color: '#0f172a', fontSize: '0.95rem' }}>{rider.name}</strong>
-                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{rider.id.substring(rider.id.length - 6).toUpperCase()}</span>
-                          </div>
+                          <div><strong style={{ display: 'block', color: '#0f172a' }}>{rider.name}</strong><span style={{ fontSize: '0.8rem', color: '#64748b' }}>{rider.id.substring(rider.id.length - 6).toUpperCase()}</span></div>
                         </div>
                       </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                          <div><strong style={{ color: '#94a3b8' }}>📞</strong> {rider.phone}</div>
-                          <div><strong style={{ color: '#94a3b8' }}>📍</strong> {rider.zone}</div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                          <div><strong>Tasks:</strong> {rider.stats.totalTasks}</div>
-                          <div><strong>Rating:</strong> <span style={{ color: '#d97706', fontWeight: 'bold' }}>⭐ {rider.rating || "N/A"}</span></div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.6' }}>
-                          <span style={{ color: '#15803d', fontWeight: 'bold', fontSize: '1rem' }}>₹{rider.stats.walletBal.toLocaleString()}</span>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lifetime: ₹{rider.stats.totalEarned.toLocaleString()}</div>
-                        </div>
-                      </td>
+                      <td><div><strong style={{ color: '#94a3b8' }}>📞</strong> {rider.phone}</div><div><strong style={{ color: '#94a3b8' }}>📍</strong> {rider.zone}</div></td>
+                      <td><div><strong>Tasks:</strong> {rider.stats.totalTasks}</div><div><strong>Rating:</strong> <span style={{ color: '#d97706', fontWeight: 'bold' }}>⭐ {rider.rating || "N/A"}</span></div></td>
+                      <td><span style={{ color: '#15803d', fontWeight: 'bold', fontSize: '1rem' }}>₹{rider.stats.walletBal.toFixed(2)}</span><div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lifetime: ₹{rider.stats.totalEarned.toFixed(2)}</div></td>
                       <td><span className={`status-badge ${rider.status === 'Active' ? 'green' : rider.status === 'Suspended' ? 'red' : 'blue'}`}>{rider.status}</span></td>
                       <td>
                         <div className="action-buttons">
-                          <button className="view-btn" onClick={() => handleViewRider(rider)} title="View Analytics & Tasks">👁️</button>
-                          <button className="edit-btn" onClick={() => { setEditingRider(rider); setIsRiderEditModalOpen(true); }} title="Edit Details">✏️</button>
+                          <button className="view-btn" onClick={() => handleViewRider(rider)}>👁️</button>
+                          <button className="edit-btn" onClick={() => { setEditingRider(rider); setIsRiderEditModalOpen(true); }}>✏️</button>
                           {rider.status === 'Pending' ? (
-                            <button style={{ background: '#d97706', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setReviewingRider(rider)} title="Review KYC Documents">
-                              📋 Review KYC
-                            </button>
+                            <button style={{ background: '#d97706', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => setReviewingRider(rider)}>📋 Review KYC</button>
                           ) : (
-                            <button className="ban-btn" onClick={() => toggleRiderStatus(rider.id, rider.status)} title="Suspend Rider">
-                              {rider.status === 'Suspended' ? '🔓 Unsuspend' : '🛑 Suspend'}
-                            </button>
+                            <button className="ban-btn" onClick={() => toggleRiderStatus(rider.id, rider.status)}>{rider.status === 'Suspended' ? '🔓 Unsuspend' : '🛑 Suspend'}</button>
                           )}
                         </div>
                       </td>
@@ -874,12 +666,10 @@ const AdminDashboard = () => {
                   ))}
                 </tbody>
               </table>
-              {filteredRiders.length === 0 && <div className="no-results" style={{ padding: '40px', color: '#64748b' }}>No riders found.</div>}
             </div>
           </div>
         )}
 
-        {/* --- REPORTS TAB --- */}
         {activeMenu === 'reports' && (
           <div className="admin-dashboard-content animate-fade">
             <div className="financial-stats-header">
@@ -892,24 +682,19 @@ const AdminDashboard = () => {
             </div>
             <div className="admin-stats-grid grid-2x2">
               <div className="stat-card" style={{background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0'}}>
-                <h3 style={{color: '#64748b'}}>Customer Total Payments</h3><h2 style={{color: '#0f172a'}}>₹{currentStats.total.toLocaleString()}</h2><p style={{background: '#e2e8f0', color: '#475569'}}>Gross Volume Received</p>
+                <h3 style={{color: '#64748b'}}>Customer Total Payments</h3><h2 style={{color: '#0f172a'}}>₹{currentStats.total.toFixed(2)}</h2><p style={{background: '#e2e8f0', color: '#475569'}}>Gross Volume Received</p>
               </div>
               <div className="stat-card" style={{background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa'}}>
-                <h3 style={{color: '#ea580c'}}>Total Shop Payments</h3><h2 style={{color: '#c2410c'}}>₹{currentStats.shop.toLocaleString()}</h2><p style={{background: '#ffedd5', color: '#9a3412'}}>Owed to Vendors</p>
+                <h3 style={{color: '#ea580c'}}>Total Shop Payments</h3><h2 style={{color: '#c2410c'}}>₹{currentStats.shop.toFixed(2)}</h2><p style={{background: '#ffedd5', color: '#9a3412'}}>Owed to Vendors</p>
               </div>
               <div className="stat-card" style={{background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0'}}>
-                <h3 style={{color: '#16a34a'}}>Total Rider Payments</h3><h2 style={{color: '#15803d'}}>₹{currentStats.rider.toLocaleString()}</h2><p style={{background: '#dcfce7', color: '#166534'}}>Owed to Drivers</p>
+                <h3 style={{color: '#16a34a'}}>Total Rider Payments</h3><h2 style={{color: '#15803d'}}>₹{currentStats.rider.toFixed(2)}</h2><p style={{background: '#dcfce7', color: '#166534'}}>Owed to Drivers</p>
               </div>
               <div className="stat-card" style={{background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
-                <div>
-                  <h3 style={{color: '#2563eb'}}>Quick Wash Profit (Available)</h3>
-                  <h2 style={{color: '#1d4ed8', fontSize: '2.2rem'}}>₹{currentStats.profit.toLocaleString()}</h2>
-                </div>
+                <div><h3 style={{color: '#2563eb'}}>Quick Wash Profit (Available)</h3><h2 style={{color: '#1d4ed8', fontSize: '2.2rem'}}>₹{currentStats.profit.toFixed(2)}</h2></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                  <span style={{ fontSize: '0.85rem', color: '#3b82f6', fontWeight: 'bold' }}>Withdrawn: ₹{currentStats.withdrawn.toLocaleString()}</span>
-                  <button onClick={() => setIsWithdrawModalOpen(true)} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                    💸 Withdraw
-                  </button>
+                  <span style={{ fontSize: '0.85rem', color: '#3b82f6', fontWeight: 'bold' }}>Withdrawn: ₹{currentStats.withdrawn.toFixed(2)}</span>
+                  <button onClick={() => setIsWithdrawModalOpen(true)} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}>💸 Withdraw</button>
                 </div>
               </div>
             </div>
@@ -917,15 +702,9 @@ const AdminDashboard = () => {
             <div className="admin-header-actions">
               <div className="admin-actions-left" style={{ display: 'flex', gap: '15px' }}>
                 <div className="admin-search-bar"><span className="search-icon">🔍</span><input type="text" placeholder="Search Order ID or Shop..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
-                <select className="admin-filter-dropdown" value={financeFilter} onChange={(e) => setFinanceFilter(e.target.value)}>
-                  <option value="All">All Statuses</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Pending Payout">Pending Payout</option>
-                </select>
+                <select className="admin-filter-dropdown" value={financeFilter} onChange={(e) => setFinanceFilter(e.target.value)}><option value="All">All Statuses</option><option value="Completed">Completed</option></select>
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="export-btn" onClick={handleExportCSV}>📥 Export Finance CSV</button>
-              </div>
+              <button className="export-btn" onClick={handleExportCSV}>📥 Export Finance CSV</button>
             </div>
 
             <div className="admin-table-container">
@@ -946,63 +725,41 @@ const AdminDashboard = () => {
                   ))}
                 </tbody>
               </table>
-              {filteredTransactions.length === 0 && <div className="no-results">No transactions found matching "{searchTerm}"</div>}
             </div>
           </div>
         )}
-
       </main>
 
       {/* ==========================================
-          DETAILED VIEW MODALS 
+          DETAILED VIEW MODALS (ALL RESTORED)
       ========================================== */}
       {viewingUser && (
         <div className="admin-modal-overlay" onClick={() => setViewingUser(null)}>
           <div className="admin-modal-box wide animate-scale-up" style={{ maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h2>Customer Profile: {viewingUser.name}</h2>
-              <button className="admin-close-modal-btn" onClick={() => setViewingUser(null)}>✕</button>
-            </div>
-            <div className="profile-details-section">
-              <p><strong>ID:</strong> {viewingUser.id} &nbsp;|&nbsp; <strong>Phone:</strong> {viewingUser.phone} &nbsp;|&nbsp; <strong>Email:</strong> {viewingUser.email}</p>
-            </div>
+            <div className="admin-modal-header"><h2>Customer Profile: {viewingUser.name}</h2><button className="admin-close-modal-btn" onClick={() => setViewingUser(null)}>✕</button></div>
+            <div className="profile-details-section"><p><strong>ID:</strong> {viewingUser.id} &nbsp;|&nbsp; <strong>Phone:</strong> {viewingUser.phone} &nbsp;|&nbsp; <strong>Email:</strong> {viewingUser.email}</p></div>
             <h3 className="stats-heading">Lifetime Stats</h3>
             <div className="modal-stats-grid">
               <div className="modal-stat-box"><h4>Total Orders</h4><h2>{viewingUser.stats.totalOrders}</h2></div>
               <div className="modal-stat-box"><h4>Completed</h4><h2 style={{color: '#059669'}}>{viewingUser.stats.completed}</h2></div>
               <div className="modal-stat-box"><h4>Cancelled</h4><h2 style={{color: '#dc2626'}}>{viewingUser.stats.cancelled}</h2></div>
-              <div className="modal-stat-box"><h4>Total Spent</h4><h2 style={{color: '#2563eb'}}>₹{viewingUser.stats.totalSpent}</h2></div>
+              <div className="modal-stat-box"><h4>Total Spent</h4><h2 style={{color: '#2563eb'}}>₹{viewingUser.stats.totalSpent.toFixed(2)}</h2></div>
             </div>
             <h3 className="stats-heading" style={{ marginTop: '25px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>Recent Order History</h3>
             <div style={{ background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead style={{ background: '#f1f5f9', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
-                  <tr>
-                    <th style={{ padding: '12px 15px' }}>Order ID</th>
-                    <th style={{ padding: '12px 15px' }}>Date</th>
-                    <th style={{ padding: '12px 15px' }}>Shop</th>
-                    <th style={{ padding: '12px 15px' }}>Amount</th>
-                    <th style={{ padding: '12px 15px' }}>Status</th>
-                  </tr>
+                  <tr><th style={{ padding: '12px 15px' }}>Order ID</th><th style={{ padding: '12px 15px' }}>Date</th><th style={{ padding: '12px 15px' }}>Shop</th><th style={{ padding: '12px 15px' }}>Amount</th><th style={{ padding: '12px 15px' }}>Status</th></tr>
                 </thead>
                 <tbody>
                   {viewingUser.orderHistory && viewingUser.orderHistory.length > 0 ? (
                     viewingUser.orderHistory.map((order, index) => (
                       <tr key={index} style={{ borderBottom: '1px solid #e2e8f0', background: 'white' }}>
-                        <td style={{ padding: '12px 15px', color: '#2563eb', fontWeight: 'bold' }}>{order.id}</td>
-                        <td style={{ padding: '12px 15px', color: '#475569' }}>{order.date}</td>
-                        <td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: '500' }}>{order.shop}</td>
-                        <td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: 'bold' }}>₹{order.amount}</td>
-                        <td style={{ padding: '12px 15px' }}>
-                          <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', background: order.status === 'Completed' ? '#dcfce7' : order.status === 'Cancelled' ? '#fee2e2' : '#fef3c7', color: order.status === 'Completed' ? '#166534' : order.status === 'Cancelled' ? '#991b1b' : '#92400e' }}>
-                            {order.status}
-                          </span>
-                        </td>
+                        <td style={{ padding: '12px 15px', color: '#2563eb', fontWeight: 'bold' }}>{order.id}</td><td style={{ padding: '12px 15px', color: '#475569' }}>{order.date}</td><td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: '500' }}>{order.shop}</td><td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: 'bold' }}>₹{order.amount}</td>
+                        <td style={{ padding: '12px 15px' }}><span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', background: order.status === 'Completed' ? '#dcfce7' : order.status === 'Cancelled' ? '#fee2e2' : '#fef3c7', color: order.status === 'Completed' ? '#166534' : order.status === 'Cancelled' ? '#991b1b' : '#92400e' }}>{order.status}</span></td>
                       </tr>
                     ))
-                  ) : (
-                    <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No orders found for this user.</td></tr>
-                  )}
+                  ) : (<tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No orders found for this user.</td></tr>)}
                 </tbody>
               </table>
             </div>
@@ -1013,13 +770,8 @@ const AdminDashboard = () => {
       {viewingShop && (
         <div className="admin-modal-overlay" onClick={() => setViewingShop(null)}>
           <div className="admin-modal-box wide animate-scale-up" style={{ maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h2>Shop Profile: {viewingShop.name}</h2>
-              <button className="admin-close-modal-btn" onClick={() => setViewingShop(null)}>✕</button>
-            </div>
-            <div className="profile-details-section">
-              <p><strong>Owner:</strong> {viewingShop.owner} &nbsp;|&nbsp; <strong>Phone:</strong> {viewingShop.phone} &nbsp;|&nbsp; <strong>Location:</strong> {viewingShop.location}</p>
-            </div>
+            <div className="admin-modal-header"><h2>Shop Profile: {viewingShop.name}</h2><button className="admin-close-modal-btn" onClick={() => setViewingShop(null)}>✕</button></div>
+            <div className="profile-details-section"><p><strong>Owner:</strong> {viewingShop.owner} &nbsp;|&nbsp; <strong>Phone:</strong> {viewingShop.phone} &nbsp;|&nbsp; <strong>Location:</strong> {viewingShop.location}</p></div>
             <h3 className="stats-heading">Order Performance</h3>
             <div className="modal-stats-grid">
               <div className="modal-stat-box"><h4>Total Requests</h4><h2>{viewingShop.stats.totalOrders}</h2></div>
@@ -1029,42 +781,25 @@ const AdminDashboard = () => {
             </div>
             <h3 className="stats-heading">Financial Ledger</h3>
             <div className="modal-stats-grid">
-              <div className="modal-stat-box"><h4>Total Earned</h4><h2 style={{color: '#4318ff'}}>₹{viewingShop.stats.totalEarned.toLocaleString()}</h2></div>
+              <div className="modal-stat-box"><h4>Total Earned</h4><h2 style={{color: '#4318ff'}}>₹{viewingShop.stats.totalEarned.toFixed(2)}</h2></div>
               <div className="modal-stat-box"><h4>Amount Withdrawn</h4><h2>₹{viewingShop.stats.withdrawn || 0}</h2></div>
-              <div className="modal-stat-box" style={{background: '#f0fdf4', borderColor: '#bbf7d0'}}>
-                <h4>Wallet Balance</h4><h2 style={{color: '#15803d'}}>₹{viewingShop.stats.walletBal.toLocaleString()}</h2>
-              </div>
+              <div className="modal-stat-box" style={{background: '#f0fdf4', borderColor: '#bbf7d0'}}><h4>Wallet Balance</h4><h2 style={{color: '#15803d'}}>₹{viewingShop.stats.walletBal.toFixed(2)}</h2></div>
             </div>
             <h3 className="stats-heading" style={{ marginTop: '25px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>Recent Processed Orders</h3>
             <div style={{ background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead style={{ background: '#f1f5f9', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
-                  <tr>
-                    <th style={{ padding: '12px 15px' }}>Order ID</th>
-                    <th style={{ padding: '12px 15px' }}>Date</th>
-                    <th style={{ padding: '12px 15px' }}>Customer</th>
-                    <th style={{ padding: '12px 15px' }}>Shop Cut (₹)</th>
-                    <th style={{ padding: '12px 15px' }}>Status</th>
-                  </tr>
+                  <tr><th style={{ padding: '12px 15px' }}>Order ID</th><th style={{ padding: '12px 15px' }}>Date</th><th style={{ padding: '12px 15px' }}>Customer</th><th style={{ padding: '12px 15px' }}>Shop Cut (₹)</th><th style={{ padding: '12px 15px' }}>Status</th></tr>
                 </thead>
                 <tbody>
                   {viewingShop.recentOrders && viewingShop.recentOrders.length > 0 ? (
                     viewingShop.recentOrders.map((order, index) => (
                       <tr key={index} style={{ borderBottom: '1px solid #e2e8f0', background: 'white' }}>
-                        <td style={{ padding: '12px 15px', color: '#16a34a', fontWeight: 'bold' }}>{order.id}</td>
-                        <td style={{ padding: '12px 15px', color: '#475569' }}>{order.date}</td>
-                        <td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: '500' }}>{order.customer}</td>
-                        <td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: 'bold' }}>₹{order.amount}</td>
-                        <td style={{ padding: '12px 15px' }}>
-                          <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', background: order.status === 'Completed' ? '#dcfce7' : order.status === 'Cancelled' ? '#fee2e2' : '#fef3c7', color: order.status === 'Completed' ? '#166534' : order.status === 'Cancelled' ? '#991b1b' : '#92400e' }}>
-                            {order.status}
-                          </span>
-                        </td>
+                        <td style={{ padding: '12px 15px', color: '#16a34a', fontWeight: 'bold' }}>{order.id}</td><td style={{ padding: '12px 15px', color: '#475569' }}>{order.date}</td><td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: '500' }}>{order.customer}</td><td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: 'bold' }}>₹{order.amount}</td>
+                        <td style={{ padding: '12px 15px' }}><span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', background: order.status === 'Completed' ? '#dcfce7' : order.status === 'Cancelled' ? '#fee2e2' : '#fef3c7', color: order.status === 'Completed' ? '#166534' : order.status === 'Cancelled' ? '#991b1b' : '#92400e' }}>{order.status}</span></td>
                       </tr>
                     ))
-                  ) : (
-                    <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No recent orders found for this shop.</td></tr>
-                  )}
+                  ) : (<tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No recent orders found for this shop.</td></tr>)}
                 </tbody>
               </table>
             </div>
@@ -1075,61 +810,34 @@ const AdminDashboard = () => {
       {viewingRider && (
         <div className="admin-modal-overlay" onClick={() => setViewingRider(null)}>
           <div className="admin-modal-box wide animate-scale-up" style={{ maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h2>Rider Profile: {viewingRider.name}</h2>
-              <button className="admin-close-modal-btn" onClick={() => setViewingRider(null)}>✕</button>
-            </div>
+            <div className="admin-modal-header"><h2>Rider Profile: {viewingRider.name}</h2><button className="admin-close-modal-btn" onClick={() => setViewingRider(null)}>✕</button></div>
             <div className="profile-details-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <p><strong>Phone:</strong> {viewingRider.phone} &nbsp;|&nbsp; <strong>Zone:</strong> {viewingRider.zone}</p>
-              <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#ea580c', padding: '5px 10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                🛵 {viewingRider.vehicleInfo?.make || 'Unknown'} - {viewingRider.vehicleInfo?.plate || 'Unknown'}
-              </div>
+              <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#ea580c', padding: '5px 10px', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold' }}>🛵 {viewingRider.vehicleInfo?.make || 'Unknown'} - {viewingRider.vehicleInfo?.plate || 'Unknown'}</div>
             </div>
             <h3 className="stats-heading">Task Performance</h3>
             <div className="modal-stats-grid">
-              <div className="modal-stat-box"><h4>Total Assigned</h4><h2>{viewingRider.stats.totalTasks}</h2></div>
-              <div className="modal-stat-box"><h4>Completed</h4><h2 style={{color: '#059669'}}>{viewingRider.stats.completed}</h2></div>
-              <div className="modal-stat-box"><h4>Declined</h4><h2 style={{color: '#dc2626'}}>{viewingRider.stats.declined || 0}</h2></div>
-              <div className="modal-stat-box"><h4>Active Now</h4><h2 style={{color: '#d97706'}}>{viewingRider.stats.active || 0}</h2></div>
+              <div className="modal-stat-box"><h4>Total Assigned</h4><h2>{viewingRider.stats.totalTasks}</h2></div><div className="modal-stat-box"><h4>Completed</h4><h2 style={{color: '#059669'}}>{viewingRider.stats.completed}</h2></div><div className="modal-stat-box"><h4>Declined</h4><h2 style={{color: '#dc2626'}}>{viewingRider.stats.declined || 0}</h2></div><div className="modal-stat-box"><h4>Active Now</h4><h2 style={{color: '#d97706'}}>{viewingRider.stats.active || 0}</h2></div>
             </div>
             <h3 className="stats-heading">Financial Ledger</h3>
             <div className="modal-stats-grid">
-              <div className="modal-stat-box"><h4>Total Earned</h4><h2 style={{color: '#4318ff'}}>₹{viewingRider.stats.totalEarned.toLocaleString()}</h2></div>
-              <div className="modal-stat-box"><h4>Amount Withdrawn</h4><h2>₹{viewingRider.stats.withdrawn || 0}</h2></div>
-              <div className="modal-stat-box" style={{background: '#f0fdf4', borderColor: '#bbf7d0'}}>
-                <h4>Wallet Balance</h4><h2 style={{color: '#15803d'}}>₹{viewingRider.stats.walletBal.toLocaleString()}</h2>
-              </div>
+              <div className="modal-stat-box"><h4>Total Earned</h4><h2 style={{color: '#4318ff'}}>₹{viewingRider.stats.totalEarned.toFixed(2)}</h2></div><div className="modal-stat-box"><h4>Amount Withdrawn</h4><h2>₹{viewingRider.stats.withdrawn || 0}</h2></div><div className="modal-stat-box" style={{background: '#f0fdf4', borderColor: '#bbf7d0'}}><h4>Wallet Balance</h4><h2 style={{color: '#15803d'}}>₹{viewingRider.stats.walletBal.toFixed(2)}</h2></div>
             </div>
             <h3 className="stats-heading" style={{ marginTop: '25px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>Recent Task Ledger</h3>
             <div style={{ background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                 <thead style={{ background: '#f1f5f9', color: '#475569', borderBottom: '1px solid #e2e8f0' }}>
-                  <tr>
-                    <th style={{ padding: '12px 15px' }}>Order ID</th>
-                    <th style={{ padding: '12px 15px' }}>Task Type</th>
-                    <th style={{ padding: '12px 15px' }}>Location</th>
-                    <th style={{ padding: '12px 15px' }}>Rider Cut (₹)</th>
-                    <th style={{ padding: '12px 15px' }}>Status</th>
-                  </tr>
+                  <tr><th style={{ padding: '12px 15px' }}>Order ID</th><th style={{ padding: '12px 15px' }}>Task Type</th><th style={{ padding: '12px 15px' }}>Location</th><th style={{ padding: '12px 15px' }}>Rider Cut (₹)</th><th style={{ padding: '12px 15px' }}>Status</th></tr>
                 </thead>
                 <tbody>
                   {viewingRider.recentTasks && viewingRider.recentTasks.length > 0 ? (
                     viewingRider.recentTasks.map((task, index) => (
                       <tr key={index} style={{ borderBottom: '1px solid #e2e8f0', background: 'white' }}>
-                        <td style={{ padding: '12px 15px', color: '#ea580c', fontWeight: 'bold' }}>{task.id}</td>
-                        <td style={{ padding: '12px 15px', color: '#475569', fontWeight: '500' }}>{task.taskType}</td>
-                        <td style={{ padding: '12px 15px', color: '#0f172a' }}>{task.location}</td>
-                        <td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: 'bold' }}>₹{task.amount}</td>
-                        <td style={{ padding: '12px 15px' }}>
-                          <span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', background: task.status === 'Completed' ? '#dcfce7' : task.status === 'Cancelled' ? '#fee2e2' : '#fef3c7', color: task.status === 'Completed' ? '#166534' : task.status === 'Cancelled' ? '#991b1b' : '#92400e' }}>
-                            {task.status}
-                          </span>
-                        </td>
+                        <td style={{ padding: '12px 15px', color: '#ea580c', fontWeight: 'bold' }}>{task.id}</td><td style={{ padding: '12px 15px', color: '#475569', fontWeight: '500' }}>{task.taskType}</td><td style={{ padding: '12px 15px', color: '#0f172a' }}>{task.location}</td><td style={{ padding: '12px 15px', color: '#0f172a', fontWeight: 'bold' }}>₹{task.amount}</td>
+                        <td style={{ padding: '12px 15px' }}><span style={{ padding: '4px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', background: task.status === 'Completed' ? '#dcfce7' : task.status === 'Cancelled' ? '#fee2e2' : '#fef3c7', color: task.status === 'Completed' ? '#166534' : task.status === 'Cancelled' ? '#991b1b' : '#92400e' }}>{task.status}</span></td>
                       </tr>
                     ))
-                  ) : (
-                    <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No recent tasks found.</td></tr>
-                  )}
+                  ) : (<tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>No recent tasks found.</td></tr>)}
                 </tbody>
               </table>
             </div>
@@ -1141,46 +849,25 @@ const AdminDashboard = () => {
         <div className="admin-modal-overlay" onClick={() => setReviewingRider(null)}>
           <div className="admin-modal-box wide animate-scale-up" style={{ maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header" style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
-              <div>
-                <h2 style={{ color: '#0f172a', margin: '0' }}>Rider KYC Verification</h2>
-                <p style={{ color: '#64748b', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Reviewing documents for: <strong>{reviewingRider.name}</strong></p>
-              </div>
+              <div><h2 style={{ color: '#0f172a', margin: '0' }}>Rider KYC Verification</h2><p style={{ color: '#64748b', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Reviewing documents for: <strong>{reviewingRider.name}</strong></p></div>
               <button className="admin-close-modal-btn" onClick={() => setReviewingRider(null)}>✕</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h3 style={{ margin: '0 0 5px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Uploaded Documents</h3>
               {reviewingRider.documents ? (
                 <>
-                  {[
-                  { label: "Driving License", file: reviewingRider.documents?.dl },
-                  { label: "Vehicle RC", file: reviewingRider.documents?.rc },
-                  { label: "Vehicle Insurance", file: reviewingRider.documents?.insurance }, 
-                  { label: "Aadhaar Card", file: reviewingRider.documents?.aadhaar },
-                  { label: "PAN Card", file: reviewingRider.documents?.pan }
-                  ].map((doc, idx) => (
+                  {[{ label: "Driving License", file: reviewingRider.documents?.dl }, { label: "Vehicle RC", file: reviewingRider.documents?.rc }, { label: "Vehicle Insurance", file: reviewingRider.documents?.insurance }, { label: "Aadhaar Card", file: reviewingRider.documents?.aadhaar }, { label: "PAN Card", file: reviewingRider.documents?.pan }].map((doc, idx) => (
                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px 15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                       <span style={{ color: '#0f172a', fontWeight: '500', fontSize: '0.9rem' }}>📄 {doc.label}</span>
-                      {doc.file ? (
-                        <button type="button" onClick={() => window.open(`http://localhost:5000/uploads/${doc.file}`, '_blank')} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer' }}>
-                          View File ↗
-                        </button>
-                      ) : (
-                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Not Uploaded</span>
-                      )}
+                      {doc.file ? (<button type="button" onClick={() => window.open(`http://localhost:5000/uploads/${doc.file}`, '_blank')} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer' }}>View File ↗</button>) : (<span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Not Uploaded</span>)}
                     </div>
                   ))}
                 </>
-              ) : (
-                <p style={{ color: '#dc2626', fontWeight: 'bold' }}>⚠️ No documents found.</p>
-              )}
+              ) : (<p style={{ color: '#dc2626', fontWeight: 'bold' }}>⚠️ No documents found.</p>)}
             </div>
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
-              <button onClick={() => handleApproveRider(reviewingRider.id)} style={{ flex: 1, background: '#ea580c', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>
-                ✅ Approve & Activate Rider
-              </button>
-              <button onClick={() => handleRejectRider(reviewingRider.id)} style={{ flex: 1, background: '#fee2e2', color: '#dc2626', border: '1px solid #f87171', padding: '15px', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>
-                ❌ Reject Application
-              </button>
+              <button onClick={() => handleApproveRider(reviewingRider.id)} style={{ flex: 1, background: '#ea580c', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>✅ Approve & Activate Rider</button>
+              <button onClick={() => handleRejectRider(reviewingRider.id)} style={{ flex: 1, background: '#fee2e2', color: '#dc2626', border: '1px solid #f87171', padding: '15px', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' }}>❌ Reject Application</button>
             </div>
           </div>
         </div>
@@ -1189,30 +876,20 @@ const AdminDashboard = () => {
       {isWithdrawModalOpen && (
         <div className="admin-modal-overlay" onClick={() => setIsWithdrawModalOpen(false)}>
           <div className="admin-modal-box animate-scale-up" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h2>Withdraw Platform Profits</h2>
-              <button className="admin-close-modal-btn" onClick={() => setIsWithdrawModalOpen(false)}>✕</button>
-            </div>
+            <div className="admin-modal-header"><h2>Withdraw Platform Profits</h2><button className="admin-close-modal-btn" onClick={() => setIsWithdrawModalOpen(false)}>✕</button></div>
             <form onSubmit={handleWithdrawSubmit} className="admin-edit-form">
               <div style={{ background: '#eff6ff', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #bfdbfe' }}>
-                <p style={{ margin: 0, color: '#1e40af', fontSize: '0.9rem' }}>Available Balance</p>
-                <h2 style={{ margin: '5px 0 0 0', color: '#1d4ed8', fontSize: '1.8rem' }}>₹{currentStats.profit.toLocaleString()}</h2>
+                <p style={{ margin: 0, color: '#1e40af', fontSize: '0.9rem' }}>Available Balance</p><h2 style={{ margin: '5px 0 0 0', color: '#1d4ed8', fontSize: '1.8rem' }}>₹{currentStats.profit.toFixed(2)}</h2>
               </div>
               <div className="admin-form-group">
-                <label>Withdrawal Amount (₹)</label>
-                <input type="number" min="1" max={currentStats.profit} value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder={`Max: ${currentStats.profit}`} required style={{ fontSize: '1.2rem', padding: '12px' }} />
+                <label>Withdrawal Amount (₹)</label><input type="number" min="1" max={currentStats.profit} value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder={`Max: ${currentStats.profit}`} required style={{ fontSize: '1.2rem', padding: '12px' }} />
               </div>
               <div className="admin-form-group">
                 <label>Destination Account</label>
                 <select required style={{ padding: '12px', fontSize: '1rem', border: '1px solid #cbd5e1', borderRadius: '6px', width: '100%' }}>
-                  {adminProfile.savedAccounts.length === 0 && (
-                     <option value="" disabled selected>No saved accounts found. Please add one in Profile.</option>
-                  )}
-                  {adminProfile.savedAccounts.map(acc => (
-                    <option key={acc.id} value={acc.id}>{acc.bankName} - {acc.accountName} (Ending in ****{acc.accountNumber.slice(-4)})</option>
-                  ))}
-                  <option disabled>──────────────────────────</option>
-                  <option value="reserve">Tax Reserve Account (Ending in ****8822)</option>
+                  {adminProfile.savedAccounts.length === 0 && (<option value="" disabled selected>No saved accounts found. Please add one in Profile.</option>)}
+                  {adminProfile.savedAccounts.map(acc => (<option key={acc.id} value={acc.id}>{acc.bankName} - {acc.accountName} (Ending in ****{acc.accountNumber.slice(-4)})</option>))}
+                  <option disabled>──────────────────────────</option><option value="reserve">Tax Reserve Account (Ending in ****8822)</option>
                 </select>
               </div>
               <div className="admin-modal-actions" style={{ marginTop: '25px' }}>
@@ -1227,44 +904,26 @@ const AdminDashboard = () => {
         <div className="admin-modal-overlay" onClick={() => setReviewingShop(null)}>
           <div className="admin-modal-box wide animate-scale-up" style={{ maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <div className="admin-modal-header" style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '15px' }}>
-              <div>
-                <h2 style={{ color: '#0f172a', margin: '0' }}>KYC Verification Review</h2>
-                <p style={{ color: '#64748b', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Reviewing documents for: <strong>{reviewingShop.name}</strong></p>
-              </div>
+              <div><h2 style={{ color: '#0f172a', margin: '0' }}>KYC Verification Review</h2><p style={{ color: '#64748b', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Reviewing documents for: <strong>{reviewingShop.name}</strong></p></div>
               <button className="admin-close-modal-btn" onClick={() => setReviewingShop(null)}>✕</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
               <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                 <h3 style={{ margin: '0 0 15px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Owner Details</h3>
-                <p style={{ margin: '8px 0', color: '#475569' }}><strong>Name:</strong> {reviewingShop.owner}</p>
-                <p style={{ margin: '8px 0', color: '#475569' }}><strong>Phone:</strong> {reviewingShop.phone}</p>
-                <p style={{ margin: '5px 0', color: '#475569', fontSize: '0.95rem' }}><strong>Address:</strong> {reviewingShop.location}</p>
-                <p style={{ margin: '8px 0', color: '#475569' }}><strong>Shop ID:</strong> {reviewingShop.id}</p>
+                <p style={{ margin: '8px 0', color: '#475569' }}><strong>Name:</strong> {reviewingShop.owner}</p><p style={{ margin: '8px 0', color: '#475569' }}><strong>Phone:</strong> {reviewingShop.phone}</p><p style={{ margin: '5px 0', color: '#475569', fontSize: '0.95rem' }}><strong>Address:</strong> {reviewingShop.location}</p><p style={{ margin: '8px 0', color: '#475569' }}><strong>Shop ID:</strong> {reviewingShop.id}</p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <h3 style={{ margin: '0 0 5px 0', color: '#334155', fontSize: '1rem', textTransform: 'uppercase' }}>Uploaded Documents</h3>
                 {reviewingShop.documents ? (
                   <>
-                    {[
-                      { label: "GST Registration", file: reviewingShop.documents.gst },
-                      { label: "Shop & Establishment", file: reviewingShop.documents.shopAct },
-                      { label: "Owner Aadhaar Card", file: reviewingShop.documents.aadhaar },
-                      { label: "Owner PAN Card", file: reviewingShop.documents.pan },
-                      { label: "Cancelled Cheque", file: reviewingShop.documents.cheque }
-                    ].map((doc, idx) => (
+                    {[{ label: "GST Registration", file: reviewingShop.documents.gst }, { label: "Shop & Establishment", file: reviewingShop.documents.shopAct }, { label: "Owner Aadhaar Card", file: reviewingShop.documents.aadhaar }, { label: "Owner PAN Card", file: reviewingShop.documents.pan }, { label: "Cancelled Cheque", file: reviewingShop.documents.cheque }].map((doc, idx) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px 15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
                         <span style={{ color: '#0f172a', fontWeight: '500', fontSize: '0.9rem' }}>📄 {doc.label}</span>
-                        {doc.file ? (
-                          <button type="button" onClick={() => window.open(`http://localhost:5000/uploads/${doc.file}`, '_blank')} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}>View File ↗</button>
-                        ) : (
-                           <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Missing / Mock Data</span>
-                        )}
+                        {doc.file ? (<button type="button" onClick={() => window.open(`http://localhost:5000/uploads/${doc.file}`, '_blank')} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}>View File ↗</button>) : (<span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Missing / Mock Data</span>)}
                       </div>
                     ))}
                   </>
-                ) : (
-                  <p style={{ color: '#dc2626', fontWeight: 'bold' }}>⚠️ No documents found.</p>
-                )}
+                ) : (<p style={{ color: '#dc2626', fontWeight: 'bold' }}>⚠️ No documents found.</p>)}
               </div>
             </div>
             <div style={{ display: 'flex', gap: '15px', marginTop: '30px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>

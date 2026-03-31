@@ -11,6 +11,7 @@ const riderRoutes = require('./routes/riderRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const addressRoutes = require('./routes/addressRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 
 const app = express();
@@ -29,6 +30,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 
 app.use('/api/riders', require('./routes/riderRoutes'));
+
+app.use('/api/reviews', reviewRoutes);
 
 app.use('/api/admin', adminRoutes);
 

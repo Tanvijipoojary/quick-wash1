@@ -6,6 +6,7 @@ const fs = require('fs'); // Needed to delete junk files!
 const nodemailer = require('nodemailer');
 const Rider = require('../models/Rider');
 const Order = require('../models/Order');
+const Transaction = require('../models/Transaction');
 
 // ==========================================
 // 📧 EMAIL & OTP CONFIGURATION
@@ -212,23 +213,56 @@ router.put('/accept-task/:orderId', async (req, res) => {
     res.status(500).json({ message: "Failed to accept task" });
   }
 });
-
 // --- UPDATE ORDER STATUS ---
 router.put('/update-status/:id', async (req, res) => {
   try {
     const orderId = req.params.id;
-    const updateData = req.body; // This will contain { status: 'Searching Rider' } etc.
+    const updateData = req.body; 
 
     // Find the order and update it with the new data
     const updatedOrder = await Order.findByIdAndUpdate(
       orderId,
       { $set: updateData },
-      { new: true } // Returns the updated document
+      { new: true } 
     );
 
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found" });
     }
+
+    // 👇 ADD THIS AUTOMATION BLOCK 👇
+    // If the Rider marks the order as Completed, instantly generate the Financial Receipt
+    if (updateData.status === 'Completed') {
+      const existingTx = await Transaction.findOne({ orderId: updatedOrder._id });
+      
+      if (!existingTx) {
+        const User = require('../models/User'); // Pull in the User model to find the customer ID
+        
+        const total = updatedOrder.totalAmount || 0;
+        const platformFee = total * 0.10;
+        const riderCut = 40; 
+        let vendorEarnings = total - platformFee - riderCut;
+        
+        // Find customer ID safely
+        const customer = await User.findOne({ email: updatedOrder.customerEmail.toLowerCase() });
+
+        await Transaction.create({
+          orderId: updatedOrder._id,
+          customerId: customer ? customer._id : null,
+          totalAmountPaid: total,
+          paymentMethod: 'Cash', 
+          paymentStatus: 'Success',
+          platformFee: platformFee,
+          vendorId: updatedOrder.shopId,
+          vendorEarnings: vendorEarnings > 0 ? vendorEarnings : 0,
+          riderId: updatedOrder.riderId || null, // Assuming you save riderId on the order
+          riderEarnings: riderCut
+        });
+        
+        console.log(`✅ Transaction generated for Completed Order: ${updatedOrder._id}`);
+      }
+    }
+    // 👆 END AUTOMATION BLOCK 👆
 
     res.status(200).json({ message: "Order updated successfully", order: updatedOrder });
   } catch (error) {

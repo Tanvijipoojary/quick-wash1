@@ -43,7 +43,8 @@ const CustomerHome = () => {
         time: '24 hrs',             
         price: `₹${shop.pricing?.washAndIron || 60}/kg`,            
         rating: shop.rating ? shop.rating : 'New!',
-        shopImage: shop.shopImage || null // 👇 ADD THIS LINE!
+        totalReviews: shop.totalReviews || 0, // 👈 ADD THIS LINE
+        shopImage: shop.shopImage || null 
       }));
       
       setShops(formattedShops);
@@ -188,7 +189,13 @@ const CustomerHome = () => {
                     <div className="web-card-stats">
                       <span className="stat-pill">⏱ {shop.time}</span>
                       <span className="stat-pill">🛵 {shop.price}</span>
-                      <span className="stat-pill rating">★ {shop.rating}</span>
+                      {/* 👇 UPDATE THIS SPAN 👇 */}
+                      <span 
+                        className="stat-pill rating" 
+                        style={{ background: '#22c55e', color: 'white', border: 'none', fontWeight: 'bold' }}
+                      >
+                        {shop.rating && shop.rating !== 'New!' ? `★ ${shop.rating} (${shop.totalReviews})` : '★ New!'}
+                      </span>
                     </div>
                   </div>
                 </div>

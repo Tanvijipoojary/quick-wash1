@@ -217,11 +217,7 @@ const OrderDetails = () => {
               ))}
             </div>
 
-            <div className="info-card">
-              <h3>Delivery Timeline</h3>
-              <p><strong>Pickup:</strong> {order.estimatedPickup}</p>
-              <p><strong>Expected Delivery:</strong> {new Date(order.estimatedDelivery).toLocaleDateString()} by 8:00 PM</p>
-            </div>
+            
 
             <div className="info-card billing-card">
               <h3>Final Bill</h3>

@@ -177,6 +177,47 @@ router.post('/vendor-signup', upload.fields([
 // 🏪 2. GENERAL VENDOR OPERATIONS
 // ==========================================
 
+// --- VENDOR LOGIN ---
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const lowercaseEmail = email.toLowerCase();
+
+    // 1. Find the vendor by email
+    const vendor = await Vendor.findOne({ email: lowercaseEmail });
+    if (!vendor) {
+      return res.status(400).json({ message: "Invalid credentials. Please try again." });
+    }
+
+    // 2. Check the password (Comparing plain text exactly as it is in your database!)
+    if (password !== vendor.password) {
+      return res.status(400).json({ message: "Invalid credentials. Please try again." });
+    }
+
+    // 3. Check if Admin suspended them
+    if (vendor.status === 'Suspended') {
+      return res.status(403).json({ message: "Your account has been suspended by the Admin." });
+    }
+
+    // 4. Success! Send back the vendor data to React
+    res.status(200).json({
+      message: "Login successful",
+      vendor: {
+        id: vendor._id,
+        name: vendor.name,
+        email: vendor.email,
+        hubName: vendor.hubName,
+        status: vendor.status,
+        isOpen: vendor.isOpen
+      }
+    });
+
+  } catch (error) {
+    console.error("Vendor Login Error:", error);
+    res.status(500).json({ message: "Server error during login." });
+  }
+});
+
 // --- GET ALL ACTIVE VENDORS (For Customer Home Page) ---
 router.get('/all-vendors', async (req, res) => {
   try {

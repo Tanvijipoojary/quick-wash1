@@ -63,15 +63,16 @@ const VendorLogin = () => {
     setErrorMessage('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/vendor-login', {
-        email: formData.email.toLowerCase(),
-        password: formData.password
+      // ✅ FIXED: Using formData.email and formData.password
+      const response = await axios.post('http://localhost:5000/api/vendors/login', {
+        email: formData.email, 
+        password: formData.password 
       });
 
       if (response.status === 200) {
         const vendorDataFromDB = response.data.vendor || response.data;
         const vendorSession = {
-          shopId: vendorDataFromDB._id, 
+          shopId: vendorDataFromDB.id || vendorDataFromDB._id, // Ensure we get the ID correctly
           name: vendorDataFromDB.hubName || vendorDataFromDB.name,
           email: vendorDataFromDB.email
         };

@@ -23,6 +23,9 @@ const vendorSchema = new mongoose.Schema({
   
   address: { type: String, required: true },
   status: { type: String, default: 'Pending' },
+
+  rating: { type: Number, default: 0 },
+  totalReviews: { type: Number, default: 0 },
   
   // Store Open/Closed Toggle
   isOpen: { type: Boolean, default: true }, 

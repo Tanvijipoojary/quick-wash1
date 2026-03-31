@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './profile.css';
 import logo from '../assets/quickwash-logo.png'; 
+import ReviewModal from './ReviewModal'; // 👈 1. IMPORT THE MODAL
 
 const Profile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('orders'); 
 
   // --- 1. REAL USER DATA FROM LOGIN ---
-  const [user, setUser] = useState({ name: "", phone: "", email: "" });
+  const [user, setUser] = useState({ id: "", name: "", phone: "", email: "" }); // 👈 Added ID
   // --- SETTINGS STATES ---
   const [emailNotif, setEmailNotif] = useState(true);
   const [smsNotif, setSmsNotif] = useState(true);
@@ -19,6 +20,7 @@ const Profile = () => {
     if (savedUserStr) {
       const loggedInUser = JSON.parse(savedUserStr);
       setUser({
+        id: loggedInUser._id || loggedInUser.id || "", // 👈 Grab user ID for the review
         name: loggedInUser.name || "Customer",
         phone: loggedInUser.phone || "No phone added",
         email: loggedInUser.email || ""
@@ -74,7 +76,6 @@ const Profile = () => {
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddressForm, setNewAddressForm] = useState({ type: 'Home', text: '' });
 
-  // Fetch Addresses
   useEffect(() => {
     const fetchAddresses = async () => {
       if (!user.email) return;
@@ -88,12 +89,10 @@ const Profile = () => {
     if (activeTab === 'addresses') fetchAddresses();
   }, [user.email, activeTab]);
 
-  // Add Address Handler
   const handleAddAddress = async (e) => {
     e.preventDefault();
     if (!newAddressForm.text.trim()) return;
 
-    // Assign appropriate icon based on type
     let icon = '📍';
     if (newAddressForm.type === 'Home') icon = '🏠';
     if (newAddressForm.type === 'Work') icon = '💼';
@@ -106,25 +105,22 @@ const Profile = () => {
         text: newAddressForm.text,
         icon: icon
       });
-      setAddresses([...addresses, res.data]); // Update UI instantly
+      setAddresses([...addresses, res.data]); 
       setIsAddingAddress(false);
-      setNewAddressForm({ type: 'Home', text: '' }); // Reset form
+      setNewAddressForm({ type: 'Home', text: '' }); 
     } catch (error) { 
       alert("Failed to save address. Check if your backend is running."); 
     }
   };
 
-  // Delete Address Handler
   const handleDeleteAddress = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/api/addresses/delete/${id}`);
-      setAddresses(addresses.filter(addr => addr._id !== id)); // Remove from UI instantly
+      setAddresses(addresses.filter(addr => addr._id !== id)); 
     } catch (error) { 
       alert("Failed to delete address."); 
     }
   };
-  // ==========================================
-
 
   // --- PROFILE EDITING ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -137,35 +133,26 @@ const Profile = () => {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    
     try {
-      // 1. Send the new data to your MongoDB backend
-      // Make sure the URL matches where you put the route in Step 1!
       await axios.put('http://localhost:5000/api/auth/update-profile', {
-        email: editForm.email, // Used to find the user in DB
-        name: editForm.name,   // The new name
-        phone: editForm.phone  // The new phone
+        email: editForm.email, 
+        name: editForm.name, 
+        phone: editForm.phone 
       });
 
-      // 2. Update the live UI with the new data
       setUser({ ...user, name: editForm.name, phone: editForm.phone });
-      
-      // 3. Update local storage so the changes stay if they refresh the page
       const existingStorage = JSON.parse(localStorage.getItem('quickwash_user'));
       const updatedStorage = { ...existingStorage, name: editForm.name, phone: editForm.phone };
-      // Change whatever key you had to 'quickwash_user'
       localStorage.setItem('quickwash_user', JSON.stringify(updatedStorage));
 
       setIsEditModalOpen(false); 
       alert("✅ Profile updated successfully!");
-
     } catch (error) {
       console.error("Failed to update profile:", error);
       alert("❌ Failed to update profile. Is your backend server running?");
     }
   };
 
-  // --- LOGOUT HANDLER ---
   const handleLogout = () => {
     localStorage.removeItem('quickwash_user');
     localStorage.removeItem('quickwash_cart');
@@ -190,9 +177,20 @@ const Profile = () => {
     setHelpMessage("");
   };
 
+  // ==========================================
+  // --- 5. REVIEW MODAL LOGIC (NEW) ---
+  // ==========================================
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedOrderForReview, setSelectedOrderForReview] = useState(null);
+
+  const handleOpenReview = (order) => {
+    setSelectedOrderForReview(order);
+    setIsReviewModalOpen(true);
+  };
+  // ==========================================
+
   return (
     <div className="profile-page-bg">
-      {/* --- TOP NAVBAR --- */}
       <nav className="top-navbar">
         <div className="nav-brand" onClick={() => navigate('/home')}>
           <img src={logo} alt="Quick Wash Logo" className="nav-logo" />
@@ -205,7 +203,6 @@ const Profile = () => {
         </div>
       </nav>
 
-      {/* --- HEADER BANNER --- */}
       <div className="profile-header-banner">
         <div className="profile-header-content">
           <div className="user-info-block">
@@ -217,7 +214,6 @@ const Profile = () => {
       </div>
 
       <main className="profile-main-body">
-        {/* --- SIDEBAR TABS --- */}
         <aside className="profile-sidebar-nav">
           <ul>
             <li className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>
@@ -238,7 +234,6 @@ const Profile = () => {
           </ul>
         </aside>
 
-        {/* --- CONTENT AREA --- */}
         <section className="profile-content-area">
           
           {/* ORDERS TAB */}
@@ -282,6 +277,17 @@ const Profile = () => {
                       <div className="order-bottom-section">
                         <button className="reorder-btn" onClick={() => navigate(`/shop/${order.shopId}`)}>VISIT SHOP</button>
                         <button className="help-btn" onClick={() => handleOpenHelp(order)}>HELP</button>
+                        
+                        {/* 👈 2. NEW REVIEW BUTTON */}
+                        {order.status === 'Completed' && (
+                          <button 
+                            onClick={() => handleOpenReview(order)}
+                            style={{ background: '#f59e0b', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold', marginLeft: '10px' }}
+                          >
+                            ⭐ RATE 
+                          </button>
+                        )}
+
                       </div>
                     </div>
                   ))}
@@ -290,6 +296,7 @@ const Profile = () => {
             </div>
           )}
 
+          {/* ... (rest of the tabs remain exactly the same) ... */}
           {/* FAVORITES TAB */}
           {activeTab === 'favorites' && (
             <div className="animate-fade">
@@ -329,7 +336,6 @@ const Profile = () => {
                 </button>
               </div>
               
-              {/* Add New Address Form */}
               {isAddingAddress && (
                 <div className="animate-fade" style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', marginBottom: '20px', border: '1px solid #e2e8f0' }}>
                   <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#1e293b' }}>Add New Address</h3>
@@ -360,7 +366,6 @@ const Profile = () => {
                 </div>
               )}
 
-              {/* Display Saved Addresses */}
               {addresses.length === 0 && !isAddingAddress ? (
                 <p className="empty-text">No addresses saved yet.</p>
               ) : (
@@ -394,8 +399,6 @@ const Profile = () => {
           {activeTab === 'settings' && (
             <div className="animate-fade">
               <h2 className="tab-main-title">Account Settings</h2>
-
-              {/* Group 1: Notifications */}
               <div className="settings-group" style={{ marginBottom: '30px' }}>
                 <h3 className="settings-group-title">Notifications</h3>
                 <div className="settings-card-modern">
@@ -409,9 +412,7 @@ const Profile = () => {
                       <span className="toggle-slider"></span>
                     </label>
                   </div>
-                  
                   <div className="settings-divider"></div>
-                  
                   <div className="settings-row">
                     <div>
                       <h4>SMS Updates</h4>
@@ -424,12 +425,9 @@ const Profile = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Group 2: About & Support */}
               <div className="settings-group" style={{ marginBottom: '30px' }}>
                 <h3 className="settings-group-title">About & Legal</h3>
                 <div className="settings-card-modern">
-                  {/* Just make sure '/privacy' and '/terms' match the actual paths you set in your App.jsx routes! */}
                   <div className="settings-row clickable" onClick={() => navigate('/privacy')}>
                     <div>
                       <h4>Privacy Policy</h4>
@@ -437,9 +435,7 @@ const Profile = () => {
                     </div>
                     <span className="settings-chevron">›</span>
                   </div>
-
                   <div className="settings-divider"></div>
-
                   <div className="settings-row clickable" onClick={() => navigate('/terms')}>
                     <div>
                       <h4>Terms of Service</h4>
@@ -449,8 +445,6 @@ const Profile = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Group 3: Danger Zone */}
               <div className="settings-group">
                 <h3 className="settings-group-title" style={{ color: '#ef4444' }}>Account Security</h3>
                 <div className="settings-card-modern" style={{ border: '1px solid #fca5a5' }}>
@@ -465,7 +459,6 @@ const Profile = () => {
                   </div>
                 </div>
               </div>
-
             </div>
           )}
         </section>
@@ -534,6 +527,18 @@ const Profile = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 👈 3. RENDER THE REVIEW MODAL AT THE BOTTOM */}
+      {selectedOrderForReview && (
+        <ReviewModal 
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          orderId={selectedOrderForReview._id}
+          vendorId={selectedOrderForReview.shopId}
+          customerId={user.id || user.email} // Sends the user ID to the database
+          shopName={selectedOrderForReview.shopName}
+        />
       )}
     </div>
   );
