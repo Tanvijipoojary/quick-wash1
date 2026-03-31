@@ -271,4 +271,24 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// ==========================================
+// 📊 VENDOR EARNINGS REPORT (COMPLETED ORDERS)
+// ==========================================
+router.get('/vendor-earnings/:shopId', async (req, res) => {
+  try {
+    const shopId = req.params.shopId;
+    
+    // Find only the completely finished orders for this specific vendor
+    const completedOrders = await Order.find({ 
+      shopId: shopId, 
+      status: 'Completed' 
+    }).sort({ updatedAt: -1 }); // Newest orders first
+    
+    res.status(200).json(completedOrders);
+  } catch (error) {
+    console.error("Error fetching vendor earnings:", error);
+    res.status(500).json({ message: "Server error fetching earnings" });
+  }
+});
+
 module.exports = router;

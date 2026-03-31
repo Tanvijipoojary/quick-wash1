@@ -6,6 +6,7 @@ const fs = require('fs'); // Needed to delete junk files!
 const nodemailer = require('nodemailer');
 const Vendor = require('../models/Vendor');
 const Order = require('../models/Order');
+const Withdrawal = require('../models/Withdrawal');
 
 // ==========================================
 // 📧 EMAIL & OTP CONFIGURATION
@@ -396,9 +397,12 @@ router.post('/withdraw', async (req, res) => {
       return res.status(400).json({ message: "Insufficient funds!" });
     }
 
-    // Create the transaction receipt
+    // Generate a unified Transaction ID
+    const txIdStr = `TXN-VWD${Math.floor(Math.random() * 100000000)}`;
+
+    // Create the transaction receipt for the Vendor's personal history
     const newTx = {
-      txId: `TXN-${Math.floor(Math.random() * 100000000)}`,
+      txId: txIdStr,
       title: 'Withdrawal to Bank',
       amount: withdrawAmount,
       status: 'Pending',
@@ -409,8 +413,23 @@ router.post('/withdraw', async (req, res) => {
     vendor.transactions.push(newTx);
     await vendor.save();
 
+    // 👇 NEW: Save to the Master Admin Withdrawal Ledger 👇
+    await Withdrawal.create({
+      txId: txIdStr,
+      userType: 'Vendor',
+      userId: vendor._id,
+      email: vendor.email,
+      amount: withdrawAmount,
+      status: 'Pending',
+      bankDetails: {
+        name: bankInfo || 'Primary Bank Account',
+        ac: 'N/A', // If your vendor frontend sends detailed account info later, map it here!
+        ifsc: 'N/A'
+      }
+    });
+
     res.status(200).json({ 
-      message: "Withdrawal successful", 
+      message: "Withdrawal requested successfully", 
       newBalance: availableBalance - withdrawAmount, // Send back the updated balance
       transaction: newTx 
     });

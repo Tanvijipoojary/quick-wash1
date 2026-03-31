@@ -7,6 +7,7 @@ const nodemailer = require('nodemailer');
 const Rider = require('../models/Rider');
 const Order = require('../models/Order');
 const Transaction = require('../models/Transaction');
+const Withdrawal = require('../models/Withdrawal');
 
 // ==========================================
 // 📧 EMAIL & OTP CONFIGURATION
@@ -388,19 +389,33 @@ router.post('/wallet/withdraw', async (req, res) => {
     if (!rider) return res.status(404).json({ message: "Rider not found" });
     if (!rider.bankDetails || !rider.bankDetails.ac) return res.status(400).json({ message: "Please add a bank account first." });
 
-    // Note: A real app would double-check the balance calculation here again for security!
-    
+    const txIdStr = `TXN-BWD${Math.floor(Math.random() * 1000000)}`;
+
     const newWithdrawal = {
-      txId: `TXN-BWD${Math.floor(Math.random() * 10000)}`,
+      txId: txIdStr,
       amount: amount,
-      status: 'Pending'
+      status: 'Pending',
+      date: new Date()
     };
 
+    // 1. Save to Rider's personal history
     rider.withdrawals.push(newWithdrawal);
     await rider.save();
 
+    // 2. 👇 NEW: Save to the Master Admin Withdrawal Ledger 👇
+    await Withdrawal.create({
+      txId: txIdStr,
+      userType: 'Rider',
+      userId: rider._id,
+      email: rider.email,
+      amount: amount,
+      status: 'Pending',
+      bankDetails: rider.bankDetails
+    });
+
     res.status(200).json({ message: "Withdrawal requested successfully", withdrawal: newWithdrawal });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error processing withdrawal" });
   }
 });
