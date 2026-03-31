@@ -17,7 +17,7 @@ const orderSchema = new mongoose.Schema({
   garmentDetails: { type: Object, default: {} },
   totalExpectedGarments: { type: Number, default: 0 },
   items: [orderItemSchema], 
-  instructions: { type: String, default: '' },
+  riderInstructions: { type: String, default: "" },
   
   // --- BILLING INFO ---
   weightInKg: { type: Number, default: 0 }, 

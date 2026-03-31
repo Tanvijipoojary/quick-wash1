@@ -88,7 +88,8 @@ const RiderHome = () => {
           time: '15 mins', 
           garmentDetails: o.garmentDetails || {},
           totalExpectedGarments: o.totalExpectedGarments || 0,
-          amount: `Rs. ${BASE_FARE}`
+          amount: `Rs. ${BASE_FARE}`,
+          instructions: o.riderInstructions || ''
         };
       });
       
@@ -365,6 +366,19 @@ const RiderHome = () => {
                 <span className="rhome-detail-value" style={{color: '#eb6d1e'}}>{activeTask.amount}</span>
               </div>
             </div>
+
+            {/* 👇 PASTE THE INSTRUCTIONS BOX EXACTLY HERE 👇 */}
+            {activeTask.instructions && activeTask.instructions.trim() !== '' && (
+              <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px', border: '1px solid #fde047', marginBottom: '15px' }}>
+                <strong style={{ color: '#854d0e', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.95rem' }}>
+                  📝 Customer Note:
+                </strong>
+                <p style={{ margin: '5px 0 0 0', color: '#713f12', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                  "{activeTask.instructions}"
+                </p>
+              </div>
+            )}
+            {/* 👆 END INSTRUCTIONS BOX 👆 */}
 
             {/* UNIVERSAL VERIFICATION CHECKLIST */}
             {tripStatus === 'accepted' && (

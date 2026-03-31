@@ -111,7 +111,8 @@ const Checkout = () => {
         pickupDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         pickupSlot: 'ASAP', 
         
-        instructions: instructions,
+        // Change this line:
+        riderInstructions: instructions, // 👈 Updated to match DB Schema
         pickupAddress: selectedAddressText, 
         status: 'Pending', 
         riderEmail: null,

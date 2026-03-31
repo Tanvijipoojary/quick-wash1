@@ -28,9 +28,9 @@ const transactionSchema = new mongoose.Schema({
   vendorEarnings: { type: Number, required: true, default: 0 },
   
   pickupRiderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Rider' },
-pickupRiderEarnings: { type: Number, default: 20 },
-deliveryRiderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Rider' },
-deliveryRiderEarnings: { type: Number, default: 20 },
+  pickupRiderEarnings: { type: Number, default: 20 },
+  deliveryRiderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Rider' },
+  deliveryRiderEarnings: { type: Number, default: 20 },
 
 }, { timestamps: true });
 
