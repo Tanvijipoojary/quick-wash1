@@ -412,6 +412,7 @@ router.post('/withdraw', async (req, res) => {
 
     // Save the receipt to the vendor's history
     vendor.transactions.push(newTx);
+    vendor.walletBalance -= withdrawAmount;
     await vendor.save();
 
     // 👇 NEW: Save to the Master Admin Withdrawal Ledger 👇

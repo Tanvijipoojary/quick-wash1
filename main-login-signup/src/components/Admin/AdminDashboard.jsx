@@ -59,12 +59,31 @@ const AdminDashboard = () => {
     const fetchRiders = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/admin/riders');
-        const formattedRiders = response.data.map(r => ({
-          id: r._id, name: r.name, phone: r.phone, email: r.email, zone: r.zone || "Mangaluru", status: r.status,
-          vehicleInfo: { make: r.vehicle_type, plate: r.vehicle_number },
-          stats: { totalTasks: r.total_tasks || 0, completed: r.completed_tasks || 0, walletBal: r.wallet_balance || 0, totalEarned: r.total_earnings || 0, withdrawn: r.total_withdrawn || 0 },
-          documents: r.documents || {} 
-        }));
+        const formattedRiders = response.data.map(r => {
+          
+          // 👇 NEW: Force the math to strictly use ₹20 per task! (Ignores old DB errors)
+          const actualTasks = r.total_tasks || 0;
+          const fixedTotalEarned = actualTasks * 20;
+          const fixedWalletBalance = fixedTotalEarned - (r.total_withdrawn || 0);
+
+          return {
+            id: r._id, 
+            name: r.name, 
+            phone: r.phone, 
+            email: r.email, 
+            zone: r.zone || "Mangaluru", 
+            status: r.status,
+            vehicleInfo: { make: r.vehicle_type, plate: r.vehicle_number },
+            stats: { 
+              totalTasks: actualTasks, 
+              completed: r.completed_tasks || 0, 
+              walletBal: fixedWalletBalance,   // 👈 Using our fixed math
+              totalEarned: fixedTotalEarned,   // 👈 Using our fixed math
+              withdrawn: r.total_withdrawn || 0 
+            },
+            documents: r.documents || {} 
+          };
+        });
         setRidersData(formattedRiders);
       } catch (error) { console.error(error); }
     };
@@ -86,6 +105,8 @@ const AdminDashboard = () => {
       try {
         const response = await axios.get('http://localhost:5000/api/admin/transactions');
         const txns = response.data;
+
+        console.log("RAW TRANSACTIONS FROM DB:", txns);
         
         let overall = { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: financialStats.Overall.withdrawn };
         let yearly = { total: 0, shop: 0, rider: 0, profit: 0, withdrawn: financialStats.Yearly.withdrawn };
@@ -99,7 +120,7 @@ const AdminDashboard = () => {
         const formattedTxns = txns.map(t => {
           const actualTotal = t.totalAmountPaid || 0;
           const actualShopCut = t.vendorEarnings || 0;
-          const actualRiderCut = t.riderEarnings || 0;
+          const actualRiderCut = (t.riderEarnings || 0) + (t.pickupRiderEarnings || 0) + (t.deliveryRiderEarnings || 0);
           const actualProfit = t.platformFee || 0;
 
           const txDate = new Date(t.createdAt);
@@ -338,7 +359,7 @@ const AdminDashboard = () => {
             id: `#${t._id.substring(t._id.length - 6).toUpperCase()}-C`,
             taskType: isDone ? '✅ Collection Run' : '🛵 Active Collection',
             location: t.customerEmail ? t.customerEmail.split('@')[0] : "Customer",
-            amount: 40,
+            amount: 20,
             status: isDone ? 'Completed' : t.status
           });
         }
@@ -354,7 +375,7 @@ const AdminDashboard = () => {
             id: `#${t._id.substring(t._id.length - 6).toUpperCase()}-D`,
             taskType: isDone ? '✅ Delivery Run' : '🛵 Active Delivery',
             location: t.customerEmail ? t.customerEmail.split('@')[0] : "Customer",
-            amount: 40,
+            amount: 20,
             status: isDone ? 'Completed' : t.status
           });
         }

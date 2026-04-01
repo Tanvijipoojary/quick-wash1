@@ -399,12 +399,17 @@ router.get('/transactions', async (req, res) => {
       orderId: t.orderId,
       customerName: t.customerId ? (t.customerId.name || t.customerId.email.split('@')[0]) : 'Guest',
       shopName: t.vendorId ? (t.vendorId.hubName || t.vendorId.name) : 'Unknown Shop',
+      
       totalAmountPaid: t.totalAmountPaid,
       vendorEarnings: t.vendorEarnings,
-      riderEarnings: t.riderEarnings,
       platformFee: t.platformFee,
       paymentStatus: t.paymentStatus,
-      createdAt: t.createdAt
+      createdAt: t.createdAt,
+
+      // 👇 THE FIX: Send ALL the rider fields to React! 👇
+      riderEarnings: t.riderEarnings || 0,                 // Legacy orders
+      pickupRiderEarnings: t.pickupRiderEarnings || 0,     // New split
+      deliveryRiderEarnings: t.deliveryRiderEarnings || 0  // New split
     }));
 
     res.status(200).json(formattedTxns);

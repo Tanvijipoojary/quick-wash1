@@ -400,6 +400,9 @@ router.post('/wallet/withdraw', async (req, res) => {
 
     // 1. Save to Rider's personal history
     rider.withdrawals.push(newWithdrawal);
+
+    rider.wallet_balance -= amount;
+    rider.total_withdrawn = (rider.total_withdrawn || 0) + amount;
     await rider.save();
 
     // 2. 👇 NEW: Save to the Master Admin Withdrawal Ledger 👇
