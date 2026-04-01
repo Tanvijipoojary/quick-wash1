@@ -73,12 +73,13 @@ const AdminDashboard = () => {
             email: r.email, 
             zone: r.zone || "Mangaluru", 
             status: r.status,
+            isOnline: r.is_online, // 👈 STEP 1: ADD THIS LINE!
             vehicleInfo: { make: r.vehicle_type, plate: r.vehicle_number },
             stats: { 
               totalTasks: actualTasks, 
               completed: r.completed_tasks || 0, 
-              walletBal: fixedWalletBalance,   // 👈 Using our fixed math
-              totalEarned: fixedTotalEarned,   // 👈 Using our fixed math
+              walletBal: fixedWalletBalance,   
+              totalEarned: fixedTotalEarned,   
               withdrawn: r.total_withdrawn || 0 
             },
             documents: r.documents || {} 
@@ -261,12 +262,35 @@ const AdminDashboard = () => {
   
   const handleExportCSV = () => { alert("CSV Downloaded successfully!"); };
 
-  const toggleUserStatus = (id, currentStatus) => setUsersData(usersData.map(u => u.id === id ? { ...u, status: currentStatus === 'Active' ? 'Banned' : 'Active' } : u));
   const handleEditUser = (e) => { e.preventDefault(); setUsersData(usersData.map(u => u.id === editingUser.id ? editingUser : u)); setIsEditModalOpen(false); };
-  const toggleShopStatus = (id, currentStatus) => setShopsData(shopsData.map(s => s.id === id ? { ...s, status: currentStatus === 'Active' ? 'Suspended' : 'Active' } : s));
   const handleEditShop = (e) => { e.preventDefault(); setShopsData(shopsData.map(s => s.id === editingShop.id ? editingShop : s)); setIsShopEditModalOpen(false); };
-  const toggleRiderStatus = (id, currentStatus) => setRidersData(ridersData.map(r => r.id === id ? { ...r, status: currentStatus === 'Active' ? 'Suspended' : 'Active' } : r));
   const handleEditRider = (e) => { e.preventDefault(); setRidersData(ridersData.map(r => r.id === editingRider.id ? editingRider : r)); setIsRiderEditModalOpen(false); };
+
+  // --- REAL DATABASE TOGGLES ---
+  const toggleUserStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'Active' ? 'Banned' : 'Active';
+    try {
+      await axios.put(`http://localhost:5000/api/admin/user-status/${id}`, { status: newStatus });
+      setUsersData(usersData.map(u => u.id === id ? { ...u, status: newStatus } : u));
+    } catch (error) { alert("Error updating user status"); }
+  };
+
+  const toggleShopStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
+    try {
+      // This perfectly connects to the backend code you just pasted!
+      await axios.put(`http://localhost:5000/api/admin/vendor-status/${id}`, { status: newStatus });
+      setShopsData(shopsData.map(s => s.id === id ? { ...s, status: newStatus } : s));
+    } catch (error) { alert("Error updating shop status"); }
+  };
+
+  const toggleRiderStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
+    try {
+      await axios.put(`http://localhost:5000/api/admin/rider-status/${id}`, { status: newStatus });
+      setRidersData(ridersData.map(r => r.id === id ? { ...r, status: newStatus } : r));
+    } catch (error) { alert("Error updating rider status"); }
+  };
 
   const filteredUsers = usersData.filter(u => 
     u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -690,7 +714,10 @@ const AdminDashboard = () => {
                           <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
                             {rider.name.charAt(0).toUpperCase()}
                           </div>
-                          <div><strong style={{ display: 'block', color: '#0f172a' }}>{rider.name}</strong><span style={{ fontSize: '0.8rem', color: '#64748b' }}>{rider.id.substring(rider.id.length - 6).toUpperCase()}</span></div>
+                          <div>
+                            <strong style={{ display: 'block', color: '#0f172a' }}>{rider.name}</strong>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{rider.id.substring(rider.id.length - 6).toUpperCase()}</span>
+                          </div>
                         </div>
                       </td>
                       <td><div><strong style={{ color: '#94a3b8' }}>📞</strong> {rider.phone}</div><div><strong style={{ color: '#94a3b8' }}>📍</strong> {rider.zone}</div></td>

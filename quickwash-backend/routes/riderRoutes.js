@@ -444,6 +444,49 @@ router.put('/wallet/bank', async (req, res) => {
   }
 });
 
+// ==========================================
+// 🛵 TOGGLE RIDER ONLINE/OFFLINE STATUS
+// ==========================================
+// ==========================================
+// 🛵 TOGGLE RIDER ACTIVE/INACTIVE STATUS
+// ==========================================
+router.put('/toggle-status', async (req, res) => {
+  try {
+    const { email, status } = req.body;
+    
+    // 1. Find the rider first
+    const rider = await Rider.findOne({ email: email });
+    if (!rider) return res.status(404).json({ message: "Rider not found" });
+
+    // 2. SECURITY: Do not allow a Suspended rider to make themselves Active!
+    if (rider.status === 'Suspended') {
+      return res.status(403).json({ message: "Cannot change status. Account is suspended." });
+    }
+
+    // 3. Update the status
+    rider.status = status;
+    await rider.save();
+
+    res.status(200).json({ message: "Status updated successfully", status: rider.status });
+  } catch (error) {
+    console.error("Error toggling status:", error);
+    res.status(500).json({ message: "Server error updating status." });
+  }
+});
+
+// ==========================================
+// 🛵 FETCH RIDER PROFILE (Used to check status on refresh)
+// ==========================================
+router.get('/profile/:email', async (req, res) => {
+  try {
+    const rider = await Rider.findOne({ email: req.params.email });
+    if (!rider) return res.status(404).json({ message: "Rider not found" });
+    res.status(200).json(rider);
+  } catch (error) {
+    res.status(500).json({ message: "Server error fetching profile." });
+  }
+});
+
 router.post('/support-message', async (req, res) => {
   const { riderEmail, subject, message } = req.body;
 

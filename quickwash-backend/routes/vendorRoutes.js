@@ -193,12 +193,17 @@ router.post('/login', async (req, res) => {
 
     // 2. Check the password (Comparing plain text exactly as it is in your database!)
     if (password !== vendor.password) {
-      return res.status(400).json({ message: "Invalid credentials. Please try again." });
+      return res.status(400).json({ message: "Invalid Password. Please try again." });
     }
 
     // 3. Check if Admin suspended them
     if (vendor.status === 'Suspended') {
       return res.status(403).json({ message: "Your account has been suspended by the Admin." });
+    }
+
+    // 3.5 Check if Admin hasn't approved them yet
+    if (vendor.status === 'Pending') {
+      return res.status(403).json({ message: "Account is pending Admin approval. Please wait for KYC verification." });
     }
 
     // 4. Success! Send back the vendor data to React

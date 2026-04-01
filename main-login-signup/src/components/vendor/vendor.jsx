@@ -90,7 +90,8 @@ const VendorLogin = () => {
   // ==========================================
   // 🚀 SIGNUP STEP A: REQUEST OTP
   // ==========================================
-  const handleRequestOTP = async () => {
+  const handleRequestOTP = async (e) => {
+    if (e) e.preventDefault();
     // 👇 Capacity has been removed from this blocker! 👇
     if (!formData.email || !formData.name || !formData.phone || !formData.password || !formData.hubName || !formData.shopNo || !formData.area || !formData.pincode) {
       setErrorMessage("⚠️ Please fill in all text fields, including full address.");
@@ -349,7 +350,8 @@ const VendorLogin = () => {
 
             {/* STEP 3: KYC UPLOADS */}
             {signupStep === 3 && (
-              <div className="v-form animate-fade">
+              /* 👇 Changed from div to form, and added onSubmit */
+              <form className="v-form animate-fade" onSubmit={handleRequestOTP}>
                 <h2 className="v-form-title dark">KYC & Compliance</h2>
                 <p className="v-form-desc gray">Upload required documents for verification.</p>
 
@@ -371,18 +373,36 @@ const VendorLogin = () => {
                           <p style={{margin:0, fontSize:'12px', color:'#666'}}>{doc.desc}</p>
                         </div>
                       </div>
-                      <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleFileChange(e, doc.key)} style={{fontSize: '0.8rem', padding: '5px'}}/>
+                      {/* 👇 Added 'required' to enforce upload natively via browser */}
+                      <input 
+                        type="file" 
+                        accept=".jpg,.jpeg,.png,.pdf" 
+                        onChange={(e) => handleFileChange(e, doc.key)} 
+                        required 
+                        style={{fontSize: '0.8rem', padding: '5px'}}
+                      />
                     </div>
                   ))}
                 </div>
 
                 <div className="v-btn-row mt-4" style={{display:'flex', gap:'15px', marginTop:'20px'}}>
                   <button type="button" className="v-btn-lightgray" onClick={() => setSignupStep(2)}>Back</button>
-                  <button type="button" className="v-btn-darkgreen" style={{flex: 1}} onClick={handleRequestOTP} disabled={isLoading}>
+                  
+                  {/* 👇 Changed type to submit, and disabled button if ANY document is missing */}
+                  <button 
+                    type="submit" 
+                    className="v-btn-darkgreen" 
+                    style={{
+                      flex: 1, 
+                      opacity: (!docs.gst || !docs.shopAct || !docs.pan || !docs.aadhaar || !docs.cheque) ? 0.5 : 1,
+                      cursor: (!docs.gst || !docs.shopAct || !docs.pan || !docs.aadhaar || !docs.cheque) ? 'not-allowed' : 'pointer'
+                    }} 
+                    disabled={isLoading || !docs.gst || !docs.shopAct || !docs.pan || !docs.aadhaar || !docs.cheque}
+                  >
                     {isLoading ? 'Processing...' : 'Verify Email & Submit'}
                   </button>
                 </div>
-              </div>
+              </form>
             )}
 
             {/* STEP 4: OTP VERIFICATION */}

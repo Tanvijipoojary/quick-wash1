@@ -199,14 +199,26 @@ const VendorProfile = () => {
           </div>
           
           <div className="vprof-completion-box">
-            <div className="vprof-completion-text">
-              <span>Profile Completion</span>
-              <strong>{profileData.adminStatus === 'Active' ? '100%' : '85%'}</strong>
-            </div>
-            <div className="vprof-progress-bar">
-              <div className="vprof-progress-fill" style={{ width: profileData.adminStatus === 'Active' ? '100%' : '85%', background: profileData.adminStatus === 'Active' ? '#10b981' : '#0ea5e9' }}></div>
-            </div>
-            <small>{profileData.adminStatus === 'Active' ? 'Your profile is fully verified!' : 'Waiting for Admin KYC verification.'}</small>
+            {(() => {
+              const isPending = profileData.adminStatus === 'Pending';
+              const isSuspended = profileData.adminStatus === 'Suspended';
+              const percent = isPending ? '85%' : '100%';
+              const barColor = isSuspended ? '#ef4444' : (isPending ? '#0ea5e9' : '#10b981');
+              const message = isSuspended ? 'Account suspended by Admin.' : (isPending ? 'Waiting for Admin KYC verification.' : 'Your profile is fully verified!');
+              
+              return (
+                <>
+                  <div className="vprof-completion-text">
+                    <span>Profile Status</span>
+                    <strong>{isSuspended ? 'Suspended' : percent}</strong>
+                  </div>
+                  <div className="vprof-progress-bar">
+                    <div className="vprof-progress-fill" style={{ width: percent, background: barColor }}></div>
+                  </div>
+                  <small style={{ color: isSuspended ? '#ef4444' : 'inherit', fontWeight: isSuspended ? 'bold' : 'normal' }}>{message}</small>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -264,9 +276,10 @@ const VendorProfile = () => {
           <div className="vprof-card vprof-docs-card">
             
             {(() => {
-              const isVerified = profileData.adminStatus === 'Active';
-              const statusText = isVerified ? 'Verified' : 'Pending Review';
-              const pillClass = isVerified ? 'vprof-pill-success' : 'vprof-pill-warning';
+              // 👇 THE FIX: Only show 'Pending Review' if the status is strictly 'Pending'
+              const isPending = profileData.adminStatus === 'Pending';
+              const statusText = isPending ? 'Pending Review' : 'Verified';
+              const pillClass = isPending ? 'vprof-pill-warning' : 'vprof-pill-success';
 
               const docs = [
                 { name: 'GST Registration', icon: '📄' },

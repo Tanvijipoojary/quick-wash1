@@ -15,6 +15,7 @@ const riderSchema = new mongoose.Schema({
   completed_tasks: { type: Number, default: 0 },
   wallet_balance: { type: Number, default: 0 },
   total_earnings: { type: Number, default: 0 },
+  is_online: { type: Boolean, default: false },
   documents: {
     dl: { type: String },
     rc: { type: String },

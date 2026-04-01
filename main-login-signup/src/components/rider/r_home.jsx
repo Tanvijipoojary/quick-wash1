@@ -56,12 +56,67 @@ const RiderHome = () => {
     }
   }, []);
 
+  // --- NEW: SYNC ONLINE STATUS WITH DATABASE ---
+  // --- SYNC ACTIVE/INACTIVE STATUS WITH DATABASE ---
+  const handleToggleOnlineStatus = async (newStatus) => {
+    setIsOnline(newStatus);
+    if (!newStatus && activeTask) handleCancelTrip();
+
+    try {
+      await axios.put('http://localhost:5000/api/riders/toggle-status', {
+        email: rider.email,
+        // 👇 Send 'Active' or 'Inactive' based on the switch
+        status: newStatus ? 'Active' : 'Inactive' 
+      });
+    } catch (error) {
+      console.error("Failed to sync status with database");
+      setIsOnline(!newStatus); 
+    }
+  };
+
   useEffect(() => {
     if (!rider) {
       navigate('/');
       return;
     }
     fetchTodaysEarnings(rider.email);
+
+    // 👇 Check if the database says they are 'Active' on load
+    const fetchInitialStatus = async () => {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/riders/profile/${rider.email}`);
+        setIsOnline(res.data.status === 'Active'); 
+      } catch (err) { console.error("Could not fetch initial status"); }
+    };
+    fetchInitialStatus();
+    
+  }, [rider, navigate, fetchTodaysEarnings]);
+
+  useEffect(() => {
+    if (!rider) {
+      navigate('/');
+      return;
+    }
+    fetchTodaysEarnings(rider.email);
+
+    // 👇 NEW: Ask the database if the rider was last online or offline! 👇
+    const fetchInitialStatus = async () => {
+      try {
+        console.log(`Attempting to fetch profile for: ${rider.email}`);
+        
+        // Make sure this URL exactly matches your backend routes! 
+        // Is it /api/riders or /api/rider ?
+        const res = await axios.get(`http://localhost:5000/api/riders/profile/${rider.email}`);
+        
+        console.log("✅ SUCCESS! Database says profile is:", res.data);
+        setIsOnline(res.data.status === 'Active'); 
+        
+      } catch (err) { 
+        console.error("❌ FAILED to load profile on refresh!", err); 
+      }
+    };
+    fetchInitialStatus();
+    
   }, [rider, navigate, fetchTodaysEarnings]);
 
   // --- 1. FETCH LIVE BROADCASTS (THE RADAR) ---
@@ -186,7 +241,7 @@ const RiderHome = () => {
     const val = parseInt(e.target.value, 10);
     setSwipeValue(val);
     if (val > 85) {
-      setIsOnline(true);
+      handleToggleOnlineStatus(true); // 👈 Updated!
       setTripStatus('searching');
       setSwipeValue(0); 
     }
@@ -242,10 +297,7 @@ const RiderHome = () => {
               <input 
                 type="checkbox" 
                 checked={isOnline} 
-                onChange={() => {
-                  setIsOnline(!isOnline);
-                  if(!isOnline && activeTask) handleCancelTrip();
-                }} 
+                onChange={(e) => handleToggleOnlineStatus(e.target.checked)} // 👈 Updated!
               />
               <span className="rhome-slider"></span>
             </label>
