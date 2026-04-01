@@ -86,11 +86,42 @@ const ShopPage = () => {
   const serviceId = 102; 
 
   const handleAddToCart = () => {
+    // 1. Grab the current cart from local storage
+    const existingCartStr = localStorage.getItem('quickwash_multi_cart');
+    
+    if (existingCartStr) {
+      const existingCart = JSON.parse(existingCartStr);
+      
+      // Get the IDs of any shops currently in the cart
+      const existingShopIds = Object.keys(existingCart);
+      
+      // 2. THE CHECK: Is there a shop in the cart, and is it DIFFERENT from this shop?
+      if (existingShopIds.length > 0 && existingShopIds[0] !== shop.id) {
+        
+        const existingShopName = existingCart[existingShopIds[0]].shopName;
+        
+        // 3. Show the Warning Pop-up!
+        const confirmClear = window.confirm(
+          `Your cart already contains items from "${existingShopName}".\n\nDo you want to clear your cart and start a new order with ${shop.name}?`
+        );
+
+        // 4. If they click "Cancel", stop everything and do NOT add the item
+        if (!confirmClear) {
+          return; 
+        }
+        
+        // If they click "OK", the code naturally continues down below and overwrites the old cart!
+      }
+    }
+
+    // ==========================================
+    // 5. PROCEED WITH ADDING TO CART
+    // ==========================================
     setCart({
       [serviceId]: { name: "Wash & Iron", price: washAndIronPrice, qty: 1 }
     });
 
-    // 👇 THE FIX: Wipe out old shops! Force the master cart to ONLY hold this shop.
+    // 👇 Wipes out old shops! Forces the master cart to ONLY hold this shop.
     const multiCart = {
       [shop.id]: {
         shopId: shop.id,

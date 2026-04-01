@@ -91,12 +91,30 @@ const AdminDashboard = () => {
     const fetchUsers = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/admin/users');
-        const formattedUsers = response.data.map(u => ({
-            id: u._id, name: u.name || "Unnamed User", email: u.email, phone: u.phone || "N/A", status: u.status || "Active", 
-            joined: u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : "Unknown", 
-            stats: { totalOrders: u.totalOrders || 0, completed: u.completedOrders || 0, cancelled: u.cancelledOrders || 0, pending: u.pendingOrders || 0, totalSpent: u.totalSpent || 0 },
-            orderHistory: u.orderHistory || []
-        }));
+        const formattedUsers = response.data.map(u => {
+            
+            // 👇 NEW: Add ₹40 delivery fee for every completed order!
+            const completedCount = u.completedOrders || 0;
+            const clothesBill = u.totalSpent || 0;
+            const actualLifetimeSpend = clothesBill + (completedCount * 40);
+
+            return {
+                id: u._id, 
+                name: u.name || "Unnamed User", 
+                email: u.email, 
+                phone: u.phone || "N/A", 
+                status: u.status || "Active", 
+                joined: u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : "Unknown", 
+                stats: { 
+                    totalOrders: u.totalOrders || 0, 
+                    completed: completedCount, 
+                    cancelled: u.cancelledOrders || 0, 
+                    pending: u.pendingOrders || 0, 
+                    totalSpent: actualLifetimeSpend // 👈 Uses the new fixed math
+                },
+                orderHistory: u.orderHistory || []
+            };
+        });
         setUsersData(formattedUsers);
       } catch (error) { console.error(error); }
     };
@@ -277,14 +295,27 @@ const AdminDashboard = () => {
       const totalOrders = userOrders.length;
       const completed = userOrders.filter(o => ['Completed', 'Dropped at Hub'].includes(o.status)).length;
       const cancelled = userOrders.filter(o => o.status === 'Cancelled').length;
-      const totalSpent = userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-      const formattedHistory = userOrders.map(o => ({
-        id: `#${o._id.substring(o._id.length - 6).toUpperCase()}`,
-        date: new Date(o.createdAt || o.updatedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
-        shop: o.shopId || "Quick Wash Hub", 
-        amount: o.totalAmount || 0,
-        status: o.status
-      }));
+      
+      // 👇 NEW: Add the delivery fee to the grand total in the modal
+      const totalSpent = userOrders.reduce((sum, order) => {
+          const deliveryCharge = order.deliveryFee || 40;
+          return sum + (order.totalAmount || 0) + deliveryCharge;
+      }, 0);
+
+      const formattedHistory = userOrders.map(o => {
+        // 👇 NEW: Make sure the individual row shows the true total (Clothes + Delivery)
+        const orderDeliveryFee = o.deliveryFee || 40;
+        const grandTotal = (o.totalAmount || 0) + orderDeliveryFee;
+
+        return {
+          id: `#${o._id.substring(o._id.length - 6).toUpperCase()}`,
+          date: new Date(o.createdAt || o.updatedAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
+          shop: o.shopId || "Quick Wash Hub", 
+          amount: grandTotal, // 👈 Uses the fixed grand total
+          status: o.status
+        };
+      });
+      
       setViewingUser({ ...user, stats: { totalOrders, completed, cancelled, totalSpent }, orderHistory: formattedHistory });
     } catch (error) { console.error(error); }
   };

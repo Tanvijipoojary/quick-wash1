@@ -93,14 +93,23 @@ const Checkout = () => {
   const handleConfirmOrder = async (e) => {
     e.preventDefault();
     
+    // 👇 NEW VALIDATION: Check for Address
     if (!selectedAddressId && !selectedAddressText) {
       alert("Please select a valid pickup address.");
       return;
     }
 
+    // 👇 NEW VALIDATION: Check for at least 1 Garment
+    if (totalGarments === 0) {
+      alert("Please add at least one garment to your bag before booking.");
+      return;
+    }
+
     setIsSaving(true);
+    // ... rest of the function remains exactly the same
     try {
       const orderPayload = {
+        // ... (keep all your existing payload fields here)
         customerEmail: user.email, 
         shopId: cartData.shopId,
         shopName: cartData.shopName,
@@ -216,7 +225,7 @@ const Checkout = () => {
               {/* --- NEW: GARMENT DETAILS COUNTER --- */}
               <div className="form-card">
                 <div style={{ marginBottom: '15px' }}>
-                  <h3 style={{ margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>🧺 Garment Details <span style={{fontSize: '0.8rem', fontWeight: 'normal', color: '#64748b'}}>(Optional)</span></h3>
+                  <h3 style={{ margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>🧺 Garment Details <span style={{color: '#dc2626'}}>*</span></h3>
                   <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Let the laundry hub know what is in the bag.</p>
                 </div>
                 
@@ -311,8 +320,20 @@ const Checkout = () => {
                 type="button" 
                 className="confirm-btn" 
                 onClick={handleConfirmOrder}
-                disabled={isSaving}
-                style={{ width: '100%', background: '#cbd5e1', color: 'white', padding: '16px', borderRadius: '8px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', transition: 'background 0.3s', backgroundColor: isSaving ? '#94a3b8' : '#2563eb' }}
+                // 👇 Disable if saving OR if mandatory fields are missing
+                disabled={isSaving || (!selectedAddressId && !selectedAddressText) || totalGarments === 0}
+                style={{ 
+                  width: '100%', 
+                  color: 'white', 
+                  padding: '16px', 
+                  borderRadius: '8px', 
+                  fontWeight: 'bold', 
+                  fontSize: '1.1rem', 
+                  // 👇 Change cursor and color based on validation state
+                  cursor: ((!selectedAddressId && !selectedAddressText) || totalGarments === 0) ? 'not-allowed' : 'pointer', 
+                  transition: 'background 0.3s', 
+                  backgroundColor: isSaving ? '#94a3b8' : ((!selectedAddressId && !selectedAddressText) || totalGarments === 0) ? '#94a3b8' : '#2563eb' 
+                }}
               >
                 {isSaving ? "Booking..." : "Confirm Booking ➔"}
               </button>
