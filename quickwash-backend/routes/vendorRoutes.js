@@ -182,13 +182,14 @@ router.post('/vendor-signup', upload.fields([
 // --- VENDOR LOGIN ---
 router.post('/login', async (req, res) => {
   try {
+    
     const { email, password } = req.body;
     const lowercaseEmail = email.toLowerCase();
 
     // 1. Find the vendor by email
     const vendor = await Vendor.findOne({ email: lowercaseEmail });
     if (!vendor) {
-      return res.status(400).json({ message: "Invalid credentials. Please try again." });
+      return res.status(400).json({ message: "Your are not registered." });
     }
 
     // 2. Check the password (Comparing plain text exactly as it is in your database!)

@@ -210,7 +210,7 @@ const OrderDetails = () => {
                 <div key={i} className="service-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <div>
                     <strong>{item.name}</strong>
-                    <p className="service-subtext" style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Qty: {item.qty}</p>
+                    <p className="service-subtext" style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Qty: {order.totalExpectedGarments || 0} items</p>
                   </div>
                   <span className="rate-badge" style={{ fontWeight: 'bold' }}>₹{item.price}{item.name.includes("Dry Clean") ? "/pc" : "/kg"}</span>
                 </div>
@@ -230,7 +230,7 @@ const OrderDetails = () => {
                 <div className="ready-to-pay-box">
                   <div className="bill-summary-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '1.1rem' }}>
                     <span>Total Amount Due</span>
-                    <strong>₹{order.totalAmount}</strong>
+                    <strong>₹{order.totalAmount+40}</strong>
                   </div>
                   
                   {order.paymentStatus === 'Paid' ? (

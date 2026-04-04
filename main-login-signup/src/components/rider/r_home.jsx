@@ -119,6 +119,24 @@ const RiderHome = () => {
     
   }, [rider, navigate, fetchTodaysEarnings]);
 
+
+  const handleNavigate = () => {
+    // Assuming your activeTask object holds the addresses like this. 
+    // Update these variables if your object structure is different!
+    const customerAddress = activeTask.pickup.address; 
+    const vendorAddress = activeTask.dropoff.address;
+
+    // We use encodeURIComponent to safely format the addresses for a web link (handling spaces, commas, etc.)
+    const origin = encodeURIComponent(customerAddress);
+    const destination = encodeURIComponent(vendorAddress);
+
+    // Construct the Google Maps URL
+    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+
+    // Open the URL in a new browser tab
+    window.open(googleMapsUrl, '_blank');
+  };
+
   // --- 1. FETCH LIVE BROADCASTS (THE RADAR) ---
   const fetchAvailableOrders = useCallback(async () => {
     if (!isOnline || activeTask) return; 
@@ -135,9 +153,12 @@ const RiderHome = () => {
           taskType: isCollection ? 'Collection Run' : 'Delivery Run', 
           pickup: isCollection 
             ? { label: 'Pickup from Customer', name: o.customerEmail?.split('@')[0] || 'Customer', address: o.pickupAddress || 'Customer Address' }
-            : { label: 'Pickup from Vendor Hub', name: o.shopName || 'Vendor', address: 'Vendor Hub (See Map)' }, 
+            // 👇 FIX: Send the real shop address to the app instead of "Vendor Hub (See Map)"
+            : { label: 'Pickup from Vendor Hub', name: o.shopName || 'Vendor', address: o.shopAddress || o.vendorAddress || o.hubAddress || 'Mangaluru' }, 
+          
           dropoff: isCollection 
-            ? { label: 'Drop at Vendor Hub', name: o.shopName || 'Vendor', address: 'Vendor Hub (See Map)' }
+            // 👇 FIX: Send the real shop address to the app instead of "Vendor Hub (See Map)"
+            ? { label: 'Drop at Vendor Hub', name: o.shopName || 'Vendor', address: o.shopAddress || o.vendorAddress || o.hubAddress || 'Mangaluru' }
             : { label: 'Drop to Customer', name: o.customerEmail?.split('@')[0] || 'Customer', address: o.pickupAddress || 'Customer Address' },
           distance: 'Est. 4 km', 
           time: '15 mins', 
@@ -249,15 +270,7 @@ const RiderHome = () => {
 
   const handleSwipeEnd = () => { if (swipeValue <= 85) setSwipeValue(0); };
 
-  const openMapsForPickup = () => {
-    const destination = encodeURIComponent(activeTask.pickup.address);
-    window.open(`http://googleusercontent.com/maps.google.com/?q=${destination}`, '_blank');
-  };
-
-  const openMapsForDropoff = () => {
-    const destination = encodeURIComponent(activeTask.dropoff.address);
-    window.open(`http://googleusercontent.com/maps.google.com/?q=${destination}`, '_blank');
-  };
+  
 
   if (!rider) return null;
 
@@ -472,8 +485,8 @@ const RiderHome = () => {
             <div className="rhome-action-buttons">
               {tripStatus === 'accepted' && (
                 <>
-                  <button className="rhome-btn-nav" onClick={openMapsForPickup}><span role="img" aria-label="nav">🧭</span> Navigate</button>
-                  <button 
+                <button className="rhome-btn-nav" onClick={handleNavigate}><span role="img" aria-label="nav">🧭</span> Navigate</button>                  
+                <button 
                     className="rhome-btn-primary" 
                     onClick={handleConfirmPickup}
                     disabled={!isVerified}
@@ -488,7 +501,7 @@ const RiderHome = () => {
               )}
               {tripStatus === 'picked_up' && (
                 <>
-                  <button className="rhome-btn-nav" onClick={openMapsForDropoff}><span role="img" aria-label="nav">🧭</span> Navigate</button>
+                  <button className="rhome-btn-nav" onClick={handleNavigate}><span role="img" aria-label="nav">🧭</span> Navigate</button>
                   <button className="rhome-btn-primary" onClick={handleCompleteTrip} style={{background: 'linear-gradient(135deg, #10b981, #047857)'}}>Complete Dropoff</button>
                 </>
               )}

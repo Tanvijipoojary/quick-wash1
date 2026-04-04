@@ -283,8 +283,8 @@ const RiderLogin = () => {
                 <div className="r-input-group">
                   <label>Vehicle Type</label>
                   <select name="vehicleType" value={formData.vehicleType} onChange={handleInputChange} style={{width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #ccc'}}>
-                    <option>Two Wheeler (Bike/Scooter)</option>
-                    <option>Bicycle</option>
+                    <option>Petrol 2 Wheeler (Bike/Scooter)</option>
+                    <option>Electric 2 Wheeler</option>
                   </select>
                 </div>
                 <div className="r-input-group">

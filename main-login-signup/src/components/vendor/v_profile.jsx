@@ -18,6 +18,8 @@ const VendorProfile = () => {
   // Live Database Profile Data State
   const [profileData, setProfileData] = useState({
     hubName: '', owner: '', email: '', phone: '', address: '', adminStatus: 'Pending', shopImage: '',
+    rating: 0,           // 👈 ADD THIS
+    totalReviews: 0,     // 👈 ADD THIS
     pricing: { washAndIron: 60 } 
   });
   
@@ -49,6 +51,8 @@ const VendorProfile = () => {
           address: dbData.address || '',
           adminStatus: dbData.status || 'Pending',
           shopImage: dbData.shopImage || '', // 👈 ADD THIS
+          rating: dbData.rating || 0,             // 👈 ADD THIS
+          totalReviews: dbData.totalReviews || 0, // 👈 ADD THIS
           pricing: dbData.pricing || { washAndIron: 60 }
         });
         
@@ -192,9 +196,12 @@ const VendorProfile = () => {
               <h2>{profileData.hubName}</h2>
               <p>Owner: {profileData.owner}</p>
               <div className="vprof-rating">
-                <span>⭐ 4.8</span>
-                <small>(124 Reviews)</small>
-              </div>
+              {/* If rating is > 0, show the rating. Otherwise, show "New" */}
+              <span>⭐ {profileData.rating > 0 ? profileData.rating : 'New'}</span>
+              
+              {/* Show the actual total number of reviews */}
+              <small>({profileData.totalReviews} Reviews)</small>
+            </div>
             </div>
           </div>
           

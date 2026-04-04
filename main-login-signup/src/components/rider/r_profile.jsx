@@ -25,7 +25,6 @@ const RiderProfile = () => {
     city: 'Mangaluru', 
     vehicleType: '',
     regNo: '',
-    rating: '5.0', 
     kycStatus: 'Verified & Active',
     docs: { dl: 'Verified', rc: 'Verified', insurance: 'Verified', aadhar: 'Verified', pan: 'Verified' }
   });
@@ -154,7 +153,7 @@ const RiderProfile = () => {
           <div className="rprof-badge-row">
             {/* 👈 Clean 6-character Database ID! */}
             <span className="rprof-id-badge">ID: {profile.id ? profile.id.slice(-6).toUpperCase() : '...'}</span>
-            <span className="rprof-rating-badge">⭐ {profile.rating} Rating</span>
+            
           </div>
         </div>
 
@@ -325,9 +324,9 @@ const RiderProfile = () => {
               <div className="rprof-input-group">
                 <label>Vehicle Type</label>
                 <select className="rprof-modal-select" value={vehicleForm.type} onChange={(e) => setVehicleForm({...vehicleForm, type: e.target.value})}>
-                  <option value="Two Wheeler (Bike/Scooter)">Two Wheeler (Bike/Scooter)</option>
-                  <option value="Bicycle">Bicycle</option>
-                  <option value="Three Wheeler (Auto)">Three Wheeler (Auto)</option>
+                  <option value="Two Wheeler (Bike/Scooter)">Petrol 2 Wheeler (Bike/Scooter)</option>
+                  <option value="Bicycle">Electric 2 Wheeler</option>
+                  
                 </select>
               </div>
               <div className="rprof-input-group">
