@@ -51,7 +51,7 @@ const Login = () => {
 
     // --- HARDCODED ADMIN LOGIN ---
     if (enteredEmail === 'admin@quickwash.com') {
-      if (enteredPassword === 'admin123') {
+      if (enteredPassword === 'adminofquick123') {
         navigate('/admin');
       } else {
         setErrorMessage("Incorrect Admin Password!");

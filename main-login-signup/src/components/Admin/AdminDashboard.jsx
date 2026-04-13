@@ -14,8 +14,8 @@ const AdminDashboard = () => {
 
   const [usersData, setUsersData] = useState([]);
   const [transactionsData, setTransactionsData] = useState([]);
-  const [shopsData, setShopsData] = useState([]); 
-  const [ridersData, setRidersData] = useState([]); 
+  const [shopsData, setShopsData] = useState([]);
+  const [ridersData, setRidersData] = useState([]);
 
   const [dashboardStats, setDashboardStats] = useState({
     revenue: 0, totalOrders: 0, pendingOrders: 0, 
